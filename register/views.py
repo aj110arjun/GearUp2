@@ -2,9 +2,14 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.models import User
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
+from django.contrib.auth import authenticate, login
+from django.views.decorators.cache import never_cache
 
 
+@never_cache
 def user_signup(request):
+    if request.user.is_authenticated:
+        return redirect('home')
     error={}
     if request.method == 'POST':
         fullname = request.POST['fullname']
@@ -40,6 +45,25 @@ def user_signup(request):
             
     return render(request, 'user/signup.html', {'error':error})
 
+@never_cache
 def user_login(request):
-    return render(request, 'user/login.html')
+    if request.user.is_authenticated:
+        return redirect('home')
+    error={}
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        
+        if not email or not password:
+            error["common"]="All fields are required"
+            
+        if not error:
+            user = authenticate(request, username=email, password=password)
+            if user is not None:
+                login(request, user)
+                return redirect('home')
+            else:
+                error["common"] = "Invalid email or password."
+                
+    return render(request, 'user/login.html', {'error': error})
 

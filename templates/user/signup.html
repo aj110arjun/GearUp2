@@ -4,148 +4,67 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Signup Page</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr" crossorigin="anonymous">
-  <style>
-    *{
-      margin: 0;
-      padding: 0;
-    }
-    body {
-      font-family: Arial, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-      background: #BAA991;
-    }
-
-    .signup-container {
-      background: #fff;
-      padding: 40px;
-      border-radius: 10px;
-      width: 350px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-      text-align: center;
-    }
-
-    .signup-container h2 {
-      margin-bottom: 20px;
-      font-size: 28px;
-    }
-
-    input {
-      width: 100%;
-      padding: 12px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      outline: none;
-    }
-    label{
-      margin-top: 10px;
-
-    }
-
-    .submit-btn {
-      width: 100%;
-      background: black;
-      color: white;
-      padding: 12px;
-      border: none;
-      border-radius: 5px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-
-    .submit-btn:hover {
-      background: #333;
-    }
-
-    .or-divider {
-      margin: 8px 0;
-      font-size: 14px;
-      color: gray;
-    }
-
-    .google-btn {
-      width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: white;
-      border: 1px solid #ccc;
-      padding: 10px;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 14px;
-    }
-
-    .google-btn img {
-      width: 18px;
-      margin-right: 8px;
-    }
-
-    .login-link {
-      margin-top: 15px;
-      font-size: 14px;
-    }
-
-    .login-link a {
-      text-decoration: none;
-      color: #6c63ff;
-    }
-
-    .login-link a:hover {
-      text-decoration: underline;
-    }
-  </style>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body>
-  <div class="signup-container">
-    <h2>Signup</h2>
+<body style="background: #BAA991" class="min-vh-100 d-flex justify-content-center align-items-center">
+
+  <div class="card shadow-lg py-5 px-4" style="max-width: 500px; width: 100%;">
+    <h2 class="text-center mb-4">Signup</h2>
     
-    {% if error %}
-      <form method="POST">
-        {% csrf_token %}
-        <div>
-          <label class="align-start" for="fullname">Full Name:</label>
-          <input type="text" placeholder="Enter Full Name" name='fullname' id="fullname">
-          {% if error.fullname  %}
-          <p class="text-start text-danger">{{error.fullname}}</p>
-          {% endif %}
-        </div>
-        <div>
-          <label class="align-start" for="email">Email:</label>
-          <input type="text" placeholder="Enter Email" name='email' id="email">
-          {% if error.email  %}
-          <p class="text-start text-danger">{{error.email}} </p>
-          {% endif %}
-        </div>
-        <div>
-          <label class="align-start" for="password1">Password:</label>
-          <input type="password" placeholder="Enter Password" name='password1' id="password1">
-          {% if error.password1 or error.password  %}
-          <p class="text-start text-danger">{{error.password1}} {{error.password}} </p>
-          {% endif %}
-        </div>
-        <label class="text-start" for="fullname">Confirm Password:</label>
-        <input type="password" placeholder="Enter Confirm Password" name='password2'>
-        <button class="submit-btn my-4" >Submit</button>
-        
-        {% if error.common %}
-          <p class="text-danger ">{{error.common}}</p>
-        {% endif %}  
-      </form>
-    {% endif %}
-        <div class="or-divider">OR</div>
-        <button class="google-btn">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/4/4e/Google_%22G%22_Logo.svg" alt="">
-          Sign in with Google
-        </button>
-        <div class="login-link">
-          Already have an account? <a href="{% url 'login' %}">Login</a>
-        </div>
+    <form method="POST">
+      {% csrf_token %}
+      
+      <div class="mb-3">
+        <label for="fullname" class="form-label">Full Name</label>
+        <input type="text" class="form-control" id="fullname" name="fullname" placeholder="Enter Full Name">
+        {% if error.fullname %}
+          <div class="text-danger small">{{ error.fullname }}</div>
+        {% endif %}
+      </div>
+
+      <div class="mb-3">
+        <label for="email" class="form-label">Email</label>
+        <input type="text" class="form-control" id="email" name="email" placeholder="Enter Email">
+        {% if error.email %}
+          <div class="text-danger small">{{ error.email }}</div>
+        {% endif %}
+      </div>
+
+      <div class="mb-3">
+        <label for="password1" class="form-label">Password</label>
+        <input type="password" class="form-control" id="password1" name="password1" placeholder="Enter Password">
+        {% if error.password1 or error.password %}
+          <div class="text-danger small">{{ error.password1 }} <br> {{ error.password }}</div>
+        {% endif %}
+      </div>
+
+      <div class="mb-3">
+        <label for="password2" class="form-label">Confirm Password</label>
+        <input type="password" class="form-control" id="password2" name="password2" placeholder="Enter Confirm Password">
+        {% if error.password2 or error.password %}
+          <div class="text-danger small">{{ error.password2 }} {{ error.password }}</div>
+        {% endif %}
+      </div>
+
+      {% if error.common %}
+        <div class="text-danger small mb-3">{{ error.common }}</div>
+      {% endif %}
+
+      <button type="submit" class="btn btn-dark w-100 mb-3">Submit</button>
+    </form>
+
+    <div class="text-center text-muted mb-3">OR</div>
+
+    <button class="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center gap-2 mb-3">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/4/4e/Google_%22G%22_Logo.svg" width="20">
+      Sign in with Google
+    </button>
+
+    <div class="text-center small">
+      Already have an account? <a href="{% url 'login' %}" class="text-decoration-none">Login</a>
+    </div>
   </div>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js" integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q" crossorigin="anonymous"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
