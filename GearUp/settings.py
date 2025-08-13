@@ -27,6 +27,8 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.google',
     'home',
     'register',
+    'user_account',
+    'widget_tweaks',
 ]
 
 MIDDLEWARE = [
@@ -93,7 +95,7 @@ SOCIALACCOUNT_PROVIDERS = {
     'google': {
         'APP': {
             'client_id': os.getenv('GOOGLE_CLIENT_ID', '60084242284-8qf2jc3gq6qepf14k4ghp6045ktv060d.apps.googleusercontent.com'),
-            'secret': os.getenv('GOOGLE_CLIENT_SECRET', ''),
+            'secret': os.getenv('GOOGLE_CLIENT_SECRET', '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'),
         }
     }
 }

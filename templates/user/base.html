@@ -22,7 +22,7 @@
             
     </head>
     <body>
-          <nav class="navbar navbar-expand-lg navbar-light">
+          <nav class="navbar navbar-expand-lg navbar-light bg-light">
             <div class="container">
             <a class="navbar-brand" href="{% url 'home' %}">GearUp</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -35,16 +35,16 @@
                     <a class="nav-link" href="{% url 'home' %}">Home</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="">Shop</a>
+                    {% comment %} <a class="nav-link" href="{% url '' %}">Shop</a> {% endcomment %}
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="">Cart</a>
+                    {% comment %} <a class="nav-link" href="{% url '' %}">Cart</a> {% endcomment %}
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="">Wishlist</a>
+                    {% comment %} <a class="nav-link" href="{% url '' %}">Wishlist</a> {% endcomment %}
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="">Account</a>
+                    <a class="nav-link" href="{% url 'account_info' %}">Account</a>
                 </li>
                 </ul>
             </div>
