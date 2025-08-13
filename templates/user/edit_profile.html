@@ -5,6 +5,11 @@
 {% block title %}
     Edit Profile
 {% endblock title %}
+
+{% block css %}
+    <link rel="stylesheet" href="css/account.css" type="text/css" />
+{% endblock css %}
+    
     
 {% block content %}
 <div class="container mt-5">
@@ -28,16 +33,25 @@
             <div class="mb-3">
                 <label class="form-label fw-semibold">Current Password</label>
                 {{ form.current_password|add_class:"form-control" }}
+                {% if error.cupassword %}
+                    <p class="text-danger">{{error.cupassword}}</p>
+                {% endif %}
             </div>
 
             <div class="mb-3">
                 <label class="form-label fw-semibold">New Password</label>
                 {{ form.new_password|add_class:"form-control" }}
+                {% if error.password %}
+                    <p class="text-danger">{{error.password}}</p>
+                {% endif %}
             </div>
 
             <div class="mb-3">
                 <label class="form-label fw-semibold">Confirm New Password</label>
                 {{ form.confirm_password|add_class:"form-control" }}
+                {% if error.cpassword %}
+                    <p class="text-danger">{{error.cpassword}}</p>
+                {% endif %}
             </div>
 
             <hr>
