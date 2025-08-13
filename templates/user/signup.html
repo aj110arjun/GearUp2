@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Signup Page</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body style="background: #BAA991" class="min-vh-100 d-flex justify-content-center align-items-center">
+
+  <div class="card shadow-lg py-5 px-4" style="max-width: 500px; width: 100%;">
+    <h2 class="text-center mb-4">Signup</h2>
+    
+    <form method="POST">
+      {% csrf_token %}
+      
+      <div class="mb-3">
+        <label for="fullname" class="form-label">Full Name</label>
+        <input type="text" class="form-control" id="fullname" name="fullname" placeholder="Enter Full Name">
+        {% if error.fullname %}
+          <div class="text-danger small">{{ error.fullname }}</div>
+        {% endif %}
+      </div>
+
+      <div class="mb-3">
+        <label for="email" class="form-label">Email</label>
+        <input type="text" class="form-control" id="email" name="email" placeholder="Enter Email">
+        {% if error.email %}
+          <div class="text-danger small">{{ error.email }}</div>
+        {% endif %}
+      </div>
+
+      <div class="mb-3">
+        <label for="password1" class="form-label">Password</label>
+        <input type="password" class="form-control" id="password1" name="password1" placeholder="Enter Password">
+        {% if error.password1 or error.password %}
+          <div class="text-danger small">{{ error.password1 }} <br> {{ error.password }}</div>
+        {% endif %}
+      </div>
+
+      <div class="mb-3">
+        <label for="password2" class="form-label">Confirm Password</label>
+        <input type="password" class="form-control" id="password2" name="password2" placeholder="Enter Confirm Password">
+        {% if error.password2 or error.password %}
+          <div class="text-danger small">{{ error.password2 }} {{ error.password }}</div>
+        {% endif %}
+      </div>
+
+      {% if error.common %}
+        <div class="text-danger small mb-3">{{ error.common }}</div>
+      {% endif %}
+
+      <button type="submit" class="btn btn-dark w-100 mb-3">Submit</button>
+    </form>
+
+    <div class="text-center small">
+      Already have an account? <a href="{% url 'login' %}" class="text-decoration-none">Login</a>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
