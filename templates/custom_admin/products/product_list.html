@@ -7,7 +7,7 @@
 
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h4>All Products</h4>
-    <a href="" class="btn btn-primary">+ Add Product</a>
+    <a href="{% url 'product_add' %}" class="btn btn-primary">+ Add Product</a>
   </div>
 
   <form method="get" class="row g-3 mb-4">
@@ -91,8 +91,8 @@
           {% else %}
             <td><span class="badge bg-danger">Blocked</span></td>
           {% endif %}
-          <td>₹{{ product.price }}</td>
-          <td>{{ product.stock }}</td>
+          <td>₹{{ product.variants.first.price }}</td>
+          <td>{{ product.total_stock }}</td>
           <td class="text-center">
             <a href="" class="btn btn-sm btn-info me-1">View</a>
           </td>

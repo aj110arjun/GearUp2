@@ -1,0 +1,27 @@
+{% extends 'custom_admin/base.html' %}
+{% block content %}
+<h2>{% if category %}Edit{% else %}Add{% endif %} Category</h2>
+<form method="POST">
+    {% csrf_token %}
+    <div class="mb-3">
+        <label>Name</label>
+        <input type="text" name="name" class="form-control" value="{{ category.name|default:'' }}" required>
+    </div>
+    <div class="mb-3">
+        <label>Description</label>
+        <textarea name="description" class="form-control">{{ category.description|default:'' }}</textarea>
+    </div>
+    <div class="mb-3">
+        <label>Parent Category</label>
+        <select name="parent" class="form-control">
+            <option value="">-- None --</option>
+            {% for cat in categories %}
+                <option value="{{ cat.id }}" {% if category.parent.id == cat.id %}selected{% endif %}>
+                    {{ cat.name }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+    <button type="submit" class="btn btn-success">Save</button>
+</form>
+{% endblock %}

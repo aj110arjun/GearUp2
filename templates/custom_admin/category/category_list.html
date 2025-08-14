@@ -1,0 +1,34 @@
+{% extends 'custom_admin/base.html' %}
+{% block content %}
+<h2>Categories</h2>
+<a href="{% url 'category_add' %}" class="btn btn-primary mb-3">Add Category</a>
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Parent</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+   {% for cat in categories %}
+<tr>
+    <td>{{ cat.name }}</td>
+    <td>
+        {% if cat.parent %}
+            {{ cat.parent.name }}
+        {% else %}
+            -
+        {% endif %}
+    </td>
+    <td>
+        <a href="{% url 'category_edit' cat.id %}" class="btn btn-sm btn-warning">Edit</a>
+        <a href="{% url 'category_delete' cat.id %}" class="btn btn-sm btn-danger"
+           onclick="return confirm('Delete this category?')">Delete</a>
+    </td>
+</tr>
+{% endfor %}
+
+    </tbody>
+</table>
+{% endblock %}
