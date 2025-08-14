@@ -107,13 +107,13 @@ def verify_email_otp(request):
             profile.otp_expiry = None
             profile.save()
 
-            message = "✅ Email verified and updated successfully!"
+            # message = "✅ Email verified and updated successfully!"
             request.session['profile_updated'] = True
             return redirect("account_info")
-        else:
-            message = "❌ Invalid or expired OTP."
+        # else:
+        #     message = "❌ Invalid or expired OTP."
 
-    return render(request, "user/otp/verify_otp.html", {"message": message})
+    return render(request, "user/otp/verify_otp.html")
 
 def confirm_email(request, user_id, new_email):
     user = User.objects.get(id=user_id)

@@ -11,3 +11,11 @@ def home(request):
     if not request.user.is_authenticated:
         return redirect('login')
     return render(request, 'user/index.html')
+#
+
+
+
+# Admin Views
+
+def dashboard(request):
+    return render(request, 'custom_admin/dashboard.html')

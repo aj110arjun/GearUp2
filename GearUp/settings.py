@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     'register',
     'user_account',
     'widget_tweaks',
+    'products',
 ]
 
 MIDDLEWARE = [

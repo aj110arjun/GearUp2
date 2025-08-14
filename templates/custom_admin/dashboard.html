@@ -1,0 +1,67 @@
+{% extends "custom_admin/base.html" %}
+{% block title %}
+    Admin Dashboard
+{% endblock title %}
+{% block content %}
+    
+
+      <main class="col-md-10">
+        <div class="dashboard-header">
+          <h3>Welcome, {{ user.first_name }}</h3>
+          <p class="text-muted">Here's what's happening today</p>
+        </div>
+
+        <div class="container mt-4">
+          <div class="row g-4">
+            <div class="col-md-4">
+              <div class="card text-white bg-primary">
+                <div class="card-body">
+                  <h5 class="card-title">Orders</h5>
+                  <p class="card-text">12 new orders today</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-4">
+              <div class="card text-white bg-success">
+                <div class="card-body">
+                  <h5 class="card-title">Messages</h5>
+                  <p class="card-text">3 unread messages</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-4">
+              <div class="card text-white bg-warning">
+                <div class="card-body">
+                  <h5 class="card-title">Profile</h5>
+                  <p class="card-text">Update your personal info</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row mt-5">
+            <div class="col-12">
+              <div class="card">
+                <div class="card-header">
+                  Recent Activity
+                </div>
+                <div class="card-body">
+                  <ul>
+                    <li>You placed an order on July 22</li>
+                    <li>Your profile was updated</li>
+                    <li>You received a message from Support</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+{% endblock content %}
+

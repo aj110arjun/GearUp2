@@ -1,0 +1,76 @@
+{% extends 'user/base.html' %}
+{% load static %}
+
+{% block title %}Products{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+
+    <!-- Search & Filters Row -->
+    <div class="row mb-4 align-items-center">
+        <!-- Search -->
+        <div class="col-md-4 mb-2">
+            <form method="get">
+                <div class="input-group">
+                    <input type="text" name="q" class="form-control" placeholder="Search products..."
+                           value="{{ request.GET.q }}">
+                    <button class="btn btn-primary" type="submit">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Category Filter -->
+        <div class="col-md-3 mb-2">
+            <form method="get">
+                <select name="category" class="form-select" onchange="this.form.submit()">
+                    <option value="">All Categories</option>
+                    {% for cat in categories %}
+                        <option value="{{ cat.id }}" {% if request.GET.category == cat.id|stringformat:"s" %}selected{% endif %}>
+                            {{ cat.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+
+        <!-- Sorting -->
+        <div class="col-md-3 mb-2">
+            <form method="get">
+                <select name="sort" class="form-select" onchange="this.form.submit()">
+                    <option value="">Sort by</option>
+                    <option value="name" {% if request.GET.sort == "name" %}selected{% endif %}>Name</option>
+                    <option value="price_asc" {% if request.GET.sort == "price_asc" %}selected{% endif %}>Price: Low to High</option>
+                    <option value="price_desc" {% if request.GET.sort == "price_desc" %}selected{% endif %}>Price: High to Low</option>
+                </select>
+            </form>
+        </div>
+    </div>
+
+    <!-- Product Grid -->
+    <div class="row g-4">
+        {% for product in products %}
+        <div class="col-sm-6 col-md-4 col-lg-3">
+            <div class="card h-100 shadow-sm">
+                {% if product.image %}
+                <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.name }}">
+                {% else %}
+                <img src="{% static 'images/placeholder.png' %}" class="card-img-top" alt="No image">
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ product.name }}</h5>
+                    <p class="card-text text-muted">From ₹{{ product.variants.first.price }}</p>
+                    <a href="" class="btn btn-outline-primary btn-sm w-100">
+                        View Details
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <p>No products found.</p>
+        {% endfor %}
+    </div>
+
+</div>
+{% endblock %}
