@@ -133,3 +133,33 @@ def logout_view(request):
     request.session.flush()
     return redirect('login')
 
+
+# Admin Views
+
+# login view 
+def admin_login(request):
+    # If already logged in as staff, redirect to dashboard
+    if request.user.is_authenticated and request.user.is_staff:
+        return redirect('dashboard')
+
+    if request.method == "POST":
+        error={}
+        username = request.POST.get("username").strip()
+        password = request.POST.get("password").strip()
+
+        user = authenticate(request, username=username, password=password)
+
+        if user is not None:
+            if user.is_staff:  # Check if user is admin/staff
+                login(request, user)
+                return redirect('dashboard')
+            else:
+                error['admin'] = "You do not have admin access."
+        else:
+            error['admin'] = "Invalid username or password"
+        if error:
+            return render(request, "custom_admin/login.html", {'error':error})
+            
+
+    return render(request, "custom_admin/login.html")
+
