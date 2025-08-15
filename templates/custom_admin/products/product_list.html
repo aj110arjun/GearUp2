@@ -10,57 +10,53 @@
     <a href="{% url 'product_add' %}" class="btn btn-primary">+ Add Product</a>
   </div>
 
-  <form method="get" class="row g-3 mb-4">
+ <form method="get" class="row g-2 mb-4">
     <div class="col-md-3">
-      <label class="form-label">Category</label>
-      <select name="category" class="form-select">
-        <option value="">All</option>
-        {% for cat in categories %}
-        <option value="{{ cat.id }}" {% if filters.category == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
-        {% endfor %}
-      </select>
+        <select name="category" class="form-select">
+            <option value="">All Categories</option>
+            {% for cat in categories %}
+                <option value="{{ cat.id }}" {% if filters.category == cat.id|stringformat:"s" %}selected{% endif %}>
+                    {{ cat.name }}
+                </option>
+            {% endfor %}
+        </select>
     </div>
 
     <div class="col-md-2">
-      <label class="form-label">Min Price</label>
-      <input type="number" name="min_price" class="form-control" value="{{ filters.min_price }}">
+        <select name="in_stock" class="form-select">
+            <option value="">Stock Status</option>
+            <option value="true" {% if filters.in_stock == 'true' %}selected{% endif %}>In Stock</option>
+            <option value="false" {% if filters.in_stock == 'false' %}selected{% endif %}>Out of Stock</option>
+        </select>
     </div>
 
     <div class="col-md-2">
-      <label class="form-label">Max Price</label>
-      <input type="number" name="max_price" class="form-control" value="{{ filters.max_price }}">
+        <select name="is_active" class="form-select">
+            <option value="">Active Status</option>
+            <option value="true" {% if filters.is_active == 'true' %}selected{% endif %}>Active</option>
+            <option value="false" {% if filters.is_active == 'false' %}selected{% endif %}>Inactive</option>
+        </select>
     </div>
 
     <div class="col-md-2">
-      <label class="form-label">In Stock</label>
-      <select name="in_stock" class="form-select">
-        <option value="">All</option>
-        <option value="true" {% if filters.in_stock == 'true' %}selected{% endif %}>Yes</option>
-        <option value="false" {% if filters.in_stock == 'false' %}selected{% endif %}>No</option>
-      </select>
+        <select name="sort" class="form-select">
+            <option value="">Sort By</option>
+            <option value="name" {% if filters.sort == 'name' %}selected{% endif %}>Name (A-Z)</option>
+            <option value="price_asc" {% if filters.sort == 'price_asc' %}selected{% endif %}>Price Low to High</option>
+            <option value="price_desc" {% if filters.sort == 'price_desc' %}selected{% endif %}>Price High to Low</option>
+            <option value="stock_asc" {% if filters.sort == 'stock_asc' %}selected{% endif %}>Stock Low to High</option>
+            <option value="stock_desc" {% if filters.sort == 'stock_desc' %}selected{% endif %}>Stock High to Low</option>
+        </select>
     </div>
 
     <div class="col-md-3">
-    <label class="form-label">Search</label>
-    <input type="text" name="search" class="form-control" placeholder="Product name..." value="{{ filters.search }}">
-  </div>
-
-  <div class="col-md-3">
-    <label class="form-label">Sort By</label>
-    <select name="sort" class="form-select">
-      <option value="" {% if not filters.sort %}selected{% endif %}>Default</option>
-      <option value="name_asc"  {% if filters.sort == 'name_asc' %}selected{% endif %}>Name A-Z</option>
-      <option value="name_desc" {% if filters.sort == 'name_desc'%}selected{% endif %}>Name Z-A</option>
-      <option value="price_asc" {% if filters.sort == 'price_asc'%}selected{% endif %}>Price Low to High</option>
-      <option value="price_desc"{% if filters.sort == 'price_desc'%}selected{% endif %}>Price High to Low</option>
-    </select>
-  </div>
-
-    <div class="col-md-3 d-flex align-items-end gap-2">
-      <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
-      <a href="" class="btn btn-secondary w-100">Reset</a>
+        <div class="input-group">
+            <input type="text" name="q" value="{{ filters.search }}" class="form-control" placeholder="Search products...">
+            <button class="btn btn-primary">Search</button>
+        </div>
     </div>
-  </form>
+</form>
+
 
   <div class="table-responsive">
     <table class="table table-hover align-middle shadow-sm">

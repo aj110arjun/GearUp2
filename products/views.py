@@ -69,12 +69,76 @@ def product_list(request):
 
 # Admin View
 
+from django.db.models import Q, Min, Sum
+
 def admin_product_list(request):
-    products = Product.objects.all()
-    context={
-        'products': products
+    products = Product.objects.select_related('category').annotate(
+    min_variant_price=Min('variants__price'),
+    total_stock=Sum('variants__stock')
+)
+    categories = Category.objects.all()
+
+    # Capture filters from query params
+    filters = {
+        'category': request.GET.get('category', ''),
+        'in_stock': request.GET.get('in_stock', ''),
+        'is_active': request.GET.get('is_active', ''),
+        'search': request.GET.get('q', ''),
+        'sort': request.GET.get('sort', '')
+    }
+
+    # Annotate price and stock
+    products = products.annotate(
+        min_variant_price=Min('variants__price'),
+        total_stock=Sum('variants__stock')
+    )
+
+    # Category filter
+    if filters['category']:
+        products = products.filter(category_id=filters['category'])
+
+    # Stock filter
+    if filters['in_stock'] == 'true':
+        products = products.filter(total_stock__gt=0)
+    elif filters['in_stock'] == 'false':
+        products = products.filter(Q(total_stock__lte=0) | Q(total_stock__isnull=True))
+
+    # Active/Inactive filter
+    if filters['is_active'] == 'true':
+        products = products.filter(is_active=True)
+    elif filters['is_active'] == 'false':
+        products = products.filter(is_active=False)
+
+    # Search filter
+    if filters['search']:
+        products = products.filter(
+            Q(name__icontains=filters['search']) |
+            Q(description__icontains=filters['search']) |
+            Q(brand__icontains=filters['search']) |
+            Q(category__name__icontains=filters['search'])
+        )
+
+    # Sorting
+    if filters['sort'] == 'name':
+        products = products.order_by('name')
+    elif filters['sort'] == 'price_asc':
+        products = products.order_by('min_variant_price')
+    elif filters['sort'] == 'price_desc':
+        products = products.order_by('-min_variant_price')
+    elif filters['sort'] == 'stock_asc':
+        products = products.order_by('total_stock')
+    elif filters['sort'] == 'stock_desc':
+        products = products.order_by('-total_stock')
+    else:
+        products = products.order_by('-id')  # latest first
+
+    context = {
+        'products': products,
+        'categories': categories,
+        'filters': filters
     }
     return render(request, 'custom_admin/products/product_list.html', context)
+
 
 
 def admin_product_add(request):
@@ -156,6 +220,7 @@ def admin_product_detail(request, pk):
 
 def admin_product_edit(request, pk):
     product = get_object_or_404(Product, pk=pk)
+    categories = Category.objects.all() 
 
     if request.method == "POST":
         # --- Update main product ---
@@ -213,7 +278,17 @@ def admin_product_edit(request, pk):
     return render(request, 'custom_admin/products/product_edit.html', {
         'product': product,
         # 'additional_images': additional_images,
+        'categories': categories,
         'variants': variants
     })
+    
+def toggle_product_status(request, pk):
+    product = get_object_or_404(Product, pk=pk)
+    
+    # Toggle active status
+    product.is_active = not product.is_active
+    product.save()
+    return redirect('admin_product_detail', pk=pk)
+
 
 

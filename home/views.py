@@ -17,5 +17,6 @@ def home(request):
 
 # Admin Views
 
+@login_required(login_url='admin_login')
 def dashboard(request):
     return render(request, 'custom_admin/dashboard.html')
