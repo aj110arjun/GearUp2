@@ -1,0 +1,138 @@
+{% extends 'custom_admin/base.html' %}
+{% load static %}
+
+{% block title %}Edit {{ product.name }}{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h2>Edit Product</h2>
+    <hr>
+
+    <form method="post" enctype="multipart/form-data" class="card p-4 shadow-sm">
+        {% csrf_token %}
+
+        <!-- Main Product Info -->
+        <div class="mb-4">
+            <h4>Main Details</h4>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Name</label>
+                    <input type="text" name="name" value="{{ product.name }}" class="form-control">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Category</label>
+                    <select name="category" class="form-select">
+                        {% for c in categories %}
+                            <option value="{{ c.id }}" {% if product.category_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Brand</label>
+                    <input type="text" name="brand" value="{{ product.brand }}" class="form-control">
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Description</label>
+                    <textarea name="description" class="form-control" rows="4">{{ product.description }}</textarea>
+                </div>
+                <div class="col-6">
+                    <label class="form-label">Main Image</label><br>
+                    {% if product.image %}
+                        <img src="{{ product.image.url }}" class="img-thumbnail mb-2" style="max-height:150px;">
+                    {% endif %}
+                    <input type="file" name="image" class="form-control">
+                </div>
+                <div class="col-6 d-flex align-items-center">
+                    <div class="form-check mt-4">
+                        <input type="checkbox" name="is_active" class="form-check-input" {% if product.is_active %}checked{% endif %}>
+                        <label class="form-check-label">Active</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Additional Images -->
+        <div class="mb-4">
+            <h4>Additional Images</h4>
+            {% for img in additional_images %}
+                <input type="hidden" name="image_id" value="{{ img.id }}">
+                <div class="d-flex align-items-center mb-2">
+                    <img src="{{ img.image.url }}" style="width:100px; height:100px; object-fit:cover;" class="me-2">
+                    Delete? <input type="checkbox" name="delete_image_{{ img.id }}" class="ms-2">
+                </div>
+            {% endfor %}
+            <label>Add New Images</label>
+            <input type="file" name="new_images" multiple class="form-control">
+        </div>
+
+        <!-- Variants -->
+        <div class="mb-4">
+            <h4>Variants</h4>
+            {% for v in variants %}
+                <input type="hidden" name="variant_id" value="{{ v.id }}">
+                <div class="border rounded p-3 mb-3 bg-light">
+                    <div class="row g-3 align-items-center">
+                        <div class="col-md-3">
+                            Color: <input type="text" name="color_{{ v.id }}" value="{{ v.color }}" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            Size: <input type="text" name="size_{{ v.id }}" value="{{ v.size }}" class="form-control">
+                        </div>
+                        <div class="col-md-2">
+                            Price: <input type="number" name="price_{{ v.id }}" value="{{ v.price }}" class="form-control">
+                        </div>
+                        <div class="col-md-2">
+                            Stock: <input type="number" name="stock_{{ v.id }}" value="{{ v.stock }}" class="form-control">
+                        </div>
+                        <div class="col-md-2 text-center">
+                            Delete? <input type="checkbox" name="delete_variant_{{ v.id }}">
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+
+            <!-- Add New Variant -->
+            <h5>Add New Variant</h5>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    Color: <input type="text" name="new_color" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    Size: <input type="text" name="new_size" class="form-control">
+                </div>
+                <div class="col-md-2">
+                    Price: <input type="number" name="new_price" class="form-control">
+                </div>
+                <div class="col-md-2">
+                    Stock: <input type="number" name="new_stock" class="form-control">
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">💾 Save Changes</button>
+            <a href="{% url 'admin_product_detail' product.pk %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<style>
+    input, select, textarea {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+    }
+    input:focus, select:focus, textarea:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 5px rgba(13,110,253,0.3);
+    }
+    .img-thumbnail {
+        border-radius: 6px;
+        transition: transform 0.2s ease;
+    }
+    .img-thumbnail:hover {
+        transform: scale(1.05);
+    }
+</style>
+{% endblock %}

@@ -1,8 +1,9 @@
 from django.shortcuts import render
 from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
 
 from django.db.models import Q, Min, Max, Sum
-from .models import Product, Category
+from .models import Product, ProductVariant, Category
 
 
 def product_list(request):
@@ -140,4 +141,79 @@ def category_delete(request, pk):
     category = get_object_or_404(Category, pk=pk)
     category.delete()
     return redirect('category_list')
+
+# @login_required(login_url="admin_login")
+def admin_product_detail(request, pk):
+    product = get_object_or_404(Product, pk=pk)
+    variants = product.variants.all()  # assuming related_name="variants" in ProductVariant model
+    # additional_images = product.images.all()  # assuming related_name="images" in ProductImage model
+
+    return render(request, "custom_admin/products/product_detail.html", {
+        "product": product,
+        "variants": variants,
+        # "additional_images": additional_images
+    })
+
+def admin_product_edit(request, pk):
+    product = get_object_or_404(Product, pk=pk)
+
+    if request.method == "POST":
+        # --- Update main product ---
+        product.name = request.POST.get('name')
+        product.brand = request.POST.get('brand')
+        product.description = request.POST.get('description')
+        product.category_id = request.POST.get('category')
+        product.is_active = request.POST.get('is_active') == 'on'
+        if request.FILES.get('image'):
+            product.image = request.FILES['image']
+        product.save()
+
+        # --- Update additional images ---
+        # for img_id in request.POST.getlist('image_id'):
+        #     img = ProductImage.objects.get(id=img_id)
+        #     if f'delete_image_{img.id}' in request.POST:
+        #         img.delete()
+
+        # Add new images
+        # for file in request.FILES.getlist('new_images'):
+        #     ProductImage.objects.create(product=product, image=file)
+
+        # --- Update variants ---
+        for var_id in request.POST.getlist('variant_id'):
+            variant = ProductVariant.objects.get(id=var_id)
+            if f'delete_variant_{variant.id}' in request.POST:
+                variant.delete()
+            else:
+                variant.color = request.POST.get(f'color_{variant.id}')
+                variant.size = request.POST.get(f'size_{variant.id}')
+                variant.price = request.POST.get(f'price_{variant.id}')
+                variant.stock = request.POST.get(f'stock_{variant.id}')
+                variant.save()
+
+        # Add new variant
+        new_color = request.POST.get('new_color')
+        new_size = request.POST.get('new_size')
+        new_price = request.POST.get('new_price')
+        new_stock = request.POST.get('new_stock')
+        if new_color and new_size:
+            ProductVariant.objects.create(
+                product=product,
+                color=new_color,
+                size=new_size,
+                price=new_price or 0,
+                stock=new_stock or 0
+            )
+
+        return redirect('admin_product_detail', pk=product.pk)
+
+    # GET request — render page
+    # additional_images = product.productimage_set.all()
+    variants = product.variants.all()
+
+    return render(request, 'custom_admin/products/product_edit.html', {
+        'product': product,
+        # 'additional_images': additional_images,
+        'variants': variants
+    })
+
 
