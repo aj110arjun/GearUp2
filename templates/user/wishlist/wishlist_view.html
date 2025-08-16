@@ -1,7 +1,7 @@
 {% extends "user/base.html" %}
 {% block content %}
 <div class="container my-5">
-    <h2>My Wishlist</h2>
+    <h2>❤️ My Wishlist</h2>
     <hr>
 
     {% if items %}
@@ -13,9 +13,28 @@
                         <div class="card-body">
                             <h5>{{ w.product.name }}</h5>
                             <p class="text-muted">{{ w.product.brand }}</p>
-                            <p><strong>Price:</strong> ${{ w.product.variants.first.price }}</p>
-                            <a href="{% url 'remove_from_wishlist' w.product.pk %}" class="btn btn-sm btn-danger">Remove</a>
-                            <a href="{% url 'product_detail' w.product.pk %}" class="btn btn-sm btn-primary">View Product</a>
+
+                            <!-- Variant Selection -->
+                            {% if w.product.variants.exists %}
+                                <form method="post" action="{% url 'add_to_cart' 0 %}" id="wishlist-form-{{ w.id }}">
+                                    {% csrf_token %}
+                                    <div class="mb-2">
+                                        <label for="variant-{{ w.id }}" class="form-label">Choose Variant:</label>
+                                        <select name="variant_id" id="variant-{{ w.id }}" class="form-select" required>
+                                            {% for v in w.product.variants.all %}
+                                                <option value="{{ v.id }}">
+                                                    {{ v.color }} | {{ v.size }} | ${{ v.price }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+
+                                    <button type="submit" class="btn btn-success btn-sm">🛒 Add to Cart</button>
+                                    <a href="{% url 'remove_from_wishlist' w.product.pk %}" class="btn btn-danger btn-sm">🗑 Remove</a>
+                                </form>
+                            {% else %}
+                                <p class="text-muted">No variants available</p>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
