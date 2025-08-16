@@ -1,49 +1,89 @@
 {% extends "user/base.html" %}
+{% load static %}
 {% block content %}
 <div class="container my-5">
-    <h2 class="mb-3">Order #{{ order.id }}</h2>
-    <p>Status: 
-        <span class="badge 
-            {% if order.status == 'Pending' %} bg-warning 
-            {% elif order.status == 'Shipped' %} bg-info 
-            {% elif order.status == 'Delivered' %} bg-success 
-            {% elif order.status == 'Cancelled' %} bg-danger 
-            {% else %} bg-secondary {% endif %}">
-            {{ order.status }}
-        </span>
-    </p>
-    <p>Placed on: {{ order.created_at|date:"M d, Y H:i" }}</p>
+
+    <!-- Order Header -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Order #{{ order.id }}</h2>
+    </div>
+    <p class="text-muted">Placed on: {{ order.created_at|date:"M d, Y H:i" }}</p>
     <hr>
 
-    <h5 class="mt-4">Items</h5>
-    <ul class="list-group mb-3">
-        {% for item in order.items.all %}
-            <li class="list-group-item d-flex align-items-center justify-content-between">
-                <div class="d-flex align-items-center">
-                    {% if item.variant.product.image %}
-                        <img src="{{ item.variant.product.image.url }}" 
-                             alt="{{ item.variant.product.name }}" 
-                             class="img-thumbnail me-3" style="width: 70px; height: 70px; object-fit: cover;">
-                    {% comment %} {% else %}
-                        <img src="{% static 'images/placeholder.png' %}" 
-                             alt="No image" 
-                             class="img-thumbnail me-3" style="width: 70px; height: 70px; object-fit: cover;"> {% endcomment %}
-                    {% endif %}
-                    <div>
-                        <strong>{{ item.variant.product.name }}</strong><br>
-                        <small class="text-muted">
-                            {{ item.variant.color }} / {{ item.variant.size }}
-                        </small><br>
-                        <small>Qty: {{ item.quantity }}</small>
-                    </div>
+    <!-- Order Items -->
+    <h5 class="mt-4 mb-3">Items</h5>
+    <ul class="list-group mb-4 shadow-sm">
+        {% for item in items %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+
+            <!-- Product Info -->
+            <div class="d-flex align-items-center">
+                {% if item.variant.product.image %}
+                    <img src="{{ item.variant.product.image.url }}" 
+                         alt="{{ item.variant.product.name }}" 
+                         class="img-thumbnail me-3" 
+                         style="width: 80px; height: 80px; object-fit: cover;">
+                {% else %}
+                    <img src="{% static 'images/placeholder.png' %}" 
+                         alt="No image" 
+                         class="img-thumbnail me-3" 
+                         style="width: 80px; height: 80px; object-fit: cover;">
+                {% endif %}
+                <div>
+                    <strong>{{ item.variant.product.name }}</strong><br>
+                    <small class="text-muted">
+                        {% if item.variant.color %}Color: {{ item.variant.color }}{% endif %}
+                        {% if item.variant.size %} / Size: {{ item.variant.size }}{% endif %}
+                    </small><br>
+                    <small>Qty: {{ item.quantity }}</small>
                 </div>
-                <span class="fw-bold">${{ item.subtotal }}</span>
-            </li>
+            </div>
+
+            <!-- Status & Cancellation -->
+            <div class="text-end">
+                <div class="fw-bold mb-1">${{ item.subtotal }}</div>
+
+                {% if item.cancellation_requested %}
+                    {% if item.cancellation_approved is none %}
+                        <span class="badge bg-warning text-dark">Cancellation Pending</span>
+                        <small class="d-block text-muted">Reason: {{ item.cancellation_reason }}</small>
+                    {% elif item.cancellation_approved %}
+                        <span class="badge bg-danger">Cancelled</span>
+                        <small class="d-block text-danger">Reason: {{ item.cancellation_reason }}</small>
+                    {% else %}
+                        <span class="badge bg-secondary">Cancellation Rejected</span>
+                        <small class="d-block text-muted">Reason: {{ item.cancellation_reason }}</small>
+                    {% endif %}
+                {% else %}
+                    <!-- Status Badge -->
+                    <span class="badge 
+                        {% if item.status|lower == 'pending' %} bg-warning text-light
+                        {% elif item.status|lower == 'shipped' %} bg-info text-dark
+                        {% elif item.status|lower == 'delivered' %} bg-success
+                        {% elif item.status|lower == 'cancelled' %} bg-danger
+                        {% else %} bg-secondary {% endif %}">
+                        {{ item.get_status_display }}
+                    </span>
+
+                    <!-- Request Cancellation Form (only if pending or shipped) -->
+                    {% if item.status == "pending" or item.status == "shipped" %}
+                        <form method="post" action="{% url 'request_cancel_order_item' item.id %}" class="mt-2">
+                            {% csrf_token %}
+                            <input type="text" name="reason" placeholder="Reason for cancellation" class="form-control form-control-sm mb-1" required>
+                            <button type="submit" class="btn btn-sm btn-danger">Request Cancellation</button>
+                        </form>
+                    {% endif %}
+                {% endif %}
+            </div>
+
+        </li>
         {% endfor %}
     </ul>
 
+    <!-- Order Total -->
     <div class="text-end">
         <h4>Total: ${{ order.total_price }}</h4>
     </div>
+
 </div>
 {% endblock %}
