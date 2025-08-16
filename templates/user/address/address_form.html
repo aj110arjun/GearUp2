@@ -1,0 +1,27 @@
+{% extends 'user/base.html' %}
+{% block content %}
+<div class="container my-4">
+    <h2>{% if address %}Edit Address{% else %}Add Address{% endif %}</h2>
+    {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+    <form method="post">
+        {% csrf_token %}
+        <input type="text" name="full_name" placeholder="Full Name" class="form-control mb-2" value="{{ address.full_name|default:'' }}" required>
+        <input type="text" name="phone" placeholder="Phone Number" class="form-control mb-2" value="{{ address.phone|default:'' }}" required>
+        <input type="text" name="address_line_1" placeholder="Address Line 1" class="form-control mb-2" value="{{ address.address_line_1|default:'' }}" required>
+        <input type="text" name="address_line_2" placeholder="Address Line 2" class="form-control mb-2" value="{{ address.address_line_2|default:'' }}">
+        <input type="text" name="city" placeholder="City" class="form-control mb-2" value="{{ address.city|default:'' }}" required>
+        <input type="text" name="state" placeholder="State" class="form-control mb-2" value="{{ address.state|default:'' }}" required>
+        <input type="text" name="postal_code" placeholder="Postal Code" class="form-control mb-2" value="{{ address.postal_code|default:'' }}" required>
+        <input type="text" name="country" placeholder="Country" class="form-control mb-2" value="{{ address.country|default:'India' }}">
+        <div class="form-check form-switch mt-2">
+            <input class="form-check-input" type="checkbox" name="is_default" id="is_default"
+                {% if address.is_default %}checked{% endif %}>
+            <label class="form-check-label fw-bold" for="is_default">Set as Default Address</label>
+        </div>
+        <br>
+        <button type="submit" class="btn btn-success mt-3">Save</button>
+    </form>
+</div>
+{% endblock %}
