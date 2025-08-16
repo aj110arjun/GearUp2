@@ -1,0 +1,49 @@
+{% extends "user/base.html" %}
+{% block content %}
+<div class="container my-5">
+    <h2 class="mb-3">Order #{{ order.id }}</h2>
+    <p>Status: 
+        <span class="badge 
+            {% if order.status == 'Pending' %} bg-warning 
+            {% elif order.status == 'Shipped' %} bg-info 
+            {% elif order.status == 'Delivered' %} bg-success 
+            {% elif order.status == 'Cancelled' %} bg-danger 
+            {% else %} bg-secondary {% endif %}">
+            {{ order.status }}
+        </span>
+    </p>
+    <p>Placed on: {{ order.created_at|date:"M d, Y H:i" }}</p>
+    <hr>
+
+    <h5 class="mt-4">Items</h5>
+    <ul class="list-group mb-3">
+        {% for item in order.items.all %}
+            <li class="list-group-item d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    {% if item.variant.product.image %}
+                        <img src="{{ item.variant.product.image.url }}" 
+                             alt="{{ item.variant.product.name }}" 
+                             class="img-thumbnail me-3" style="width: 70px; height: 70px; object-fit: cover;">
+                    {% comment %} {% else %}
+                        <img src="{% static 'images/placeholder.png' %}" 
+                             alt="No image" 
+                             class="img-thumbnail me-3" style="width: 70px; height: 70px; object-fit: cover;"> {% endcomment %}
+                    {% endif %}
+                    <div>
+                        <strong>{{ item.variant.product.name }}</strong><br>
+                        <small class="text-muted">
+                            {{ item.variant.color }} / {{ item.variant.size }}
+                        </small><br>
+                        <small>Qty: {{ item.quantity }}</small>
+                    </div>
+                </div>
+                <span class="fw-bold">${{ item.subtotal }}</span>
+            </li>
+        {% endfor %}
+    </ul>
+
+    <div class="text-end">
+        <h4>Total: ${{ order.total_price }}</h4>
+    </div>
+</div>
+{% endblock %}

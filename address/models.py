@@ -18,4 +18,7 @@ class Address(models.Model):
         if self.is_default:
             Address.objects.filter(user=self.user, is_default=True).update(is_default=False)
         super().save(*args, **kwargs)
+    @property
+    def full_address(self):
+        return f"{self.full_name}, {self.city}, {self.state}, {self.postal_code}, {self.country}"
 
