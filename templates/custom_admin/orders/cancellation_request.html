@@ -1,0 +1,39 @@
+{% extends "custom_admin/base.html" %}
+{% block content %}
+<div class="container my-5">
+    <h2>Pending Cancellation Requests</h2>
+    {% if items %}
+        <table class="table table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>Order #</th>
+                    <th>User</th>
+                    <th>Product</th>
+                    <th>Variant</th>
+                    <th>Quantity</th>
+                    <th>Reason</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td>{{ item.order.id }}</td>
+                    <td>{{ item.order.user.username }}</td>
+                    <td>{{ item.variant.product.name }}</td>
+                    <td>{{ item.variant.color }} / {{ item.variant.size }}</td>
+                    <td>{{ item.quantity }}</td>
+                    <td>{{ item.cancellation_reason }}</td>
+                    <td>
+                        <a href="{% url 'admin_approve_reject_cancellation' item.id 'approve' %}" class="btn btn-success btn-sm">Approve</a>
+                        <a href="{% url 'admin_approve_reject_cancellation' item.id 'reject' %}" class="btn btn-danger btn-sm">Reject</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No pending cancellation requests.</p>
+    {% endif %}
+</div>
+{% endblock %}
