@@ -1,0 +1,52 @@
+{% extends "user/base.html" %}
+
+{% block content %}
+<div class="container my-5">
+    <h2>🛒 My Cart</h2>
+    <hr>
+
+    {% if items %}
+        <table class="table table-bordered align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Product</th>
+                    <th>Variant</th>
+                    <th>Price</th>
+                    <th>Quantity</th>
+                    <th>Subtotal</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td>
+                        <img src="{{ item.variant.product.image.url }}" style="height:60px;">
+                        {{ item.variant.product.name }}
+                    </td>
+                    <td>{{ item.variant.color }} / {{ item.variant.size }}</td>
+                    <td>${{ item.variant.price }}</td>
+                    <td>
+                        <a href="{% url 'update_cart' item.id %}?action=decrease" class="btn btn-sm btn-outline-secondary">-</a>
+                        {{ item.quantity }}
+                        <a href="{% url 'update_cart' item.id %}?action=increase" class="btn btn-sm btn-outline-secondary">+</a>
+                    </td>
+                    <td>${{ item.subtotal }}</td>
+                    <td>
+                        <a href="{% url 'remove_from_cart' item.id %}" class="btn btn-sm btn-danger">🗑 Remove</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <h4 class="text-end">Total: <span class="text-success">${{ total }}</span></h4>
+
+        <div class="text-end">
+            <a href="#" class="btn btn-primary">Proceed to Checkout</a>
+        </div>
+    {% else %}
+        <p class="text-muted">Your cart is empty.</p>
+    {% endif %}
+</div>
+{% endblock %}
