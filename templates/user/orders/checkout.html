@@ -1,0 +1,30 @@
+{% extends "user/base.html" %}
+{% block content %}
+<div class="container my-5">
+    <h2>Checkout</h2>
+    <hr>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <h5>Shipping Address</h5>
+        <select name="address" class="form-select mb-3" required>
+            {% for addr in addresses %}
+                <option value="{{ addr.id }}">{{ addr.full_address }}</option>
+            {% endfor %}
+        </select>
+
+        <h5>Order Summary</h5>
+        <ul class="list-group mb-3">
+            {% for item in cart_items %}
+                <li class="list-group-item d-flex justify-content-between">
+                    {{ item.variant.product.name }} ({{ item.variant.color }}/{{ item.variant.size }}) x{{ item.quantity }}
+                    <span>${{ item.subtotal }}</span>
+                </li>
+            {% endfor %}
+        </ul>
+
+        <button type="submit" class="btn btn-success">Place Order</button>
+    </form>
+</div>
+{% endblock %}

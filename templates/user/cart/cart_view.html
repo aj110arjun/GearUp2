@@ -43,7 +43,7 @@
         <h4 class="text-end">Total: <span class="text-success">${{ total }}</span></h4>
 
         <div class="text-end">
-            <a href="#" class="btn btn-primary">Proceed to Checkout</a>
+            <a href="{% url 'checkout' %}" class="btn btn-primary">Proceed to Checkout</a>
         </div>
     {% else %}
         <p class="text-muted">Your cart is empty.</p>
