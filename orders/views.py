@@ -123,13 +123,22 @@ def admin_cancellation_requests(request):
 @staff_member_required(login_url="admin_login")
 def admin_approve_reject_cancellation(request, item_id, action):
     item = get_object_or_404(OrderItem, id=item_id)
+
     if action == "approve":
-        item.status = "Cancelled"
-        item.cancellation_approved = True
+        if item.status != "Cancelled":  # prevent double restock
+            item.status = "Cancelled"
+            item.cancellation_approved = True
+
+            # 🔹 Restock product
+            item.variant.stock += item.quantity
+            item.variant.save()
+
     elif action == "reject":
         item.cancellation_approved = False
+
     item.save()
     return redirect("admin_cancellation_requests")
+
 
 
 
