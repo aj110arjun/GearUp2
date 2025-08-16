@@ -74,16 +74,20 @@ def admin_order_detail(request, order_id):
 
 @staff_member_required(login_url="admin_login")
 def admin_update_order_item_status(request, item_id):
-    from .models import OrderItem
     item = get_object_or_404(OrderItem, id=item_id)
 
     if request.method == "POST":
         new_status = request.POST.get("status")
         if new_status in ["Pending", "Shipped", "Delivered", "Cancelled"]:
-            item.status = new_status
+            # Reset cancellation if the status is changed to Pending or Shipped
+            if new_status.lower() in ["pending", "shipped"]:
+                item.cancellation_requested = False
+                item.cancellation_reason = ""
+                item.cancellation_approved = None
+            
+            item.status = new_status.lower()
             item.save()
     return redirect("admin_order_detail", order_id=item.order.id)
-
 # views.py
 @login_required(login_url="login")
 def request_cancel_order_item(request, item_id):

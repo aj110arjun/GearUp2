@@ -39,7 +39,7 @@
                 </div>
             </div>
 
-            <!-- Status & Cancellation -->
+            <!-- Subtotal & Status -->
             <div class="text-end">
                 <div class="fw-bold mb-1">${{ item.subtotal }}</div>
 
@@ -65,8 +65,8 @@
                         {{ item.get_status_display }}
                     </span>
 
-                    <!-- Request Cancellation Form (only if pending or shipped) -->
-                    {% if item.status == "pending" or item.status == "shipped" %}
+                    <!-- Request Cancellation Form -->
+                    {% if not item.cancellation_requested and item.status|lower in "pending shipped" %}
                         <form method="post" action="{% url 'request_cancel_order_item' item.id %}" class="mt-2">
                             {% csrf_token %}
                             <input type="text" name="reason" placeholder="Reason for cancellation" class="form-control form-control-sm mb-1" required>
