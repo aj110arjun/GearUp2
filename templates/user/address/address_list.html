@@ -1,0 +1,41 @@
+{% extends 'user/base.html' %}
+{% block content %}
+<div class="container my-4">
+    <h2>My Addresses</h2>
+    <a href="{% url 'add_address' %}" class="btn btn-primary mb-3">Add New Address</a>
+    {% if messages %}
+        {% for message in messages %}
+            <span class='text-danger fw-bold ms-4'>{{message}}</span>
+        {% endfor %}
+    {% endif %}
+        
+
+    <!-- Scrollable container -->
+    <div style="max-height: 400px; overflow-y: auto;">
+        {% for addr in addresses %}
+            <div class="card mb-3 {% if addr.is_default %}border-success{% endif %}">
+                <div class="card-body">
+                    <h5>
+                        {{ addr.full_name }}
+                        {% if addr.is_default %}
+                            <span class="badge bg-success">Default</span>
+                        {% endif %}
+                    </h5>
+                    <p>
+                        {{ addr.phone }}<br>{{ addr.address_line_1 }}<br>
+                        {% if addr.address_line_2 %}{{ addr.address_line_2 }}<br>{% endif %}
+                        {{ addr.city }}, {{ addr.state }} {{ addr.postal_code }}<br>{{ addr.country }}
+                    </p>
+                    <a href="{% url 'edit_address' addr.pk %}" class="btn btn-sm btn-warning">Edit</a>
+                    <a href="{% url 'delete_address' addr.pk %}" class="btn btn-sm btn-danger"
+                       onclick="return confirm('Are you sure you want to delete this address?');">
+                        Delete
+                    </a>
+                </div>
+            </div>
+        {% empty %}
+            <p>No addresses found. <a href="{% url 'add_address' %}">Add one</a>.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Q, Min, Max, Sum
 from .models import Product, ProductVariant, Category
 
-
+@login_required(login_url='login')
 def product_list(request):
     products = Product.objects.filter(is_active=True)
     categories = Category.objects.all()
@@ -69,8 +69,7 @@ def product_list(request):
 
 # Admin View
 
-from django.db.models import Q, Min, Sum
-
+@login_required(login_url='admin_login')
 def admin_product_list(request):
     products = Product.objects.select_related('category').annotate(
     min_variant_price=Min('variants__price'),
@@ -140,7 +139,7 @@ def admin_product_list(request):
     return render(request, 'custom_admin/products/product_list.html', context)
 
 
-
+@login_required(login_url='admin_login')
 def admin_product_add(request):
     categories = Category.objects.all()
 
@@ -169,10 +168,12 @@ def admin_product_add(request):
         'categories': categories
     })
 
+@login_required(login_url='admin_login')
 def category_list(request):
     categories = Category.objects.all()
     return render(request, 'custom_admin/category/category_list.html', {'categories': categories})
 
+@login_required(login_url='admin_login')
 def category_add(request):
     if request.method == 'POST':
         name = request.POST.get('name')
@@ -185,6 +186,7 @@ def category_add(request):
     categories = Category.objects.filter(parent__isnull=True)
     return render(request, 'custom_admin/category/category_form.html', {'categories': categories})
 
+@login_required(login_url='admin_login')
 def category_edit(request, pk):
     category = get_object_or_404(Category, pk=pk)
     if request.method == 'POST':
@@ -200,13 +202,14 @@ def category_edit(request, pk):
         'category': category,
         'categories': categories
     })
-    
+
+@login_required(login_url='admin_login')
 def category_delete(request, pk):
     category = get_object_or_404(Category, pk=pk)
     category.delete()
     return redirect('category_list')
 
-# @login_required(login_url="admin_login")
+@login_required(login_url="admin_login")
 def admin_product_detail(request, pk):
     product = get_object_or_404(Product, pk=pk)
     variants = product.variants.all()  # assuming related_name="variants" in ProductVariant model
@@ -218,6 +221,7 @@ def admin_product_detail(request, pk):
         # "additional_images": additional_images
     })
 
+@login_required(login_url='admin_login')
 def admin_product_edit(request, pk):
     product = get_object_or_404(Product, pk=pk)
     categories = Category.objects.all() 
@@ -281,7 +285,8 @@ def admin_product_edit(request, pk):
         'categories': categories,
         'variants': variants
     })
-    
+
+@login_required(login_url='admin_login')    
 def toggle_product_status(request, pk):
     product = get_object_or_404(Product, pk=pk)
     

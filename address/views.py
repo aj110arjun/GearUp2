@@ -1,0 +1,73 @@
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from .models import Address
+from django.contrib import messages
+
+@login_required(login_url='login')
+def address_list(request):
+    addresses = request.user.addresses.all()
+    return render(request, "user/address/address_list.html", {"addresses": addresses})
+
+@login_required(login_url='login')
+def add_address(request):
+    if request.method == "POST":
+        full_name = request.POST.get("full_name")
+        phone = request.POST.get("phone")
+        address_line_1 = request.POST.get("address_line_1")
+        address_line_2 = request.POST.get("address_line_2")
+        city = request.POST.get("city")
+        state = request.POST.get("state")
+        postal_code = request.POST.get("postal_code")
+        country = request.POST.get("country", "India")
+        is_default = bool(request.POST.get("is_default"))
+
+        if full_name and phone and address_line_1 and city and state and postal_code:
+            Address.objects.create(
+                user=request.user,
+                full_name=full_name,
+                phone=phone,
+                address_line_1=address_line_1,
+                address_line_2=address_line_2,
+                city=city,
+                state=state,
+                postal_code=postal_code,
+                country=country,
+                is_default=is_default
+            )
+            return redirect("address_list")
+        else:
+            error = "All required fields must be filled."
+            return render(request, "user/address/address_form.html", {"error": error})
+
+    return render(request, "user/address/address_form.html")
+
+@login_required(login_url='login')
+def edit_address(request, pk):
+    address = get_object_or_404(Address, pk=pk, user=request.user)
+
+    if request.method == "POST":
+        address.full_name = request.POST.get("full_name")
+        address.phone = request.POST.get("phone")
+        address.address_line_1 = request.POST.get("address_line_1")
+        address.address_line_2 = request.POST.get("address_line_2")
+        address.city = request.POST.get("city")
+        address.state = request.POST.get("state")
+        address.postal_code = request.POST.get("postal_code")
+        address.country = request.POST.get("country", "India")
+        address.is_default = bool(request.POST.get("is_default"))
+        address.save()
+        return redirect("address_list")
+
+    return render(request, "user/address/address_form.html", {"address": address})
+
+@login_required(login_url='login')
+def delete_address(request, pk):
+    address = get_object_or_404(Address, pk=pk, user=request.user)  # ✅ Fetch first
+
+    if address.is_default:
+        messages.error(request, "You cannot delete your default address.")
+        return redirect("address_list")
+
+    address.delete()
+    return redirect("address_list")
+
