@@ -1,0 +1,80 @@
+{% extends "user/base.html" %}
+{% load static %}
+
+{% block title %}{{ product.name }} - GearUp{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row g-5">
+        <!-- Product Image -->
+        <div class="col-md-6">
+            <div class="border rounded p-3 text-center shadow-sm">
+                <img src="{{ product.image.url }}" class="img-fluid rounded" style="max-height:400px; object-fit:contain;">
+            </div>
+        </div>
+
+        <!-- Product Info -->
+        <div class="col-md-6">
+            <h2 class="fw-bold">{{ product.name }}</h2>
+            <p class="text-muted">Brand: {{ product.brand }}</p>
+            <p>{{ product.description }}</p>
+            
+            <!-- Price (from first variant or range) -->
+           {% comment %} {% if variants %}
+                <h4 class="text-primary">
+                    Price: 
+                    {% if variants|length > 1 %}
+                        ${{ variants.0.price }} - ${{ variants|last.price }}
+                    {% else %}
+                        ${{ variants.0.price }}
+                    {% endif %}
+                </h4>
+            {% endif %} {% endcomment %}
+
+            <!-- Variants -->
+            <div class="mt-3">
+                <h6>Available Variants</h6>
+                {% for v in variants %}
+                    <div class="border rounded p-2 mb-2 bg-light d-flex justify-content-between align-items-center">
+                        <span> {{ v.color }} |  {{ v.size }}</span>
+                        <a href="#" class="btn btn-sm btn-success"> Add to Cart</a>
+                    </div>
+                {% empty %}
+                    <p class="text-muted">No variants available</p>
+                {% endfor %}
+            </div>
+
+            <!-- Wishlist Button -->
+           <div class="mt-4">
+                {% if in_wishlist %}
+                    <a href="{% url 'wishlist_view' %}" class="btn btn-outline-primary">
+                        Go to Wishlist
+                    </a>
+                {% else %}
+                    <a href="{% url 'add_to_wishlist' product.pk %}" class="btn btn-outline-danger">
+                        Add to Wishlist
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    h2 {
+        font-size: 1.8rem;
+    }
+    .btn {
+        border-radius: 8px;
+        padding: 8px 16px;
+    }
+    .btn-success {
+        background: linear-gradient(45deg, #28a745, #20c997);
+        border: none;
+    }
+    .btn-outline-danger:hover {
+        background: #dc3545;
+        color: #fff;
+    }
+</style>
+{% endblock %}

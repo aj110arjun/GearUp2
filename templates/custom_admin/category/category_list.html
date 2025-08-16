@@ -23,8 +23,6 @@
     </td>
     <td>
         <a href="{% url 'category_edit' cat.id %}" class="btn btn-sm btn-warning">Edit</a>
-        <a href="{% url 'category_delete' cat.id %}" class="btn btn-sm btn-danger"
-           onclick="return confirm('Delete this category?')">Delete</a>
     </td>
 </tr>
 {% endfor %}

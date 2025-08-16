@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 
 from django.db.models import Q, Min, Max, Sum
 from .models import Product, ProductVariant, Category
+from wishlist.models import Wishlist
 
 @login_required(login_url='login')
 def product_list(request):
@@ -64,6 +65,20 @@ def product_list(request):
         'filters': filters
     }
     return render(request, 'user/products/product_list.html', context)
+
+
+def product_detail(request, pk):
+    product = get_object_or_404(Product, pk=pk, is_active=True)
+    variants = product.variants.all()
+    in_wishlist = False
+    if request.user.is_authenticated:
+        in_wishlist = Wishlist.objects.filter(user=request.user, product=product).exists()
+    return render(request, "user/products/product_detail.html", {
+        "product": product,
+        "variants": variants,
+        "in_wishlist": in_wishlist,
+    })
+
 
 
 
