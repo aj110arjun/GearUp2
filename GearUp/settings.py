@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     'widget_tweaks',
     'products',
     'address',
+    'wishlist',
 ]
 
 MIDDLEWARE = [

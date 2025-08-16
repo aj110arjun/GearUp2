@@ -12,11 +12,6 @@ class Category(models.Model):
         'self', on_delete=models.CASCADE, null=True, blank=True, related_name="subcategories"
     )
 
-    # def save(self, *args, **kwargs):
-    #     if not self.slug:
-    #         self.slug = slugify(self.name)
-    #     super().save(*args, **kwargs)
-
     def __str__(self):
         return self.name
 
