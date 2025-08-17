@@ -55,6 +55,7 @@
                         <span class="badge 
                         {% if item.status|lower == 'pending' %} bg-warning text-light
                         {% elif item.status|lower == 'shipped' %} bg-info text-dark
+                        {% elif item.status|lower == 'out for delivery' %} bg-info text-dark
                         {% elif item.status|lower == 'delivered' %} bg-success
                         {% elif item.status|lower == 'cancelled' %} bg-danger
                         {% else %} bg-secondary {% endif %}">
@@ -65,13 +66,14 @@
                 <span class="badge 
                         {% if item.status|lower == 'pending' %} bg-warning text-light
                         {% elif item.status|lower == 'shipped' %} bg-info text-dark
+                        {% elif item.status == 'out for delivery' %} bg-info text-dark
                         {% elif item.status|lower == 'delivered' %} bg-success
                         {% elif item.status|lower == 'cancelled' %} bg-danger
                         {% endif %}">
                         {{ item.get_status_display }}
                     </span>
                {% if item.status == "delivered" and not item.return_requested %}
-                    <form method="post" action="{% url 'request_return_order_item' item.id %}">
+                    <form method="post" action="{% url 'request_return_order_item' item.item_id %}">
                         {% csrf_token %}
                         <textarea name="reason" placeholder="Reason for return" class="form-control mb-2"></textarea>
                         <button type="submit" class="btn btn-warning btn-sm">Request Return</button>
@@ -92,7 +94,7 @@
 
                     <!-- Request Cancellation Form -->
                     {% if not item.cancellation_requested and item.status|lower in "pending shipped" %}
-                        <form method="post" action="{% url 'request_cancel_order_item' item.id %}" class="mt-2">
+                        <form method="post" action="{% url 'request_cancel_order_item' item.item_id %}" class="mt-2">
                             {% csrf_token %}
                             <input type="text" name="reason" placeholder="Reason for cancellation" class="form-control form-control-sm mb-1" required>
                             <button type="submit" class="btn btn-sm btn-danger">Request Cancellation</button>

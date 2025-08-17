@@ -90,7 +90,7 @@
           <td>₹{{ product.variants.first.price }}</td>
           <td>{{ product.total_stock }}</td>
           <td class="text-center">
-            <a href="{% url 'admin_product_detail' product.id %}" class="btn btn-sm btn-info me-1">View</a>
+            <a href="{% url 'admin_product_detail' product.product_id %}" class="btn btn-sm btn-info me-1">View</a>
           </td>
         </tr>
         {% empty %}
