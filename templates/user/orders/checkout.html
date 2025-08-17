@@ -8,18 +8,53 @@
         {% csrf_token %}
 
         <h5>Shipping Address</h5>
-        <select name="address" class="form-select mb-3" required>
-            {% for addr in addresses %}
-                <option value="{{ addr.id }}">{{ addr.full_address }}</option>
-            {% endfor %}
-        </select>
 
+        <!-- Address List -->
+        <div class="mb-3">
+            {% for addr in addresses %}
+                <div class="card p-2 mb-2">
+                    <label class="d-flex align-items-center">
+                        <input type="radio" name="address" value="{{ addr.id }}" {% if forloop.first %}checked{% endif %} class="me-2">
+                        <span>{{ addr.full_address }}</span>
+                    </label>
+                    <div class="mt-2">
+                        <a href="{% url 'edit_address' addr.id %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                        <a href="{% url 'delete_address' addr.id %}" class="btn btn-sm btn-outline-danger">Delete</a>
+                    </div>
+                </div>
+            {% empty %}
+                <p class="text-muted">No addresses found. Please add one.</p>
+            {% endfor %}
+        </div>
+
+        <!-- Add New Address -->
+        <a href="{% url 'add_address' %}" class="btn btn-sm btn-success mb-3">+ Add New Address</a>
+
+        <!-- Payment Method -->
+        <h5>Payment Method</h5>
+        <div class="card p-3 mb-2">
+            <label class="d-flex align-items-center">
+                <input type="radio" name="payment_method" value="COD" checked class="me-2">
+                <span>Cash on Delivery</span>
+            </label>
+        </div>
+
+        {% comment %}
+        <div class="card p-3 mb-2">
+            <label class="d-flex align-items-center">
+                <input type="radio" name="payment_method" value="ONLINE" class="me-2">
+                <span>Pay Online (Credit/Debit/UPI)</span>
+            </label>
+        </div>
+        {% endcomment %}
+
+        <!-- Order Summary -->
         <h5>Order Summary</h5>
         <ul class="list-group mb-3">
             {% for item in cart_items %}
                 <li class="list-group-item d-flex justify-content-between">
                     {{ item.variant.product.name }} ({{ item.variant.color }}/{{ item.variant.size }}) x{{ item.quantity }}
-                    <span>${{ item.subtotal }}</span>
+                    <span>₹{{ item.subtotal }}</span>
                 </li>
             {% endfor %}
         </ul>

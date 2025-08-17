@@ -9,31 +9,30 @@
 
        <!-- Product Image -->
        <div class="col-md-6">
-            <div class="border rounded p-3 text-center shadow-sm position-relative overflow-hidden" style="cursor: crosshair;">
+            <div class="main-image-wrapper border rounded p-3 text-center shadow-sm position-relative overflow-hidden">
                 <img id="main-product-image" 
                      src="{{ product.image.url }}" 
-                     class="img-fluid rounded zoomable-image"
-                     style="max-height:400px; object-fit:contain;">
+                     alt="{{ product.name }}"
+                     class="zoomable-image">
             </div>
 
-            <div class="additional-images mt-3 d-flex flex-wrap">
-                <!-- First: Main Product Image as thumbnail -->
-                <div class="me-2 mb-2">
+            <!-- Additional Images -->
+            <div class="additional-images mt-3 d-flex flex-wrap gap-2">
+                <!-- Main Product Image Thumbnail -->
+                <div>
                     <img src="{{ product.image.url }}" 
                          alt="{{ product.name }}" 
-                         width="100" height="100" 
-                         class="img-thumbnail clickable-thumb border-primary" 
+                         class="thumb-img border-primary" 
                          style="cursor:pointer;">
                 </div>
 
-                <!-- Additional Images -->
+                <!-- Extra Images -->
                 {% if additional_images %}
                     {% for img in additional_images %}
-                        <div class="me-2 mb-2">
+                        <div>
                             <img src="{{ img.image.url }}" 
                                  alt="{{ img.alt_text }}" 
-                                 width="100" height="100" 
-                                 class="img-thumbnail clickable-thumb" 
+                                 class="thumb-img" 
                                  style="cursor:pointer;">
                         </div>
                     {% endfor %}
@@ -52,7 +51,7 @@
                 <h6>Available Variants</h6>
                 {% for v in variants %}
                     <div class="border rounded p-2 mb-2 bg-light d-flex justify-content-between align-items-center">
-                        <span>{{ v.color }} | {{ v.size }}</span>
+                        <span>{{ v.color }} | {{ v.size }} | ₹{{v.price}}</span>
                         
                         {% if v.id in cart_items %}
                             <a href="{% url 'cart_view' %}" class="btn btn-sm btn-primary">Go to Cart</a>
@@ -97,25 +96,54 @@
         background: #dc3545;
         color: #fff;
     }
-    .clickable-thumb {
-        transition: transform 0.2s;
+
+    /* Main Image Container */
+    .main-image-wrapper {
+        cursor: crosshair;
+        background: #f8f9fa;
+        border: 2px solid transparent;
+        transition: transform 0.2s, border-color 0.2s;
+        height: 400px;               /* fixed height */
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
-    .clickable-thumb:hover {
-        transform: scale(1.05);
+    .main-image-wrapper:hover {
+        border-color: #0d6efd;
+        transform: scale(1.01);
     }
-    .border-primary {
-        border: 2px solid #007bff !important;
-    }
+
+    /* Main image itself */
     .zoomable-image {
+        max-height: 100%;
+        max-width: 100%;
+        object-fit: contain;
         transition: transform 0.2s ease;
         transform-origin: center center;
+    }
+
+    /* Thumbnails */
+    .thumb-img {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 6px;
+        border: 2px solid transparent;
+        transition: transform 0.2s, border-color 0.2s;
+    }
+    .thumb-img:hover {
+        transform: scale(1.05);
+        border-color: #adb5bd;
+    }
+    .thumb-img.border-primary {
+        border-color: #0d6efd !important;
     }
 </style>
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
     const mainImg = document.getElementById("main-product-image");
-    const thumbs = document.querySelectorAll(".clickable-thumb");
+    const thumbs = document.querySelectorAll(".thumb-img");
 
     // Thumbnail click: change main image
     thumbs.forEach(thumb => {
@@ -126,13 +154,13 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     });
 
-    // Amazon-like hover zoom effect
+    // Hover zoom effect for main image
     mainImg.addEventListener("mousemove", function(e) {
         const { left, top, width, height } = mainImg.getBoundingClientRect();
         const x = ((e.pageX - left) / width) * 100;
         const y = ((e.pageY - top) / height) * 100;
         mainImg.style.transformOrigin = `${x}% ${y}%`;
-        mainImg.style.transform = "scale(2)"; // Zoom level
+        mainImg.style.transform = "scale(2)";
     });
 
     mainImg.addEventListener("mouseleave", function() {

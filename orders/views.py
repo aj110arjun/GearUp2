@@ -15,16 +15,39 @@ def checkout(request):
     if not cart_items:
         return redirect("cart_view")
 
+    adjusted = False
+    total = 0
+    payment_method = request.POST.get("payment_method", "COD")
+
+    # 🔹 Validate stock and limit again before checkout
+    for item in cart_items:
+        max_limit = min(5, item.variant.stock)
+
+        if item.variant.stock == 0:
+            item.delete()
+            adjusted = True
+            continue
+
+        if item.quantity > max_limit:
+            item.quantity = max_limit
+            item.save()
+            adjusted = True
+
+        total += item.quantity * item.variant.price
+
+    if adjusted:
+        messages.warning(request, "Some items were adjusted due to stock limits. Please review your cart again.")
+        return redirect("cart_view")
+
     if request.method == "POST":
         address_id = request.POST.get("address")
         address = Address.objects.filter(user=request.user, id=address_id).first()
-
-        total = sum(item.subtotal() for item in cart_items)
 
         order = Order.objects.create(
             user=request.user,
             address=address,
             total_price=total,
+            payment_method=payment_method,
         )
 
         for item in cart_items:
@@ -34,15 +57,20 @@ def checkout(request):
                 quantity=item.quantity,
                 price=item.variant.price,
             )
+            # 🔹 Deduct stock safely
             item.variant.stock -= item.quantity
             item.variant.save()
 
         cart_items.delete()
         return redirect("order_complete", order_id=order.order_id)
 
-    # 🔹 FIX: make sure we fetch user addresses correctly
     addresses = Address.objects.filter(user=request.user)
-    return render(request, "user/orders/checkout.html", {"cart_items": cart_items, "addresses": addresses})
+    return render(
+        request,
+        "user/orders/checkout.html",
+        {"cart_items": cart_items, "addresses": addresses, "total": total},
+    )
+
 
 @login_required(login_url="login")
 def order_complete(request, order_id):

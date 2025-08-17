@@ -8,6 +8,8 @@ from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 from django.contrib.auth import authenticate, login, logout
 from django.views.decorators.cache import never_cache
+from django.contrib import messages
+
 
 
 ### User Views
@@ -127,11 +129,99 @@ def verify_otp(request):
             error["otp"] = "Invalid or expired otp"
     return render(request, "user/otp/verify_otp.html", {'error': error})
 
+def resend_otp(request):
+    signup_data = request.session.get("signup_data")
+
+    if not signup_data:
+        return redirect('signup')
+
+    # Use the same secret stored in session
+    totp = pyotp.TOTP(signup_data["secret"], interval=60)
+    new_otp = totp.now()
+
+    # Send OTP via email
+    send_mail(
+        "Your OTP Code",
+        f"Your new OTP is: {new_otp}. It will expire in 60 seconds.",
+        "noreply@yourdomain.com",
+        [signup_data["email"]],
+    )
+
+    messages.success(request, "A new OTP has been sent to your email.")
+    return redirect("verify_otp")
+
 # logout view
 def logout_view(request):
     logout(request)
     request.session.flush()
     return redirect('login')
+
+def forgot_password(request):
+    error = {}
+    if request.method == "POST":
+        email = request.POST.get("email")
+        if not email:
+            error["email"] = "Email is required"
+        else:
+            try:
+                user = User.objects.get(username=email)
+                # Generate OTP
+                secret = pyotp.random_base32()
+                totp = pyotp.TOTP(secret, interval=60)  
+                otp = totp.now()
+
+                # Store in session
+                request.session["reset_data"] = {
+                    "email": email,
+                    "secret": secret,
+                    "time": time.time()
+                }
+
+                # Send mail
+                send_mail(
+                    "Password Reset OTP",
+                    f"Your OTP is {otp} (valid for 1 min)",
+                    None,
+                    [email],
+                    fail_silently=False
+                )
+                return redirect("reset_password")
+            except User.DoesNotExist:
+                error["email"] = "No account found with this email"
+
+    return render(request, "user/forgot_password.html", {"error": error})
+
+
+def reset_password(request):
+    error = {}
+    reset_data = request.session.get("reset_data")
+    if not reset_data:
+        return redirect("forgot_password")
+
+    if request.method == "POST":
+        otp = request.POST.get("otp")
+        new_password = request.POST.get("password")
+        confirm_password = request.POST.get("confirm_password")
+
+        totp = pyotp.TOTP(reset_data["secret"], interval=60)
+        if not totp.verify(otp):
+            error["otp"] = "Invalid or expired OTP"
+        elif not new_password or not confirm_password:
+            error["password"] = "Password fields are required"
+        elif new_password != confirm_password:
+            error["password"] = "Passwords do not match"
+        elif len(new_password) < 6:
+            error["password"] = "Password must be at least 6 characters"
+        else:
+            user = User.objects.get(username=reset_data["email"])
+            user.set_password(new_password)
+            user.save()
+            del request.session["reset_data"]
+            messages.success(request, "Password reset successfully. Please login.")
+            return redirect("login")
+
+    return render(request, "user/reset_password.html", {"error": error})
+
 
 
 # Admin Views

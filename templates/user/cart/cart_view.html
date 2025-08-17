@@ -25,22 +25,28 @@
                         {{ item.variant.product.name }}
                     </td>
                     <td>{{ item.variant.color }} / {{ item.variant.size }}</td>
-                    <td>${{ item.variant.price }}</td>
+                    <td>₹{{ item.variant.price }}</td>
                     <td>
-                        <a href="{% url 'update_cart' item.id %}?action=decrease" class="btn btn-sm btn-outline-secondary">-</a>
+                        <!-- Decrease -->
+                        <a href="{% url 'update_cart' item.id %}?action=decrease" 
+                           class="btn btn-sm btn-outline-secondary">-</a>
+
                         {{ item.quantity }}
-                        <a href="{% url 'update_cart' item.id %}?action=increase" class="btn btn-sm btn-outline-secondary">+</a>
+
+                        <!-- Increase (disabled if 5 reached OR stock reached) -->
+                        <a href="{% url 'update_cart' item.id %}?action=increase" 
+                           class="btn btn-sm btn-outline-secondary {% if item.quantity >= 5 or item.quantity >= item.variant.stock %}disabled{% endif %}">+</a>
                     </td>
-                    <td>${{ item.subtotal }}</td>
+                    <td>₹{{ item.subtotal }}</td>
                     <td>
-                        <a href="{% url 'remove_from_cart' item.id %}" class="btn btn-sm btn-danger">🗑 Remove</a>
+                        <a href="{% url 'remove_from_cart' item.id %}" class="btn btn-sm btn-danger">Remove</a>
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
 
-        <h4 class="text-end">Total: <span class="text-success">${{ total }}</span></h4>
+        <h4 class="text-end">Total: <span class="text-success">₹{{ total }}</span></h4>
 
         <div class="text-end">
             <a href="{% url 'checkout' %}" class="btn btn-primary">Proceed to Checkout</a>

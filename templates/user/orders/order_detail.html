@@ -41,7 +41,7 @@
 
             <!-- Subtotal & Status -->
             <div class="text-end">
-                <div class="fw-bold mb-1">${{ item.subtotal }}</div>
+                <div class="fw-bold mb-1">₹{{ item.subtotal }}</div>
 
                 {% if item.cancellation_requested %}
                     {% if item.cancellation_approved is none %}
@@ -109,7 +109,7 @@
 
     <!-- Order Total -->
     <div class="text-end">
-        <h4>Total: ${{ order.total_price }}</h4>
+        <h4>Total: ₹{{ order.total_price }}</h4>
     </div>
 
 </div>
