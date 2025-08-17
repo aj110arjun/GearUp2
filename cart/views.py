@@ -31,8 +31,30 @@ def add_to_cart(request, variant_id=None):
 @login_required(login_url="login")
 def cart_view(request):
     items = CartItem.objects.filter(user=request.user).select_related("variant__product")
-    total = sum(item.subtotal() for item in items)
+    total = 0
+    adjusted = False  # track if we had to correct anything
+
+    for item in items:
+        max_limit = min(5, item.variant.stock)  # whichever is smaller (5 or stock)
+
+        if item.quantity > max_limit:
+            item.quantity = max_limit
+            item.save()
+            adjusted = True
+
+        # If stock is 0, remove the item from cart
+        if item.variant.stock == 0:
+            item.delete()
+        else:
+            total += item.quantity * item.variant.price
+
+    # Optional: flash a message if adjustment happened
+    if adjusted:
+        from django.contrib import messages
+        messages.warning(request, "Some cart items were adjusted due to stock changes.")
+
     return render(request, "user/cart/cart_view.html", {"items": items, "total": total})
+
 
 @login_required(login_url="login")
 def update_cart(request, item_id):

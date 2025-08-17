@@ -215,8 +215,8 @@ def category_add(request):
     return render(request, 'custom_admin/category/category_form.html', {'categories': categories})
 
 @staff_member_required(login_url='admin_login')
-def category_edit(request, pk):
-    category = get_object_or_404(Category, pk=pk)
+def category_edit(request, id):
+    category = get_object_or_404(Category, id=id)
     if request.method == 'POST':
         category.name = request.POST.get('name')
         category.description = request.POST.get('description', '')
@@ -225,7 +225,7 @@ def category_edit(request, pk):
         category.save()
         return redirect('category_list')
 
-    categories = Category.objects.filter(parent__isnull=True).exclude(id=pk)
+    categories = Category.objects.filter(parent__isnull=True).exclude(id=id)
     return render(request, 'custom_admin/category/category_form.html', {
         'category': category,
         'categories': categories
@@ -315,13 +315,13 @@ def admin_product_edit(request, product_id):
     })
 
 @staff_member_required(login_url='admin_login')   
-def toggle_product_status(request, pk):
-    product = get_object_or_404(Product, pk=pk)
+def toggle_product_status(request, product_id):
+    product = get_object_or_404(Product, product_id=product_id)
     
     # Toggle active status
     product.is_active = not product.is_active
     product.save()
-    return redirect('admin_product_detail', pk=pk)
+    return redirect('admin_product_detail', product_id=product_id)
 
 
 

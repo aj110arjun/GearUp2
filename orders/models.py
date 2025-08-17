@@ -14,11 +14,21 @@ def generate_order_code():
     return f"ORD{now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
 
 class Order(models.Model):
+    PAYMENT_METHODS = [
+        ("COD", "Cash on Delivery"),
+        ("ONLINE", "Online Payment"),  # placeholder for future
+    ]
     id = models.BigAutoField(primary_key=True)
     order_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True, null=True, blank=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="orders")
     address = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True, blank=True)
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHODS, default="COD")
+    payment_status = models.CharField(
+        max_length=20,
+        choices=[("Pending", "Pending"), ("Paid", "Paid"), ("Failed", "Failed")],
+        default="Pending"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     order_code = models.CharField(max_length=20, unique=True, editable=False, default=generate_order_code)
     

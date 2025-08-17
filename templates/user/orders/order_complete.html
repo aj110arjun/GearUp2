@@ -4,10 +4,7 @@
 
 <div class="container my-5 text-center">
 
-    <!-- Success Icon -->
-    <div class="mb-4">
-        <img src="{% static 'images/order-success.png' %}" alt="Success" class="img-fluid" style="max-width: 120px;">
-    </div>
+    
 
     <!-- Heading -->
     <h2 class="text-success mb-3">Order Placed Successfully!</h2>
@@ -21,7 +18,7 @@
             <ul class="list-group list-group-flush text-start">
                 <li class="list-group-item"><strong>Order ID:</strong> #{{ order.order_code }}</li>
                 <li class="list-group-item"><strong>Date:</strong> {{ order.created_at|date:"M d, Y" }}</li>
-                <li class="list-group-item"><strong>Total Amount:</strong> ₹{{ order.total_amount }}</li>
+                <li class="list-group-item"><strong>Total Amount:</strong> ₹{{ order.total_price }}</li>
                 <li class="list-group-item"><strong>Payment Method:</strong> {{ order.payment_method }}</li>
                 
             </ul>
@@ -29,7 +26,7 @@
     </div>
 
     <!-- Next Steps -->
-    <p class="text-muted">You will receive a confirmation email with your order details shortly.</p>
+    {% comment %} <p class="text-muted">You will receive a confirmation email with your order details shortly.</p> {% endcomment %}
 
     <!-- Action Buttons -->
     <div class="mt-4">
