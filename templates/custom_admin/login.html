@@ -14,10 +14,8 @@
     <div class="card shadow-lg border-0 p-4 admin-card">
         <h3 class="text-center mb-4">Admin Login</h3>
 
-        {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} text-center">{{ message }}</div>
-            {% endfor %}
+        {% if error %}
+                <div class="alert alert-{{ message.tags }} text-center">{{ error.admin }}</div>
         {% endif %}
 
         <form method="POST" novalidate>

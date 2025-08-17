@@ -38,7 +38,7 @@ def checkout(request):
             item.variant.save()
 
         cart_items.delete()
-        return redirect("order_complete", order_id=order.id)
+        return redirect("order_complete", order_id=order.order_id)
 
     # 🔹 FIX: make sure we fetch user addresses correctly
     addresses = Address.objects.filter(user=request.user)
@@ -46,7 +46,7 @@ def checkout(request):
 
 @login_required(login_url="login")
 def order_complete(request, order_id):
-    order = get_object_or_404(Order, id=order_id, user=request.user)
+    order = get_object_or_404(Order, order_id=order_id, user=request.user)
     items = order.items.select_related("variant__product")
     return render(request, "user/orders/order_complete.html", {"order": order, "items": items})
 
@@ -57,24 +57,24 @@ def order_list(request):
 
 @login_required(login_url='login')
 def order_detail(request, order_id):
-    order = get_object_or_404(Order, id=order_id, user=request.user)
+    order = get_object_or_404(Order, order_id=order_id, user=request.user)
     items = order.items.select_related('variant__product')  # fetch products efficiently
     return render(request, 'user/orders/order_detail.html', {'order': order, 'items': items})
 
 @login_required(login_url="login")
 def request_return_order_item(request, item_id):
-    item = get_object_or_404(OrderItem, id=item_id, order__user=request.user)
+    item = get_object_or_404(OrderItem, item_id=item_id, order__user=request.user)
 
     # ✅ Only allow return if status is Delivered
     if item.status != "delivered":
         messages.error(request, "You can only return delivered items.")
-        return redirect("order_detail", order_id=item.order.id)
+        return redirect("order_detail", order_id=item.order.order_id)
 
     if request.method == "POST":
         reason = request.POST.get("reason", "").strip()
         if not reason:
             messages.error(request, "You must provide a reason for return.")
-            return redirect("order_detail", order_id=item.order.id)
+            return redirect("order_detail", order_id=item.order.order_id)
 
         item.return_requested = True
         item.return_reason = reason
@@ -82,9 +82,9 @@ def request_return_order_item(request, item_id):
         item.save()
 
         messages.success(request, "Return request sent. Admin will review it.")
-        return redirect("order_detail", order_id=item.order.id)
+        return redirect("order_detail", order_id=item.order.order_id)
 
-    return redirect("order_detail", order_id=item.order.id)
+    return redirect("order_detail", order_id=item.order.order_id)
 
 
 @staff_member_required(login_url="admin_login")
@@ -99,26 +99,27 @@ def admin_order_list(request):
 
 @staff_member_required(login_url="admin_login")
 def admin_order_detail(request, order_id):
-    order = get_object_or_404(Order, id=order_id)
+    order = get_object_or_404(Order, order_id=order_id)
     items = OrderItem.objects.filter(order=order).select_related("variant__product")
     return render(request, "custom_admin/orders/order_detail.html", {"order": order, "items": items})
 
 @staff_member_required(login_url="admin_login")
 def admin_update_order_item_status(request, item_id):
-    item = get_object_or_404(OrderItem, id=item_id)
+    order_item = get_object_or_404(OrderItem, item_id=item_id)
 
     if request.method == "POST":
         new_status = request.POST.get("status")
         if new_status in ["Pending", "Shipped", "Delivered", "Cancelled"]:
             # Reset cancellation if the status is changed to Pending or Shipped
             if new_status.lower() in ["pending", "shipped"]:
-                item.cancellation_requested = False
-                item.cancellation_reason = ""
-                item.cancellation_approved = None
+                order_item.cancellation_requested = False
+                order_item.cancellation_reason = ""
+                order_item.cancellation_approved = None
             
-            item.status = new_status.lower()
-            item.save()
-    return redirect("admin_order_detail", order_id=item.order.id)
+            order_item.status = new_status.lower()
+            order_item.save()
+    return redirect("admin_order_detail", order_id=order_item.order.order_id)
+
 # views.py
 @login_required(login_url="login")
 def request_cancel_order_item(request, item_id):
@@ -127,13 +128,13 @@ def request_cancel_order_item(request, item_id):
     # Only allow if Pending or Shipped
     if item.status not in ["pending", "shipped"]:
         messages.error(request, "You cannot cancel this item.")
-        return redirect("order_detail", order_id=item.order.id)
+        return redirect("order_detail", order_id=item.order.order_id)
 
     if request.method == "POST":
         reason = request.POST.get("reason", "").strip()
         if not reason:
             messages.error(request, "You must provide a reason for cancellation.")
-            return redirect("order_detail", order_id=item.order.id)
+            return redirect("order_detail", order_id=item.order.order_id)
 
         item.cancellation_requested = True
         item.cancellation_reason = reason
@@ -141,9 +142,9 @@ def request_cancel_order_item(request, item_id):
         item.save()
 
         messages.success(request, "Cancellation request sent. Admin will review it.")
-        return redirect("order_detail", order_id=item.order.id)
+        return redirect("order_detail", order_id=item.order.order_id)
 
-    return redirect("order_detail", order_id=item.order.id)
+    return redirect("order_detail", order_id=item.order.order_id)
     
 @staff_member_required(login_url="admin_login")
 def admin_cancellation_requests(request):
@@ -153,7 +154,7 @@ def admin_cancellation_requests(request):
 
 @staff_member_required(login_url="admin_login")
 def admin_approve_reject_cancellation(request, item_id, action):
-    item = get_object_or_404(OrderItem, id=item_id)
+    item = get_object_or_404(OrderItem, item_id=item_id)
 
     if action == "approve":
         if item.status != "Cancelled":  # prevent double restock
@@ -174,7 +175,7 @@ def admin_approve_reject_cancellation(request, item_id, action):
 def admin_cancellation_request_view(request, item_id):
     item = get_object_or_404(
         OrderItem,
-        id=item_id,
+        item_id=item_id,
         cancellation_requested=True
     )
 
@@ -201,7 +202,7 @@ def admin_return_requests(request):
 
 @staff_member_required(login_url="admin_login")
 def admin_approve_reject_return(request, item_id, action):
-    item = get_object_or_404(OrderItem, id=item_id)
+    item = get_object_or_404(OrderItem, item_id=item_id)
 
     if action == "approve":
         if item.status == "delivered":  # only approve return if delivered
@@ -217,6 +218,18 @@ def admin_approve_reject_return(request, item_id, action):
 
     item.save()
     return redirect("admin_return_requests")
+
+@login_required(login_url="login")
+def track_order_search(request):
+    order = None
+    if request.method == "POST":
+        order_code = request.POST.get("order_code")
+        try:
+            order = Order.objects.get(order_code=order_code)
+        except Order.DoesNotExist:
+            order = None
+
+    return render(request, "user/orders/order_track.html", {"order": order})
 
 
 

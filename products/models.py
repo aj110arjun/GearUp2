@@ -1,7 +1,6 @@
 import uuid
 
 from django.db import models
-from django.utils.text import slugify
 
 
 class Category(models.Model):
@@ -17,6 +16,7 @@ class Category(models.Model):
 
 class Product(models.Model):
     name = models.CharField(max_length=255)
+    product_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True, null=True, blank=True)
     category = models.ForeignKey(
         Category, on_delete=models.SET_NULL, null=True, blank=True, related_name="products"
     )

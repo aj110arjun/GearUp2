@@ -63,7 +63,7 @@
                 <div class="card-body">
                     <h5 class="card-title">{{ product.name }}</h5>
                     <p class="card-text text-muted">From ₹{{ product.variants.first.price }}</p>
-                    <a href="{% url 'product_detail' product.pk %}" class="btn btn-outline-primary btn-sm w-100">
+                    <a href="{% url 'product_detail' product.product_id %}" class="btn btn-outline-primary btn-sm w-100">
                         View Details
                     </a>
                 </div>

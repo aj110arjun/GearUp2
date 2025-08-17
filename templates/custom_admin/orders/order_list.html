@@ -19,7 +19,7 @@
                 {% for order in orders %}
                     <tr>
                         <td>
-                            <a href="{% url 'admin_order_detail' order.id %}" class="text-decoration-none">
+                            <a href="{% url 'admin_order_detail' order.order_id %}" class="text-decoration-none">
                                 #{{ order.order_code }}
                             </a>
                         </td>
@@ -28,7 +28,7 @@
                         
                         <td>{{ order.created_at|date:"d M Y " }}</td>
                         <td>
-                            <a href="{% url 'admin_order_detail' order.id %}" class="btn btn-primary btn-sm">View</a>
+                            <a href="{% url 'admin_order_detail' order.order_id %}" class="btn btn-primary btn-sm">View</a>
                         </td>
                     </tr>
                 {% endfor %}

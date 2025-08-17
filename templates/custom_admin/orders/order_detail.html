@@ -29,7 +29,7 @@
                     <td>{{ item.quantity }}</td>
                     <td>${{ item.price }}</td>
                     <td>
-                        <form method="post" action="{% url 'admin_update_order_item_status' item.id %}">
+                        <form method="post" action="{% url 'admin_update_order_item_status' item.item_id %}">
                             {% csrf_token %}
                             <div class="input-group">
                                 <select name="status" class="form-select form-select-sm">

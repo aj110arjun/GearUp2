@@ -36,13 +36,19 @@
                 <h6>Available Variants</h6>
                 {% for v in variants %}
                     <div class="border rounded p-2 mb-2 bg-light d-flex justify-content-between align-items-center">
-                        <span> {{ v.color }} |  {{ v.size }}</span>
-                        <a href="{% url 'add_to_cart' v.id %}" class="btn btn-sm btn-success"> Add to Cart</a>
+                        <span>{{ v.color }} | {{ v.size }}</span>
+                        
+                        {% if v.id in cart_items %}
+                            <a href="{% url 'cart_view' %}" class="btn btn-sm btn-primary">Go to Cart</a>
+                        {% else %}
+                            <a href="{% url 'add_to_cart' v.id %}" class="btn btn-sm btn-success">Add to Cart</a>
+                        {% endif %}
                     </div>
                 {% empty %}
                     <p class="text-muted">No variants available</p>
                 {% endfor %}
             </div>
+
 
             <!-- Wishlist Button -->
            <div class="mt-4">

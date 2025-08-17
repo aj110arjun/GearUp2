@@ -15,6 +15,7 @@ def generate_order_code():
 
 class Order(models.Model):
     id = models.BigAutoField(primary_key=True)
+    order_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True, null=True, blank=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="orders")
     address = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True, blank=True)
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
@@ -37,6 +38,8 @@ class OrderItem(models.Model):
         ("delivered", "Delivered"),
         ("cancelled", "Cancelled"),
     ]
+    id = models.BigAutoField(primary_key=True)
+    item_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")
     variant = models.ForeignKey(ProductVariant, on_delete=models.SET_NULL, null=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
