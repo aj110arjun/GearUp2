@@ -5,7 +5,7 @@
 
     <!-- Order Header -->
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2>Order #{{ order.id }}</h2>
+        <h2>Order #{{ order.order_code }}</h2>
     </div>
     <p class="text-muted">Placed on: {{ order.created_at|date:"M d, Y H:i" }}</p>
     <hr>
@@ -52,11 +52,7 @@
                         <small class="d-block text-danger">Reason: {{ item.cancellation_reason }}</small>
                     {% else %}
                         <span class="badge bg-secondary">Cancellation Rejected</span>
-                        <small class="d-block text-muted">Reason: {{ item.cancellation_reason }}</small>
-                    {% endif %}
-                {% else %}
-                    <!-- Status Badge -->
-                    <span class="badge 
+                        <span class="badge 
                         {% if item.status|lower == 'pending' %} bg-warning text-light
                         {% elif item.status|lower == 'shipped' %} bg-info text-dark
                         {% elif item.status|lower == 'delivered' %} bg-success
@@ -64,6 +60,35 @@
                         {% else %} bg-secondary {% endif %}">
                         {{ item.get_status_display }}
                     </span>
+                    {% endif %}
+                {% else %}
+                <span class="badge 
+                        {% if item.status|lower == 'pending' %} bg-warning text-light
+                        {% elif item.status|lower == 'shipped' %} bg-info text-dark
+                        {% elif item.status|lower == 'delivered' %} bg-success
+                        {% elif item.status|lower == 'cancelled' %} bg-danger
+                        {% endif %}">
+                        {{ item.get_status_display }}
+                    </span>
+               {% if item.status == "delivered" and not item.return_requested %}
+                    <form method="post" action="{% url 'request_return_order_item' item.id %}">
+                        {% csrf_token %}
+                        <textarea name="reason" placeholder="Reason for return" class="form-control mb-2"></textarea>
+                        <button type="submit" class="btn btn-warning btn-sm">Request Return</button>
+                    </form>
+
+                {% elif item.return_requested and item.return_approved == None %}
+                    <span class="badge bg-info">Return Requested</span>
+
+                {% elif item.return_requested and item.return_approved %}
+                    <span class="badge bg-success">Returned</span>
+
+                {% elif item.return_requested and item.return_approved == False %}
+                    <span class="badge bg-danger">Return Rejected</span>
+                {% endif %}
+
+                    <!-- Status Badge -->
+                    
 
                     <!-- Request Cancellation Form -->
                     {% if not item.cancellation_requested and item.status|lower in "pending shipped" %}

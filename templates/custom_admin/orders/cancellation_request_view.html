@@ -1,0 +1,36 @@
+{% extends "custom_admin/base.html" %}
+{% block content %}
+<div class="container my-5">
+    <h2>Cancellation Request</h2>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Order #{{ item.order.order_code }}</h5>
+            <p><strong>User:</strong> {{ item.order.user.email }}</p>
+            <p><strong>Product:</strong> {{ item.variant.product.name }}</p>
+            <p><strong>Variant:</strong> {{ item.variant.color }} / {{ item.variant.size }}</p>
+            <p><strong>Quantity:</strong> {{ item.quantity }}</p>
+            <p><strong>Reason:</strong> {{ item.cancellation_reason }}</p>
+            <p><strong>Status:</strong> 
+                {% if item.cancellation_approved == None %}
+                    <span class="badge bg-warning text-dark">Pending</span>
+                {% elif item.cancellation_approved %}
+                    <span class="badge bg-success">Approved</span>
+                {% else %}
+                    <span class="badge bg-danger">Rejected</span>
+                {% endif %}
+            </p>
+        </div>
+    </div>
+
+    {% if item.cancellation_approved == None %}
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" name="action" value="approve" class="btn btn-success me-2">Approve</button>
+        <button type="submit" name="action" value="reject" class="btn btn-danger">Reject</button>
+    </form>
+    {% else %}
+        <a href="{% url 'admin_cancellation_requests' %}" class="btn btn-secondary">Back</a>
+    {% endif %}
+</div>
+{% endblock %}

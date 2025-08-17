@@ -20,13 +20,13 @@
                     <tr>
                         <td>
                             <a href="{% url 'admin_order_detail' order.id %}" class="text-decoration-none">
-                                #{{ order.id }}
+                                #{{ order.order_code }}
                             </a>
                         </td>
-                        <td>{{ order.user.username }}</td>
+                        <td>{{ order.user.email }}</td>
                         <td>${{ order.total_price }}</td>
                         
-                        <td>{{ order.created_at|date:"M d, Y H:i" }}</td>
+                        <td>{{ order.created_at|date:"d M Y " }}</td>
                         <td>
                             <a href="{% url 'admin_order_detail' order.id %}" class="btn btn-primary btn-sm">View</a>
                         </td>
