@@ -6,10 +6,38 @@
 {% block content %}
 <div class="container my-5">
     <div class="row g-5">
-        <!-- Product Image -->
-        <div class="col-md-6">
-            <div class="border rounded p-3 text-center shadow-sm">
-                <img src="{{ product.image.url }}" class="img-fluid rounded" style="max-height:400px; object-fit:contain;">
+
+       <!-- Product Image -->
+       <div class="col-md-6">
+            <div class="border rounded p-3 text-center shadow-sm position-relative overflow-hidden" style="cursor: crosshair;">
+                <img id="main-product-image" 
+                     src="{{ product.image.url }}" 
+                     class="img-fluid rounded zoomable-image"
+                     style="max-height:400px; object-fit:contain;">
+            </div>
+
+            <div class="additional-images mt-3 d-flex flex-wrap">
+                <!-- First: Main Product Image as thumbnail -->
+                <div class="me-2 mb-2">
+                    <img src="{{ product.image.url }}" 
+                         alt="{{ product.name }}" 
+                         width="100" height="100" 
+                         class="img-thumbnail clickable-thumb border-primary" 
+                         style="cursor:pointer;">
+                </div>
+
+                <!-- Additional Images -->
+                {% if additional_images %}
+                    {% for img in additional_images %}
+                        <div class="me-2 mb-2">
+                            <img src="{{ img.image.url }}" 
+                                 alt="{{ img.alt_text }}" 
+                                 width="100" height="100" 
+                                 class="img-thumbnail clickable-thumb" 
+                                 style="cursor:pointer;">
+                        </div>
+                    {% endfor %}
+                {% endif %}
             </div>
         </div>
 
@@ -18,18 +46,6 @@
             <h2 class="fw-bold">{{ product.name }}</h2>
             <p class="text-muted">Brand: {{ product.brand }}</p>
             <p>{{ product.description }}</p>
-            
-            <!-- Price (from first variant or range) -->
-           {% comment %} {% if variants %}
-                <h4 class="text-primary">
-                    Price: 
-                    {% if variants|length > 1 %}
-                        ${{ variants.0.price }} - ${{ variants|last.price }}
-                    {% else %}
-                        ${{ variants.0.price }}
-                    {% endif %}
-                </h4>
-            {% endif %} {% endcomment %}
 
             <!-- Variants -->
             <div class="mt-3">
@@ -49,9 +65,8 @@
                 {% endfor %}
             </div>
 
-
             <!-- Wishlist Button -->
-           <div class="mt-4">
+            <div class="mt-4">
                 {% if in_wishlist %}
                     <a href="{% url 'wishlist_view' %}" class="btn btn-outline-primary">
                         Go to Wishlist
@@ -82,5 +97,48 @@
         background: #dc3545;
         color: #fff;
     }
+    .clickable-thumb {
+        transition: transform 0.2s;
+    }
+    .clickable-thumb:hover {
+        transform: scale(1.05);
+    }
+    .border-primary {
+        border: 2px solid #007bff !important;
+    }
+    .zoomable-image {
+        transition: transform 0.2s ease;
+        transform-origin: center center;
+    }
 </style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const mainImg = document.getElementById("main-product-image");
+    const thumbs = document.querySelectorAll(".clickable-thumb");
+
+    // Thumbnail click: change main image
+    thumbs.forEach(thumb => {
+        thumb.addEventListener("click", function() {
+            mainImg.src = this.src;
+            thumbs.forEach(t => t.classList.remove("border-primary"));
+            this.classList.add("border-primary");
+        });
+    });
+
+    // Amazon-like hover zoom effect
+    mainImg.addEventListener("mousemove", function(e) {
+        const { left, top, width, height } = mainImg.getBoundingClientRect();
+        const x = ((e.pageX - left) / width) * 100;
+        const y = ((e.pageY - top) / height) * 100;
+        mainImg.style.transformOrigin = `${x}% ${y}%`;
+        mainImg.style.transform = "scale(2)"; // Zoom level
+    });
+
+    mainImg.addEventListener("mouseleave", function() {
+        mainImg.style.transformOrigin = "center center";
+        mainImg.style.transform = "scale(1)";
+    });
+});
+</script>
 {% endblock %}

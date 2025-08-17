@@ -5,7 +5,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 
 
 from django.db.models import Q, Min, Max, Sum
-from .models import Product, ProductVariant, Category
+from .models import Product, ProductVariant, Category, ProductImage
 from wishlist.models import Wishlist
 from cart.models import CartItem
 
@@ -73,6 +73,7 @@ def product_list(request):
 def product_detail(request, product_id):
     product = get_object_or_404(Product, product_id=product_id, is_active=True)
     variants = product.variants.all()
+    additional_images = product.images.all()
     in_wishlist = False
     if request.user.is_authenticated:
         in_wishlist = Wishlist.objects.filter(user=request.user, product=product).exists()
@@ -83,6 +84,7 @@ def product_detail(request, product_id):
         "variants": variants,
         "in_wishlist": in_wishlist,
         "cart_items": cart_items,
+        "additional_images": additional_images,
     })
 
 
@@ -259,14 +261,14 @@ def admin_product_edit(request, product_id):
         product.save()
 
         # --- Update additional images ---
-        # for img_id in request.POST.getlist('image_id'):
-        #     img = ProductImage.objects.get(id=img_id)
-        #     if f'delete_image_{img.id}' in request.POST:
-        #         img.delete()
+        # delete selected ones
+        for img_id in request.POST.getlist('image_id'):
+            if f'delete_image_{img_id}' in request.POST:
+                ProductImage.objects.filter(id=img_id, product=product).delete()
 
-        # Add new images
-        # for file in request.FILES.getlist('new_images'):
-        #     ProductImage.objects.create(product=product, image=file)
+        # add new images
+        for file in request.FILES.getlist('new_images'):
+            ProductImage.objects.create(product=product, image=file)
 
         # --- Update variants ---
         for var_id in request.POST.getlist('variant_id'):
@@ -297,12 +299,12 @@ def admin_product_edit(request, product_id):
         return redirect('admin_product_detail', product_id=product.product_id)
 
     # GET request — render page
-    # additional_images = product.productimage_set.all()
+    additional_images = product.images.all()
     variants = product.variants.all()
 
     return render(request, 'custom_admin/products/product_edit.html', {
         'product': product,
-        # 'additional_images': additional_images,
+        'additional_images': additional_images,
         'categories': categories,
         'variants': variants
     })
