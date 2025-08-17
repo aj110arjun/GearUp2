@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
+from django.core.paginator import Paginator
 
 
 from django.db.models import Q, Min, Max, Sum
@@ -12,6 +13,10 @@ from cart.models import CartItem
 @login_required(login_url='login')
 def product_list(request):
     products = Product.objects.filter(is_active=True)
+    
+    paginator = Paginator(products, 8)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
     categories = Category.objects.all()
 
     # Capture filters
@@ -63,7 +68,7 @@ def product_list(request):
         products = products.order_by('-min_variant_price')
 
     context = {
-        'products': products,
+        'products': page_obj,
         'categories': categories,
         'filters': filters
     }

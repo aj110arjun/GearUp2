@@ -8,7 +8,10 @@
     <h2>Edit Product</h2>
     <hr>
 
-    <form method="post" enctype="multipart/form-data" class="card p-4 shadow-sm">
+    <link href="https://unpkg.com/cropperjs@1.5.13/dist/cropper.min.css" rel="stylesheet"/>
+    <script src="https://unpkg.com/cropperjs@1.5.13/dist/cropper.min.js"></script>
+
+    <form method="post" enctype="multipart/form-data" class="card p-4 shadow-sm" id="product-form">
         {% csrf_token %}
 
         <!-- Main Product Info -->
@@ -35,26 +38,29 @@
                     <label class="form-label">Description</label>
                     <textarea name="description" class="form-control" rows="4">{{ product.description }}</textarea>
                 </div>
+
+                <!-- Main Image with Cropper -->
                 <div class="col-6">
                     <label class="form-label">Main Image</label><br>
                     {% if product.image %}
-                        <img src="{{ product.image.url }}" class="img-thumbnail mb-2" style="max-height:150px;">
+                        <img id="current-image" src="{{ product.image.url }}" class="img-thumbnail mb-2" style="max-height:150px;">
+                    {% else %}
+                        <img id="current-image" class="img-thumbnail mb-2" style="max-height:150px; display:none;">
                     {% endif %}
-                    <input type="file" name="image" class="form-control">
+                    <input type="file" id="image-input" class="form-control" accept="image/*">
                 </div>
+
                 <div class="col-6 d-flex align-items-center">
                     <div class="form-check form-switch mt-4">
                         <input type="checkbox" name="is_active" id="is_active" class="form-check-input custom-toggle"
                             {% if product.is_active %}checked{% endif %}>
-                        <label class="form-check-label ms-2" for="is_active">
-                            Active
-                        </label>
+                        <label class="form-check-label ms-2" for="is_active">Active</label>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- ✅ Additional Images -->
+        <!-- Additional Images -->
         <div class="mb-4">
             <h4>Additional Images</h4>
             {% for img in additional_images %}
@@ -98,7 +104,6 @@
                 </div>
             {% endfor %}
 
-            <!-- Add New Variant -->
             <h5>Add New Variant</h5>
             <div class="row g-3">
                 <div class="col-md-3">
@@ -124,51 +129,96 @@
 </div>
 
 <style>
-    input, select, textarea {
-        width: 100%;
-        padding: 8px 12px;
-        border: 1px solid #ccc;
-        border-radius: 6px;
-    }
-    input:focus, select:focus, textarea:focus {
-        border-color: #0d6efd;
-        box-shadow: 0 0 5px rgba(13,110,253,0.3);
-    }
-    .img-thumbnail {
-        border-radius: 6px;
-        transition: transform 0.2s ease;
-    }
-    .img-thumbnail:hover {
-        transform: scale(1.05);
-    }
-    /* Toggle Switch Styling */
-    .form-check-input.custom-toggle {
-        width: 50px;
-        height: 25px;
-        background-color: #ccc;
-        border-radius: 25px;
-        position: relative;
-        cursor: pointer;
-        appearance: none;
-        -webkit-appearance: none;
-        transition: background-color 0.3s ease;
-    }
-    .form-check-input.custom-toggle:checked {
-        background-color: #0d6efd;
-    }
-    .form-check-input.custom-toggle::before {
-        content: "";
-        position: absolute;
-        width: 21px;
-        height: 21px;
-        top: 2px;
-        left: 2px;
-        background: #fff;
-        border-radius: 50%;
-        transition: transform 0.3s ease;
-    }
-    .form-check-input.custom-toggle:checked::before {
-        transform: translateX(25px);
-    }
+input, select, textarea {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+}
+input:focus, select:focus, textarea:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 5px rgba(13,110,253,0.3);
+}
+.img-thumbnail {
+    border-radius: 6px;
+    transition: transform 0.2s ease;
+}
+.img-thumbnail:hover {
+    transform: scale(1.05);
+}
+/* Toggle Switch Styling */
+.form-check-input.custom-toggle {
+    width: 50px;
+    height: 25px;
+    background-color: #ccc;
+    border-radius: 25px;
+    position: relative;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    transition: background-color 0.3s ease;
+}
+.form-check-input.custom-toggle:checked {
+    background-color: #0d6efd;
+}
+.form-check-input.custom-toggle::before {
+    content: "";
+    position: absolute;
+    width: 21px;
+    height: 21px;
+    top: 2px;
+    left: 2px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.3s ease;
+}
+.form-check-input.custom-toggle:checked::before {
+    transform: translateX(25px);
+}
 </style>
+
+<script>
+let cropper;
+const input = document.getElementById('image-input');
+const image = document.getElementById('current-image');
+
+input.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const url = URL.createObjectURL(file);
+    image.src = url;
+    image.style.display = 'block';
+
+    if (cropper) cropper.destroy();
+
+    cropper = new Cropper(image, {
+        aspectRatio: 1, // change as needed
+        viewMode: 1,
+        autoCropArea: 1,
+    });
+});
+
+document.getElementById('product-form').addEventListener('submit', function(e) {
+    if (!cropper) return; // no cropper, submit normally
+
+    e.preventDefault();
+
+    cropper.getCroppedCanvas().toBlob((blob) => {
+        const formData = new FormData(this);
+        formData.set('image', blob, 'cropped.png');
+
+        fetch(this.action, {
+            method: 'POST',
+            body: formData,
+        }).then(response => {
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                alert('Failed to save product.');
+            }
+        });
+    });
+});
+</script>
 {% endblock %}

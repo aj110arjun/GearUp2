@@ -57,5 +57,5 @@ class OrderItem(models.Model):
     def subtotal(self):
         return self.price * self.quantity
 
-    def __str__(self):
-        return f"{self.variant.product.name} ({self.variant.color}/{self.variant.size}) x{self.quantity}"
+    # def __str__(self):
+    #     return f"{self.variant.product.name} ({self.variant.color}/{self.variant.size}) x{self.quantity}"
