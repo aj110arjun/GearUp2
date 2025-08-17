@@ -23,7 +23,7 @@
                     <td>{{ item.variant.color }} / {{ item.variant.size }}</td>
                     <td>{{ item.quantity }}</td>
                    <td>
-                        <a href="{% url 'admin_cancellation_request_view' item.id %}" class="btn btn-info btn-sm">View</a>
+                        <a href="{% url 'admin_cancellation_request_view' item.item_id %}" class="btn btn-info btn-sm">View</a>
                     </td>
                 </tr>
                 {% endfor %}

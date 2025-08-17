@@ -123,7 +123,7 @@ def admin_update_order_item_status(request, item_id):
 # views.py
 @login_required(login_url="login")
 def request_cancel_order_item(request, item_id):
-    item = get_object_or_404(OrderItem, id=item_id, order__user=request.user)
+    item = get_object_or_404(OrderItem, item_id=item_id, order__user=request.user)
 
     # Only allow if Pending or Shipped
     if item.status not in ["pending", "shipped"]:
