@@ -1,7 +1,7 @@
 {% extends "custom_admin/base.html" %}
 {% block content %}
 <div class="container my-5">
-    <h2>Pending Cancellation Requests</h2>
+    <h2>Pending Return Requests</h2>
     {% if items %}
         <table class="table table-hover">
             <thead class="table-dark">
@@ -11,6 +11,7 @@
                     <th>Product</th>
                     <th>Variant</th>
                     <th>Quantity</th>
+                    <th>Reason</th>
                     <th>Action</th>
                 </tr>
             </thead>
@@ -22,15 +23,17 @@
                     <td>{{ item.variant.product.name }}</td>
                     <td>{{ item.variant.color }} / {{ item.variant.size }}</td>
                     <td>{{ item.quantity }}</td>
-                   <td>
-                        <a href="{% url 'admin_cancellation_request_view' item.id %}" class="btn btn-info btn-sm">View</a>
+                    <td>{{ item.return_reason }}</td>
+                    <td>
+                        <a href="{% url 'admin_approve_reject_return' item.id 'approve' %}" class="btn btn-success btn-sm">Approve</a>
+                        <a href="{% url 'admin_approve_reject_return' item.id 'reject' %}" class="btn btn-danger btn-sm">Reject</a>
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     {% else %}
-        <p>No pending cancellation requests.</p>
+        <p>No pending return requests.</p>
     {% endif %}
 </div>
 {% endblock %}
