@@ -3,6 +3,8 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.cache import never_cache
 from django.views.decorators.cache import cache_control
 from django.contrib.admin.views.decorators import staff_member_required
+from products.models import ProductVariant, Product
+from django.db.models import OuterRef, Subquery
 
 
 
@@ -14,8 +16,12 @@ def home(request):
         return redirect('login')
     if not request.user.is_authenticated:
         return redirect('login')
-    return render(request, 'user/index.html')
-#
+    subquery = ProductVariant.objects.filter(product=OuterRef('pk')).order_by('id')
+    products = Product.objects.annotate(first_variant_id=Subquery(subquery.values('id')[:1]))[:8]
+    variants = ProductVariant.objects.filter(id__in=[p.first_variant_id for p in products if p.first_variant_id])
+
+    
+    return render(request, 'user/index.html', {'products': variants})
 
 
 

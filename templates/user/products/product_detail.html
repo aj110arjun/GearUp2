@@ -56,7 +56,15 @@
                         {% if v.id in cart_items %}
                             <a href="{% url 'cart_view' %}" class="btn btn-sm btn-primary">Go to Cart</a>
                         {% else %}
-                            <a href="{% url 'add_to_cart' v.id %}" class="btn btn-sm btn-success">Add to Cart</a>
+                            
+                            {% if v.stock == 0 %}
+                                <a href="{% url 'add_to_cart' v.id %}" class="btn btn-sm btn-success disabled">Out of Stocks</a>
+
+                            {% else %}
+
+                                <a href="{% url 'add_to_cart' v.id %}" class="btn btn-sm btn-success">Add to Cart</a>
+                            {% endif %}
+                                
                         {% endif %}
                     </div>
                 {% empty %}

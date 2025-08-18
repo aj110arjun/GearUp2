@@ -3,7 +3,7 @@
 <div class="container my-5">
     <h2>Order #{{ order.order_code }}</h2>
     <p>User: {{ order.user.email }}</p>
-    <p>Total: ${{ order.total_price }}</p>
+    <p>Total: ₹{{ order.total_price }}</p>
     <p>Placed On: {{ order.created_at|date:"M d, Y " }}</p>
     {% if order.status == "cancelled" %}
         <p class="text-danger">Cancellation Reason: {{ order.cancellation_reason }}</p>
@@ -27,7 +27,7 @@
                     <td>{{ item.variant.product.name }}</td>
                     <td>{{ item.variant.color }} / {{ item.variant.size }}</td>
                     <td>{{ item.quantity }}</td>
-                    <td>${{ item.price }}</td>
+                    <td>₹{{ item.price }}</td>
                     <td>
                         <form method="post" action="{% url 'admin_update_order_item_status' item.item_id %}">
                             {% csrf_token %}
