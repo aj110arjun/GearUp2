@@ -1,0 +1,43 @@
+{% extends "user/base.html" %}
+
+{% block content %}
+<div class="container my-4">
+    <h2>{{ request.user.username }}'s Wallet</h2>
+
+    <!-- Wallet Balance -->
+    <div class="card mb-4 p-3">
+        <h4>Current Balance: ₹{{ wallet.balance }}</h4>
+    </div>
+
+    <!-- Transaction History -->
+    <div class="card p-3">
+        <h5>Transactions:</h5>
+        {% if transactions %}
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Amount (₹)</th>
+                        <th>Quantity</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for txn in transactions %}
+                        <tr>
+                            <td>{{ txn.created_at|date:"d-m-Y H:i" }}</td>
+                            <td>{{ txn.transaction_type }}</td>
+                            <td>{{ txn.amount }}</td>
+                            <td>{{txn.product_quantity }}</td>
+                            <td>{{ txn.description }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>No transactions yet.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

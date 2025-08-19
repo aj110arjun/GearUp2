@@ -55,6 +55,7 @@ class OrderItem(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     quantity = models.PositiveIntegerField(default=1)
     price = models.DecimalField(max_digits=10, decimal_places=2)
+    refund_done = models.BooleanField(default=False)
     
     cancellation_requested = models.BooleanField(default=False)
     cancellation_reason = models.TextField(blank=True, null=True)
