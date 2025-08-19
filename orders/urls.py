@@ -18,6 +18,7 @@ urlpatterns = [
     path("admin/orders/returns/", views.admin_return_requests, name="admin_return_requests"),
     path("admin/orders/returns/<uuid:item_id>/<str:action>/", views.admin_approve_reject_return, name="admin_approve_reject_return"),
     path("track/", views.track_order_search, name="track_order_search"),
+    path("orders/<str:order_id>/invoice/", views.download_invoice, name="download_invoice"),
 
 
 

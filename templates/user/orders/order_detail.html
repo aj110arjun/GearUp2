@@ -9,6 +9,25 @@
     </div>
     <p class="text-muted">Placed on: {{ order.created_at|date:"M d, Y H:i" }}</p>
     <p><strong>Payment Method:</strong> {{ order.payment_method }}</p>
+    <a href="{% url 'download_invoice' order.order_id %}" class="btn btn-sm btn-outline-dark">
+        <i class="bi bi-download"></i> Download Invoice
+    </a>
+    <!-- Shipping Address -->
+<h5 class="mt-4">Shipping Address</h5>
+<div class="border rounded p-3 mb-4 shadow-sm">
+    {% if order.address %}
+        <p class="mb-1"><strong>{{ order.address.full_name }}</strong></p>
+        <p class="mb-1">{{ order.address.address_line_1 }}</p>
+        {% if order.address.address_line_2 %}
+            <p class="mb-1">{{ order.address.address_line_2 }}</p>
+        {% endif %}
+        <p class="mb-1">{{ order.address.city }}, {{ order.address.state }} - {{ order.address.postal_code }}</p>
+        <p class="mb-1">{{ order.address.country }}</p>
+        <p class="mb-0"><strong>Phone:</strong> {{ order.address.phone }}</p>
+    {% else %}
+        <p class="text-muted">No address available</p>
+    {% endif %}
+</div>
     <hr>
 
     <!-- Order Items -->
