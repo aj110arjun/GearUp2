@@ -41,8 +41,7 @@
           <img src="{{ product.product.image.url }}" class="card-img-top cart-product-img" alt="{{ product.name }}">
           <div class="card-body">
             <h6 class="card-title text-truncate">{{ product.product.name | title }}</h6>
-            <span class="badge bg-danger mb-2">20% OFF</span>
-            <div class="fw-bold text-success">₹{{ product.price }}</div>
+              <div class="fw-bold text-success">₹{{ product.price }}</div>
             <a href="{% url 'product_detail' product.product.product_id %}" class="btn btn-sm btn-dark mt-3">View</a>
           </div>
         </div>
@@ -51,36 +50,6 @@
   </div>
 </div>
 
-
-  <div class="container explore-section">
-    <h4 class="text-center mb-5">Explore The World of Survival</h4>
-    <div class="row g-4">
-      <div class="col-md-6 d-flex">
-        <div class="explore-card">
-          <p>Watch Your Survival With These Pro Gears</p>
-          <img src="{% static 'images/banner1.jpg' %}" class="img-fluid rounded">
-        </div>
-      </div>
-      <div class="col-md-6 d-flex">
-        <div class="explore-card">
-          <p>Watch Your Survival With These Pro Gears</p>
-          <img src="{% static 'images/banner2.jpg' %}" class="img-fluid rounded">
-        </div>
-      </div>
-      <div class="col-md-6 d-flex">
-        <div class="explore-card">
-          <p>Watch Your Survival With These Pro Gears</p>
-          <img src="{% static 'images/banner3.jpg' %}" class="img-fluid rounded">
-        </div>
-      </div>
-      <div class="col-md-6 d-flex">
-        <div class="explore-card">
-          <p>Watch Your Survival With These Pro Gears</p>
-          <img src="{% static 'images/banner4.jpg' %}" class="img-fluid rounded">
-        </div>
-      </div>
-    </div>
-  </div>
 
    
 {% endblock content %}

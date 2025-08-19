@@ -21,16 +21,19 @@
                                     <div class="mb-2">
                                         <label for="variant-{{ w.id }}" class="form-label">Choose Variant:</label>
                                         <select name="variant_id" id="variant-{{ w.id }}" class="form-select" required>
+
                                             {% for v in w.product.variants.all %}
-                                                <option value="{{ v.id }}">
-                                                    {{ v.color }} | {{ v.size }} | ${{ v.price }}
-                                                </option>
+                                                {% if v.stock > 0 %}
+                                                    <option value="{{ v.id }}">
+                                                        {{ v.color }} | {{ v.size }} | ₹{{ v.price }}
+                                                    </option>
+                                                {% endif %}
                                             {% endfor %}
                                         </select>
                                     </div>
 
-                                    <button type="submit" class="btn btn-success btn-sm">🛒 Add to Cart</button>
-                                    <a href="{% url 'remove_from_wishlist' w.product.pk %}" class="btn btn-danger btn-sm">🗑 Remove</a>
+                                    <button type="submit" class="btn btn-success btn-sm">Add to Cart</button>
+                                    <a href="{% url 'remove_from_wishlist' w.product.pk %}" class="btn btn-danger btn-sm">Remove</a>
                                 </form>
                             {% else %}
                                 <p class="text-muted">No variants available</p>

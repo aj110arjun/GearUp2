@@ -6,6 +6,11 @@
     <div class="mb-3">
         <label>Name</label>
         <input type="text" name="name" class="form-control" value="{{ category.name|default:'' }}" required>
+        
+        {% if errors %}
+            <span class="text-danger">{{errors.name}}</span>
+        {% endif %}
+            
     </div>
     <div class="mb-3">
         <label>Description</label>

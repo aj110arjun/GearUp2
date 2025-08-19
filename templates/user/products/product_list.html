@@ -40,7 +40,8 @@
             <form method="get">
                 <select name="sort" class="form-select" onchange="this.form.submit()">
                     <option value="">Sort by</option>
-                    <option value="name" {% if request.GET.sort == "name" %}selected{% endif %}>Name</option>
+                    <option value="name" {% if request.GET.sort == "name" %}selected{% endif %}>Name: A-Z</option>
+                    <option value="name2" {% if request.GET.sort == "name2" %}selected{% endif %}>Name: Z-A</option>
                     <option value="price_asc" {% if request.GET.sort == "price_asc" %}selected{% endif %}>Price: Low to High</option>
                     <option value="price_desc" {% if request.GET.sort == "price_desc" %}selected{% endif %}>Price: High to Low</option>
                 </select>

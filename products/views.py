@@ -1,3 +1,5 @@
+import re
+
 from django.contrib import messages
 from django.shortcuts import render
 from django.shortcuts import render, redirect, get_object_or_404
@@ -59,6 +61,8 @@ def product_list(request):
     # Sorting
     if filters['sort'] == 'name':
         products = products.order_by('name')
+    elif filters['sort'] == 'name2':
+        products = products.order_by('-name')
     elif filters['sort'] == 'price_asc':
         products = products.order_by('min_variant_price')
     elif filters['sort'] == 'price_desc':
@@ -169,8 +173,10 @@ def admin_product_list(request):
     }
     return render(request, 'custom_admin/products/product_list.html', context)
 
-
-from django.contrib import messages
+import re
+from django.contrib.admin.views.decorators import staff_member_required
+from django.shortcuts import render, redirect, get_object_or_404
+from .models import Product, Category
 
 @staff_member_required(login_url='admin_login')
 def admin_product_add(request):
@@ -198,6 +204,12 @@ def admin_product_add(request):
         # --- Validation ---
         if not name:
             errors['name'] = "Product name is required."
+        elif len(name) < 3:
+            errors['name'] = "Product name must be at least 3 characters."
+        elif not re.match(r'^[A-Za-z0-9 ]+$', name):
+            errors['name'] = "Product name can only contain letters, numbers, and spaces."
+        elif Product.objects.filter(name__iexact=name).exists():
+            errors['name'] = "A product with this name already exists."
 
         if not brand:
             errors['brand'] = "Brand is required."
@@ -218,7 +230,7 @@ def admin_product_add(request):
         if not image:
             errors['image'] = "Product image is required."
 
-        # --- If validation fails, reload form with errors ---
+        # --- If validation fails ---
         if errors:
             return render(request, 'custom_admin/products/product_form.html', {
                 'categories': categories,
@@ -245,6 +257,7 @@ def admin_product_add(request):
     })
 
 
+
 @staff_member_required(login_url='admin_login')
 def category_list(request):
     categories = Category.objects.all()
@@ -252,16 +265,22 @@ def category_list(request):
 
 @staff_member_required(login_url='admin_login')
 def category_add(request):
+    errors={}
     if request.method == 'POST':
         name = request.POST.get('name')
         description = request.POST.get('description', '')
         parent_id = request.POST.get('parent')
         parent = Category.objects.get(id=parent_id) if parent_id else None
-        Category.objects.create(name=name, description=description, parent=parent)
-        return redirect('category_list')
+        
+        if Category.objects.filter(name__iexact = name):
+            errors['name']='Category name already exists'
+        if not errors:
+            Category.objects.create(name=name, description=description, parent=parent)
+            return redirect('category_list')
+        
 
     categories = Category.objects.filter(parent__isnull=True)
-    return render(request, 'custom_admin/category/category_form.html', {'categories': categories})
+    return render(request, 'custom_admin/category/category_form.html', {'categories': categories, 'errors':errors})
 
 @staff_member_required(login_url='admin_login')
 def category_edit(request, id):
@@ -279,12 +298,6 @@ def category_edit(request, id):
         'category': category,
         'categories': categories
     })
-
-@staff_member_required(login_url='admin_login')
-def category_delete(request, pk):
-    category = get_object_or_404(Category, pk=pk)
-    category.delete()
-    return redirect('category_list')
 
 @staff_member_required(login_url='admin_login')
 def admin_product_detail(request, product_id):
