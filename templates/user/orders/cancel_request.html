@@ -1,0 +1,14 @@
+{% extends "user/base.html" %}
+{% block content %}
+<div class="container my-5">
+    <h3>Cancel Order Item</h3>
+    <p><strong>Product:</strong> {{ item.variant.product.name }}</p>
+    <form method="post">
+        {% csrf_token %}
+        <label>Reason for cancellation</label>
+        <textarea name="reason" class="form-control mb-3" required></textarea>
+        <button type="submit" class="btn btn-danger">Submit Cancellation</button>
+        <a href="{% url 'order_detail' item.order.order_id %}" class="btn btn-secondary">Back</a>
+    </form>
+</div>
+{% endblock %}

@@ -269,8 +269,8 @@ def track_order_search(request):
     return render(request, "user/orders/order_track.html", {"order": order})
 
 @login_required(login_url='login')
-def download_invoice(request, order_id):
-    order = get_object_or_404(Order, order_id=order_id, user=request.user)
+def download_invoice(request, order_code):
+    order = get_object_or_404(Order, order_code=order_code, user=request.user)
 
     # Create a file-like buffer
     buffer = BytesIO()
@@ -288,7 +288,7 @@ def download_invoice(request, order_id):
     elements.append(Spacer(1, 12))
 
     # Order Info
-    elements.append(Paragraph(f"Order ID: {order.order_code}", normal_style))
+    elements.append(Paragraph(f"Order ID: #{order.order_code}", normal_style))
     elements.append(Paragraph(f"Date: {order.created_at.strftime('%d-%m-%Y')}", normal_style))
     elements.append(Paragraph(f"Payment Method: {order.payment_method}", normal_style))
     # elements.append(Paragraph(f"Order Status: {order.payment_method}", normal_style))
@@ -341,8 +341,43 @@ def download_invoice(request, order_id):
 
     # Response as PDF download
     response = HttpResponse(pdf, content_type="application/pdf")
-    response["Content-Disposition"] = f'attachment; filename="invoice_{order.order_id}.pdf"'
+    response["Content-Disposition"] = f'attachment; filename="invoice_#{order.order_code}.pdf"'
     return response
+
+@login_required(login_url="login")
+def cancel_order_item_page(request, item_id):
+    item = get_object_or_404(OrderItem, item_id=item_id, order__user=request.user)
+
+    if request.method == "POST":
+        reason = request.POST.get("reason")
+        item.cancellation_requested = True
+        item.cancellation_reason = reason
+        item.save()
+        messages.success(request, "Cancellation request submitted.")
+        return redirect("order_detail", order_id=item.order.order_id)
+
+    return render(request, "user/orders/cancel_request.html", {"item": item})
+
+
+@login_required(login_url="login")
+def return_order_item_page(request, item_id):
+    item = get_object_or_404(OrderItem, item_id=item_id, order__user=request.user)
+
+    if request.method == "POST":
+        reason = request.POST.get("reason")
+        item.return_requested = True
+        item.return_reason = reason
+        item.save()
+        messages.success(request, "Return request submitted.")
+        return redirect("order_detail", order_id=item.order.order_id)
+
+    return render(request, "user/orders/return_request.html", {"item": item})
+
+@staff_member_required(login_url='admin_login')
+def admin_view_return_reason(request, item_id):
+    item = get_object_or_404(OrderItem, item_id=item_id)
+    return render(request, "custom_admin/orders/view_return_reason.html", {"item": item})
+
 
 
 
