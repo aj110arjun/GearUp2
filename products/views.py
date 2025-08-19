@@ -284,20 +284,35 @@ def category_add(request):
 
 @staff_member_required(login_url='admin_login')
 def category_edit(request, id):
+    errors = {}
     category = get_object_or_404(Category, id=id)
+
     if request.method == 'POST':
-        category.name = request.POST.get('name')
-        category.description = request.POST.get('description', '')
+        name = request.POST.get('name', '').strip()
+        description = request.POST.get('description', '').strip()
         parent_id = request.POST.get('parent')
-        category.parent = Category.objects.get(id=parent_id) if parent_id else None
-        category.save()
-        return redirect('category_list')
+
+        # Check if name already exists (excluding current one)
+        if Category.objects.filter(name__iexact=name).exclude(id=id).exists():
+            errors['name'] = 'Category name already exists'
+        if not name:
+            errors['name'] = 'Category name cannot be empty'
+            
+
+        if not errors:
+            category.name = name
+            category.description = description
+            category.parent = Category.objects.get(id=parent_id) if parent_id else None
+            category.save()
+            return redirect('category_list')
 
     categories = Category.objects.filter(parent__isnull=True).exclude(id=id)
     return render(request, 'custom_admin/category/category_form.html', {
         'category': category,
-        'categories': categories
+        'categories': categories,
+        'errors': errors,
     })
+
 
 @staff_member_required(login_url='admin_login')
 def admin_product_detail(request, product_id):
