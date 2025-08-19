@@ -6,6 +6,11 @@ from .models import Order, OrderItem
 from django.contrib.admin.views.decorators import staff_member_required
 from address.models import Address
 from django.contrib import messages
+from django.http import HttpResponse
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib import colors
+from io import BytesIO
 
 
 # orders/views.py
@@ -42,6 +47,10 @@ def checkout(request):
     if request.method == "POST":
         address_id = request.POST.get("address")
         address = Address.objects.filter(user=request.user, id=address_id).first()
+        
+        if not address:
+            messages.error(request, "Please select an address before placing your order.")
+            return redirect("checkout")
 
         order = Order.objects.create(
             user=request.user,
@@ -258,6 +267,82 @@ def track_order_search(request):
             order = None
 
     return render(request, "user/orders/order_track.html", {"order": order})
+
+@login_required(login_url='login')
+def download_invoice(request, order_id):
+    order = get_object_or_404(Order, order_id=order_id, user=request.user)
+
+    # Create a file-like buffer
+    buffer = BytesIO()
+
+    # Create PDF document
+    doc = SimpleDocTemplate(buffer)
+    elements = []
+
+    styles = getSampleStyleSheet()
+    title_style = styles["Heading1"]
+    normal_style = styles["Normal"]
+
+    # Title
+    elements.append(Paragraph("Order Invoice", title_style))
+    elements.append(Spacer(1, 12))
+
+    # Order Info
+    elements.append(Paragraph(f"Order ID: {order.order_code}", normal_style))
+    elements.append(Paragraph(f"Date: {order.created_at.strftime('%d-%m-%Y')}", normal_style))
+    elements.append(Paragraph(f"Payment Method: {order.payment_method}", normal_style))
+    # elements.append(Paragraph(f"Order Status: {order.payment_method}", normal_style))
+    elements.append(Spacer(1, 12))
+
+    elements.append(Paragraph("<b>Shipping Address:</b>", styles["Heading3"]))
+    if order.address:
+        shipping_address = f"""
+        {order.address.full_name}<br/>
+        {order.address.address_line_1}<br/>
+        {order.address.address_line_2 + '<br/>' if order.address.address_line_2 else ''}
+        {order.address.city}, {order.address.state} - {order.address.postal_code}<br/>
+        {order.address.country}<br/>
+        Phone: {order.address.phone}
+     """
+        elements.append(Paragraph(shipping_address, styles["Normal"]))
+    else:
+        elements.append(Paragraph("No shipping address available", styles["Normal"]))
+    elements.append(Spacer(1, 12))
+
+    # Order Items Table
+    data = [["Product", "Quantity", "Price", "Subtotal", "Status"]]
+    for item in order.items.all():
+        data.append([
+            item.variant.product.name,
+            str(item.quantity),
+            f"₹{item.price}",
+            f"₹{item.quantity * item.price}",
+            f"{item.get_status_display()}",
+        ])
+
+    data.append(["", "", "Total:", f"₹{order.total_price}"])
+
+    table = Table(data, hAlign="LEFT")
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+        ("ALIGN", (1, 1), (-1, -1), "CENTER"),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+    ]))
+    elements.append(table)
+
+    # Build PDF
+    doc.build(elements)
+
+    # Get PDF value
+    pdf = buffer.getvalue()
+    buffer.close()
+
+    # Response as PDF download
+    response = HttpResponse(pdf, content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="invoice_{order.order_id}.pdf"'
+    return response
 
 
 

@@ -20,5 +20,14 @@ class Address(models.Model):
         super().save(*args, **kwargs)
     @property
     def full_address(self):
-        return f"{self.full_name}, {self.city}, {self.state}, {self.postal_code}, {self.country}"
+        parts = [
+            self.full_name,
+            self.address_line_1,
+            self.address_line_2 if self.address_line_2 else "",
+            f"{self.city}, {self.state} {self.postal_code}",
+            self.country,
+            f"Phone: {self.phone}"
+        ]
+        return ", ".join([p for p in parts if p])
+
 
