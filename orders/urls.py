@@ -18,7 +18,11 @@ urlpatterns = [
     path("admin/orders/returns/", views.admin_return_requests, name="admin_return_requests"),
     path("admin/orders/returns/<uuid:item_id>/<str:action>/", views.admin_approve_reject_return, name="admin_approve_reject_return"),
     path("track/", views.track_order_search, name="track_order_search"),
-    path("orders/<str:order_id>/invoice/", views.download_invoice, name="download_invoice"),
+    path('return-reason/<uuid:item_id>/', views.admin_view_return_reason, name='admin_view_return_reason'),
+    path("orders/<str:order_code>/invoice/", views.download_invoice, name="download_invoice"),
+    path("order/cancel/<uuid:item_id>/", views.cancel_order_item_page, name="cancel_order_item_page"),
+    path("order/return/<uuid:item_id>/", views.return_order_item_page, name="return_order_item_page"),
+
 
 
 
