@@ -274,6 +274,8 @@ def category_add(request):
         
         if Category.objects.filter(name__iexact = name):
             errors['name']='Category name already exists'
+        elif not name:
+            errors['name'] = 'Category name cannot be empty'
         if not errors:
             Category.objects.create(name=name, description=description, parent=parent)
             return redirect('category_list')
@@ -295,7 +297,7 @@ def category_edit(request, id):
         # Check if name already exists (excluding current one)
         if Category.objects.filter(name__iexact=name).exclude(id=id).exists():
             errors['name'] = 'Category name already exists'
-        if not name:
+        elif not name:
             errors['name'] = 'Category name cannot be empty'
             
 

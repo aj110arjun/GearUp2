@@ -11,6 +11,8 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 from io import BytesIO
+from wallet.models import Wallet
+from decimal import Decimal
 
 
 # orders/views.py
@@ -237,24 +239,53 @@ def admin_return_requests(request):
                              .select_related("order", "variant__product", "order__user")
     return render(request, "custom_admin/orders/return_request.html", {"items": items})
 
+
+
 @staff_member_required(login_url="admin_login")
 def admin_approve_reject_return(request, item_id, action):
+    errors = {}
     item = get_object_or_404(OrderItem, item_id=item_id)
 
+    # Ensure user has a wallet
+    if not hasattr(item.order.user, "wallet"):
+        Wallet.objects.create(user=item.order.user)
+
+    wallet = item.order.user.wallet
+
     if action == "approve":
-        if item.status == "delivered":  # only approve return if delivered
+        if item.status == "delivered" and not item.return_approved:
             item.status = "returned"
             item.return_approved = True
 
-            # 🔹 Restock product
+            # Restock product
             item.variant.stock += item.quantity
             item.variant.save()
 
+            # Handle COD refund to wallet
+            if item.order.payment_method == "COD":
+                refund_amount = item.price  # or item.total_price if multiple qty
+                if not getattr(item, "refund_done", False):
+                    wallet.credit(Decimal(refund_amount), f"Refund for returned product {item.variant.product.name}")
+                    item.refund_done = True
+                    errors['wallet'] = f"Refund of ₹{refund_amount} credited to {item.order.user.username}'s wallet."
+                else:
+                    errors['wallet'] = "Refund already processed for this item."
+        else:
+            errors['return'] = "Return cannot be approved. Either already processed or not delivered."
+
     elif action == "reject":
         item.return_approved = False
+        errors['return'] = "Return request rejected."
 
-    item.save()
-    return redirect("admin_return_requests")
+    # Save fields safely
+    save_fields = ["status", "return_approved"]
+    if hasattr(item, "refund_done"):
+        save_fields.append("refund_done")
+    item.save(update_fields=save_fields)
+
+    # Render the wallet template for admin to view
+    return render(request, "custom_admin/wallet/wallet.html", {"item": item, "errors": errors})
+
 
 @login_required(login_url="login")
 def track_order_search(request):
