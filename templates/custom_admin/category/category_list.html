@@ -13,7 +13,7 @@
     <tbody>
    {% for cat in categories %}
 <tr>
-    <td>{{ cat.name }}</td>
+    <td>{{ cat.name | title }}</td>
     <td>
         {% if cat.parent %}
             {{ cat.parent.name }}

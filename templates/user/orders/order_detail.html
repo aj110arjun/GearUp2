@@ -8,6 +8,7 @@
         <h2>Order #{{ order.order_code }}</h2>
     </div>
     <p class="text-muted">Placed on: {{ order.created_at|date:"M d, Y H:i" }}</p>
+    <p><strong>Payment Method:</strong> {{ order.payment_method }}</p>
     <hr>
 
     <!-- Order Items -->
