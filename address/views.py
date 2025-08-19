@@ -22,7 +22,7 @@ def add_address(request):
         is_default = bool(request.POST.get("is_default"))
 
         if full_name and phone and address_line_1 and city and state and postal_code:
-            Address.objects.create(
+            address =  Address.objects.create(
                 user=request.user,
                 full_name=full_name,
                 phone=phone,
@@ -34,6 +34,10 @@ def add_address(request):
                 country=country,
                 is_default=is_default
             )
+            request.session['last_address_id'] = address.id
+            next_url = request.POST.get('next') or request.GET.get('next')
+            if next_url:
+                return redirect(next_url)
             return redirect("address_list")
         else:
             error = "All required fields must be filled."
@@ -56,6 +60,11 @@ def edit_address(request, pk):
         address.country = request.POST.get("country", "India")
         address.is_default = bool(request.POST.get("is_default"))
         address.save()
+        
+        next_url = request.POST.get("next") or request.GET.get("next")
+        if next_url:
+            return redirect(next_url)
+        
         return redirect("address_list")
 
     return render(request, "user/address/address_form.html", {"address": address})
@@ -69,5 +78,8 @@ def delete_address(request, pk):
         return redirect("address_list")
 
     address.delete()
+    next_url = request.POST.get("next") or request.GET.get("next")
+    if next_url:
+        return redirect(next_url)
     return redirect("address_list")
 
