@@ -14,7 +14,12 @@ def approve_return(request, order_item_id):
         Wallet.objects.create(user=order_item.order.user)
 
     wallet = order_item.order.user.wallet
-    refund_amount = order_item.price * order_item.quantity
+    refund_amount = getattr(order_item, "total_price", None)
+    
+    if refund_amount is None:
+        # Use variant price if available, otherwise fall back to order_item.price
+        unit_price = getattr(order_item.variant, "price", order_item.price)
+        refund_amount = unit_price * order_item.quantity
 
     # Check COD and Return Approved
     if order_item.order.payment_method == "COD" and order_item.status == "RETURN_APPROVED":

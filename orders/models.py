@@ -56,6 +56,7 @@ class OrderItem(models.Model):
     quantity = models.PositiveIntegerField(default=1)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     refund_done = models.BooleanField(default=False)
+    total_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     
     cancellation_requested = models.BooleanField(default=False)
     cancellation_reason = models.TextField(blank=True, null=True)

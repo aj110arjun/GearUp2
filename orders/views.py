@@ -263,9 +263,16 @@ def admin_approve_reject_return(request, item_id, action):
 
             # Handle COD refund to wallet
             if item.order.payment_method == "COD":
-                refund_amount = item.price  # or item.total_price if multiple qty
+                refund_amount = getattr(item, "total_price", None)
+                if refund_amount is None:
+                    unit_price = getattr(item.variant, "price", item.price)
+                    refund_amount = unit_price * item.quantity
+
                 if not getattr(item, "refund_done", False):
-                    wallet.credit(Decimal(refund_amount), f"Refund for returned product {item.variant.product.name}")
+                    wallet.credit(
+                        Decimal(refund_amount),
+                        f"Refund for returned product {item.variant.product.name} (x{item.quantity})"
+                    )
                     item.refund_done = True
                     errors['wallet'] = f"Refund of ₹{refund_amount} credited to {item.order.user.username}'s wallet."
                 else:
