@@ -19,7 +19,6 @@
                         <th>Date</th>
                         <th>Type</th>
                         <th>Amount (₹)</th>
-                        <th>Quantity</th>
                         <th>Description</th>
                     </tr>
                 </thead>
@@ -29,7 +28,6 @@
                             <td>{{ txn.created_at|date:"d-m-Y H:i" }}</td>
                             <td>{{ txn.transaction_type }}</td>
                             <td>{{ txn.amount }}</td>
-                            <td>{{txn.product_quantity }}</td>
                             <td>{{ txn.description }}</td>
                         </tr>
                     {% endfor %}
