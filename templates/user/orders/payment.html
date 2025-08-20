@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Payment</title>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body>
+    <h2>Pay for Order #{{ order.order_code }}</h2>
+    <p>Total Amount: ₹{{ amount }}</p>
+
+    <button id="rzp-button1">Pay Now</button>
+
+    <script>
+        var options = {
+            "key": "{{ razorpay_key }}",  // ✅ KEY_ID passed from Django
+            "amount": "{{ amount|floatformat:2|add:'0' }}00", // Razorpay needs paise
+            "currency": "{{ currency }}",
+            "name": "GearUp Store",
+            "description": "Order Payment",
+            "order_id": "{{ razorpay_order_id }}",  // ✅ Important
+            "handler": function (response){
+                // ✅ Payment Success → send to backend
+                fetch("{% url 'payment_success' order.order_id %}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded",
+                        "X-CSRFToken": "{{ csrf_token }}"
+                    },
+                    body: new URLSearchParams({
+                        "razorpay_payment_id": response.razorpay_payment_id,
+                        "razorpay_order_id": response.razorpay_order_id,
+                        "razorpay_signature": response.razorpay_signature
+                    })
+                }).then(res => window.location.href = "{% url 'order_success' order.order_id %}");
+            },
+            "modal": {
+                // ✅ If user closes payment popup → mark as failed
+                "ondismiss": function(){
+                    window.location.href = "{% url 'payment_failed' order.order_id %}";
+                }
+            },
+            "theme": {
+                "color": "#3399cc"
+            }
+        };
+
+        var rzp1 = new Razorpay(options);
+
+        // ✅ Capture explicit payment failure
+        rzp1.on('payment.failed', function (response){
+            alert("Payment Failed: " + response.error.description);
+            window.location.href = "{% url 'payment_failed' order.order_id %}";
+        });
+
+        document.getElementById('rzp-button1').onclick = function(e){
+            rzp1.open();
+            e.preventDefault();
+        }
+    </script>
+</body>
+</html>

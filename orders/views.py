@@ -1,4 +1,4 @@
-# orders/views.py
+import razorpay
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from cart.models import CartItem
@@ -13,6 +13,9 @@ from reportlab.lib import colors
 from io import BytesIO
 from wallet.models import Wallet
 from decimal import Decimal
+from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse, HttpResponseBadRequest
 
 
 # orders/views.py
@@ -54,6 +57,7 @@ def checkout(request):
             messages.error(request, "Please select an address before placing your order.")
             return redirect("checkout")
 
+        # 🔹 Create the order
         order = Order.objects.create(
             user=request.user,
             address=address,
@@ -73,7 +77,12 @@ def checkout(request):
             item.variant.save()
 
         cart_items.delete()
-        return redirect("order_complete", order_id=order.order_id)
+
+        # 🔹 Decide payment flow
+        if payment_method == "COD":
+            return redirect("order_complete", order_id=order.order_id)
+        else:  # ONLINE (Razorpay)
+            return redirect("start_payment", order_id=order.order_id)
 
     addresses = Address.objects.filter(user=request.user)
     return render(
@@ -81,6 +90,7 @@ def checkout(request):
         "user/orders/checkout.html",
         {"cart_items": cart_items, "addresses": addresses, "total": total},
     )
+
 
 
 @login_required(login_url="login")
@@ -416,12 +426,74 @@ def admin_view_return_reason(request, item_id):
     item = get_object_or_404(OrderItem, item_id=item_id)
     return render(request, "custom_admin/orders/view_return_reason.html", {"item": item})
 
+@login_required
+def start_payment(request, order_id):
+    order = get_object_or_404(Order, order_id=order_id, user=request.user)
+
+    client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+
+    razorpay_order = client.order.create({
+        "amount": int(order.total_price * 100),  # in paise
+        "currency": "INR",
+        "payment_capture": 1,
+    })
+
+    # Save order details
+    order.razorpay_order_id = razorpay_order["id"]
+    order.save()
+
+    return render(request, "user/orders/payment.html", {
+        "order": order,
+        "razorpay_key": settings.RAZORPAY_KEY_ID,  # ✅ safe to expose only KEY_ID
+        "razorpay_order_id": razorpay_order["id"],
+        "amount": order.total_price,
+        "currency": "INR",
+    })
 
 
+@login_required(login_url='login')
+def order_success(request, order_id):
+    order = get_object_or_404(Order, order_id=order_id, user=request.user)
+    return render(request, "user/orders/order_success.html", {"order": order})
 
 
+@csrf_exempt
+def payment_success(request, order_id):
+    order = get_object_or_404(Order, order_id=order_id)
 
+    if request.method == "POST":
+        payment_id = request.POST.get("razorpay_payment_id")
+        razorpay_order_id = request.POST.get("razorpay_order_id")
+        signature = request.POST.get("razorpay_signature")
 
+        client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
 
+        try:
+            client.utility.verify_payment_signature({
+                "razorpay_order_id": razorpay_order_id,
+                "razorpay_payment_id": payment_id,
+                "razorpay_signature": signature
+            })
 
+            order.razorpay_payment_id = payment_id
+            order.razorpay_signature = signature
+            order.payment_status = "Paid"
+            order.save()
 
+            return redirect("order_success", order_id=order.order_id)  # ✅ better UX
+        except Exception as e:
+            order.payment_status = "Failed"
+            order.save()
+            return redirect("order_failed", order_id=order.order_id)
+        
+@login_required(login_url='login')
+def payment_failed(request, order_id):
+    order = get_object_or_404(Order, order_id=order_id, user=request.user)
+    order.payment_status = "Failed"
+    order.save()
+    return render(request, "user/orders/payment_failed.html", {"order": order})
+
+def retry_payment(request, order_id):
+    order = get_object_or_404(Order, order_id=order_id)
+    # redirect to the same Razorpay payment page
+    return redirect("start_payment", order_id=order.order_id)

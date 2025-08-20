@@ -7,10 +7,10 @@ SECRET_KEY = 'django-insecure-1)98f-dpz90spty&nh3ph7i487r47euk8h6(%=@62%byi5v^#=
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['*', '127.0.0.1', '0095742ea2a7.ngrok-free.app', 'localhost']
+ALLOWED_HOSTS = ['*',]
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://65769f149a94.ngrok-free.app"
+    "https://anchovy-lasting-marginally.ngrok-free.app"
 ]
 
 
@@ -41,6 +41,15 @@ INSTALLED_APPS = [
     'orders',
     'wallet.apps.WalletConfig',
 ]
+
+# rzp_test_R7V0e5hoyTOTHo       keyid
+# zFFwYLsv9IpSGyzpKcn2mUsF      keysecret
+
+# RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID", "rzp_test_R7V0e5hoyTOTHo ")
+# RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET", "zFFwYLsv9IpSGyzpKcn2mUsF")
+
+RAZORPAY_KEY_ID = "rzp_test_R7V0e5hoyTOTHo"   # Example
+RAZORPAY_KEY_SECRET = "zFFwYLsv9IpSGyzpKcn2mUsF"
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
