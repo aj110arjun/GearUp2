@@ -1,0 +1,9 @@
+{% extends "user/base.html" %}
+{% block content %}
+  <div class="container mt-5">
+      <h2>🎉 Payment Successful!</h2>
+      <p>Your order <strong>#{{ order.order_code }}</strong> has been confirmed.</p>
+      <p>Amount Paid: ₹{{ order.total_price }}</p>
+      <a href="{% url 'order_detail' order.order_id %}" class="btn btn-primary">Go to My Orders</a>
+  </div>
+{% endblock %}

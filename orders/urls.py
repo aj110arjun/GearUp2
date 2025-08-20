@@ -22,6 +22,11 @@ urlpatterns = [
     path("orders/<str:order_code>/invoice/", views.download_invoice, name="download_invoice"),
     path("order/cancel/<uuid:item_id>/", views.cancel_order_item_page, name="cancel_order_item_page"),
     path("order/return/<uuid:item_id>/", views.return_order_item_page, name="return_order_item_page"),
+    path("pay/<uuid:order_id>/", views.start_payment, name="start_payment"),
+    path("payment/success/<uuid:order_id>/", views.payment_success, name="payment_success"),
+     path("success/<uuid:order_id>/", views.order_success, name="order_success"), 
+     path("failure/<uuid:order_id>/", views.payment_failed, name="payment_failed"),
+     path('payment/retry/<uuid:order_id>/', views.retry_payment, name='retry_payment'),
 
 
 

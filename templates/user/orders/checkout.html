@@ -12,36 +12,35 @@
         <!-- Address List -->
         <div class="mb-3">
             {% for addr in addresses %}
-    <div class="card p-3 mb-3 {% if addr.is_default %}border-success shadow-sm{% else %}border-light{% endif %}">
-        <div class="d-flex justify-content-between align-items-center">
-            <label class="d-flex align-items-center m-0 w-100">
-                <input type="radio" name="address" value="{{ addr.id }}" 
-                       {% if addr.is_default %}checked{% elif forloop.first %}checked{% endif %} 
-                       class="me-2">
-                <div>
-                    <strong>{{ addr.full_name }}</strong><br>
-                    <small class="text-muted">{{ addr.full_address }}</small>
+                <div class="card p-3 mb-3 {% if addr.is_default %}border-success shadow-sm{% else %}border-light{% endif %}">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <label class="d-flex align-items-center m-0 w-100">
+                            <input type="radio" name="address" value="{{ addr.id }}" 
+                                   {% if addr.is_default %}checked{% elif forloop.first %}checked{% endif %} 
+                                   class="me-2">
+                            <div>
+                                <strong>{{ addr.full_name }}</strong><br>
+                                <small class="text-muted">{{ addr.full_address }}</small>
+                            </div>
+                        </label>
+
+                        {% if addr.is_default %}
+                            <span class="badge bg-success d-flex align-items-center">
+                                <i class="bi bi-star-fill me-1"></i> Default
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    <div class="mt-2 text-end">
+                        <a href="{% url 'edit_address' addr.id %}?next={{ request.path }}" 
+                           class="btn btn-sm btn-outline-primary">Edit</a>
+                        <a href="{% url 'delete_address' addr.id %}?next={{ request.path }}" 
+                           class="btn btn-sm btn-outline-danger">Delete</a>
+                    </div>
                 </div>
-            </label>
-
-            {% if addr.is_default %}
-                <span class="badge bg-success d-flex align-items-center">
-                    <i class="bi bi-star-fill me-1"></i> Default
-                </span>
-            {% endif %}
-        </div>
-
-        <div class="mt-2 text-end">
-            <a href="{% url 'edit_address' addr.id %}?next={{ request.path }}" 
-               class="btn btn-sm btn-outline-primary">Edit</a>
-            <a href="{% url 'delete_address' addr.id %}?next={{ request.path }}" 
-               class="btn btn-sm btn-outline-danger">Delete</a>
-        </div>
-    </div>
-{% empty %}
-    <p class="text-muted">No addresses found. Please add one.</p>
-{% endfor %}
-
+            {% empty %}
+                <p class="text-muted">No addresses found. Please add one.</p>
+            {% endfor %}
         </div>
 
         <!-- Add New Address -->
@@ -49,6 +48,7 @@
 
         <!-- Payment Method -->
         <h5>Payment Method</h5>
+
         <div class="card p-3 mb-2">
             <label class="d-flex align-items-center">
                 <input type="radio" name="payment_method" value="COD" checked class="me-2">
@@ -56,14 +56,13 @@
             </label>
         </div>
 
-        {% comment %}
+        <!-- Razorpay Online Payment -->
         <div class="card p-3 mb-2">
             <label class="d-flex align-items-center">
                 <input type="radio" name="payment_method" value="ONLINE" class="me-2">
-                <span>Pay Online (Credit/Debit/UPI)</span>
+                <span>Pay Online (Razorpay)</span>
             </label>
         </div>
-        {% endcomment %}
 
         <!-- Order Summary -->
         <h5>Order Summary</h5>
