@@ -7,9 +7,8 @@
     <form method="post">
         {% csrf_token %}
 
+        <!-- Shipping Address -->
         <h5>Shipping Address</h5>
-
-        <!-- Address List -->
         <div class="mb-3">
             {% for addr in addresses %}
                 <div class="card p-3 mb-3 {% if addr.is_default %}border-success shadow-sm{% else %}border-light{% endif %}">
@@ -48,15 +47,12 @@
 
         <!-- Payment Method -->
         <h5>Payment Method</h5>
-
         <div class="card p-3 mb-2">
             <label class="d-flex align-items-center">
                 <input type="radio" name="payment_method" value="COD" checked class="me-2">
                 <span>Cash on Delivery</span>
             </label>
         </div>
-
-        <!-- Razorpay Online Payment -->
         <div class="card p-3 mb-2">
             <label class="d-flex align-items-center">
                 <input type="radio" name="payment_method" value="ONLINE" class="me-2">
@@ -75,7 +71,19 @@
             {% endfor %}
         </ul>
 
-        <button type="submit" class="btn btn-success">Place Order</button>
+        <!-- Totals -->
+        <div class="card p-3">
+            <p>Subtotal: ₹{{ subtotal }}</p>
+            {% if coupon %}
+                <p class="text-success">
+                    Coupon "{{ coupon.code }}" Applied ({{ coupon.discount }}% off)
+                </p>
+                <p>Discount: -₹{{ discount }}</p>
+            {% endif %}
+            <h5>Total: <span class="text-success">₹{{ total }}</span></h5>
+        </div>
+
+        <button type="submit" class="btn btn-success mt-3">Place Order</button>
     </form>
 </div>
 {% endblock %}

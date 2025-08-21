@@ -31,29 +31,52 @@ def add_to_cart(request, variant_id=None):
 @login_required(login_url="login")
 def cart_view(request):
     items = CartItem.objects.filter(user=request.user).select_related("variant__product")
-    total = 0
-    adjusted = False  # track if we had to correct anything
+    subtotal = 0
+    adjusted = False  
 
     for item in items:
-        max_limit = min(5, item.variant.stock)  # whichever is smaller (5 or stock)
+        max_limit = min(5, item.variant.stock)
 
         if item.quantity > max_limit:
             item.quantity = max_limit
             item.save()
             adjusted = True
 
-        # If stock is 0, remove the item from cart
         if item.variant.stock == 0:
             item.delete()
         else:
-            total += item.quantity * item.variant.price
+            subtotal += item.quantity * item.variant.price
 
-    # Optional: flash a message if adjustment happened
     if adjusted:
         from django.contrib import messages
         messages.warning(request, "Some cart items were adjusted due to stock changes.")
 
-    return render(request, "user/cart/cart_view.html", {"items": items, "total": total})
+    # 🔹 Coupon discount
+    coupon_id = request.session.get("coupon_id")
+    discount = 0
+    coupon = None
+    if coupon_id:
+        try:
+            from coupons.models import Coupon
+            coupon = Coupon.objects.get(id=coupon_id, active=True)
+            if coupon.is_valid():
+                discount = (subtotal * coupon.discount) / 100
+        except Coupon.DoesNotExist:
+            request.session.pop("coupon_id", None)  # remove invalid coupon
+
+    total = subtotal - discount
+
+    return render(
+        request,
+        "user/cart/cart_view.html",
+        {
+            "items": items,
+            "subtotal": subtotal,
+            "discount": discount,
+            "total": total,
+            "coupon": coupon,
+        },
+    )
 
 
 @login_required(login_url="login")

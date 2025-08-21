@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'wishlist',
     'cart',
     'orders',
+    'coupons',
     'wallet.apps.WalletConfig',
 ]
 
