@@ -63,15 +63,21 @@
             <!-- Coupon Form -->
             <form method="post" action="{% url 'apply_coupon' %}" class="d-flex mt-3">
                 {% csrf_token %}
-                <input type="text" name="code" class="form-control me-2" 
-                       placeholder="Enter coupon code"
-                       {% if coupon %} disabled value="{{ coupon.code }}" {% endif %}>
+                <input type="text" name="code" class="form-control me-2" placeholder="Enter coupon code" {% if coupon %} disabled value="{{ coupon.code }}" {% endif %}>
+                
+               
+                    
                 {% if coupon %}
                     <a href="{% url 'remove_coupon' %}" class="btn btn-outline-danger">Remove</a>
                 {% else %}
                     <button type="submit" class="btn btn-outline-success">Apply</button>
                 {% endif %}
             </form>
+             {% if messages %}
+                    {% for message in messages %}
+                        <span class="text-danger">{{message}}</span>
+                    {% endfor %}
+                {% endif %}
         </div>
 
         <div class="text-end mt-4">

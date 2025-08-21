@@ -7,6 +7,7 @@ class Coupon(models.Model):
     active = models.BooleanField(default=True)
     valid_from = models.DateTimeField()
     valid_to = models.DateTimeField()
+    min_purchase = models.DecimalField(max_digits=10, decimal_places=2,default=0)
     usage_limit = models.PositiveIntegerField(default=1, help_text="How many times a user can use this coupon")
 
     def is_valid(self):
