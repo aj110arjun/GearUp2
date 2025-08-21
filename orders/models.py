@@ -4,6 +4,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from products.models import ProductVariant
 from address.models import Address
+from coupons.models import Coupon 
 from django.utils.timezone import now
 
 def generate_order_code():
@@ -23,7 +24,8 @@ class Order(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="orders")
     address = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True, blank=True)
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
-
+    discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)   # ✅ add this
+    coupon = models.ForeignKey(Coupon, null=True, blank=True, on_delete=models.SET_NULL) 
     payment_method = models.CharField(max_length=20, choices=PAYMENT_METHODS, default="COD")
     payment_status = models.CharField(
         max_length=20,

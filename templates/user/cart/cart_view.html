@@ -46,11 +46,38 @@
             </tbody>
         </table>
 
-        <h4 class="text-end">Total: <span class="text-success">₹{{ total }}</span></h4>
+        <!-- Totals Section -->
+        <div class="card p-3 mt-4">
+            <h5>Order Summary</h5>
+            <p>Subtotal: ₹{{ subtotal }}</p>
 
-        <div class="text-end">
+            {% if coupon %}
+                <p class="text-success">
+                    Coupon "{{ coupon.code }}" Applied ({{ coupon.discount }}% off)
+                </p>
+                <p>Discount: -₹{{ discount }}</p>
+            {% endif %}
+
+            <h4>Total: <span class="text-success">₹{{ total }}</span></h4>
+
+            <!-- Coupon Form -->
+            <form method="post" action="{% url 'apply_coupon' %}" class="d-flex mt-3">
+                {% csrf_token %}
+                <input type="text" name="code" class="form-control me-2" 
+                       placeholder="Enter coupon code"
+                       {% if coupon %} disabled value="{{ coupon.code }}" {% endif %}>
+                {% if coupon %}
+                    <a href="{% url 'remove_coupon' %}" class="btn btn-outline-danger">Remove</a>
+                {% else %}
+                    <button type="submit" class="btn btn-outline-success">Apply</button>
+                {% endif %}
+            </form>
+        </div>
+
+        <div class="text-end mt-4">
             <a href="{% url 'checkout' %}" class="btn btn-primary">Proceed to Checkout</a>
         </div>
+
     {% else %}
         <p class="text-muted">Your cart is empty.</p>
     {% endif %}

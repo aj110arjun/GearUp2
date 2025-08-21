@@ -26,10 +26,10 @@ def checkout(request):
         return redirect("cart_view")
 
     adjusted = False
-    total = 0
+    subtotal = 0
     payment_method = request.POST.get("payment_method", "COD")
 
-    # 🔹 Validate stock and limit again before checkout
+    # 🔹 Validate stock
     for item in cart_items:
         max_limit = min(5, item.variant.stock)
 
@@ -43,11 +43,26 @@ def checkout(request):
             item.save()
             adjusted = True
 
-        total += item.quantity * item.variant.price
+        subtotal += item.quantity * item.variant.price
 
     if adjusted:
         messages.warning(request, "Some items were adjusted due to stock limits. Please review your cart again.")
         return redirect("cart_view")
+
+    # 🔹 Check for coupon
+    coupon_id = request.session.get("coupon_id")
+    discount = 0
+    coupon = None
+    if coupon_id:
+        try:
+            from coupons.models import Coupon
+            coupon = Coupon.objects.get(id=coupon_id, active=True)
+            if coupon.is_valid():
+                discount = (subtotal * coupon.discount) / 100
+        except Coupon.DoesNotExist:
+            pass
+
+    total = subtotal - discount
 
     if request.method == "POST":
         address_id = request.POST.get("address")
@@ -57,11 +72,13 @@ def checkout(request):
             messages.error(request, "Please select an address before placing your order.")
             return redirect("checkout")
 
-        # 🔹 Create the order
+        # 🔹 Create the order with coupon applied
         order = Order.objects.create(
             user=request.user,
             address=address,
             total_price=total,
+            discount=discount,
+            coupon=coupon,
             payment_method=payment_method,
         )
 
@@ -72,24 +89,32 @@ def checkout(request):
                 quantity=item.quantity,
                 price=item.variant.price,
             )
-            # 🔹 Deduct stock safely
+            # 🔹 Deduct stock
             item.variant.stock -= item.quantity
             item.variant.save()
 
         cart_items.delete()
 
-        # 🔹 Decide payment flow
+        # 🔹 Payment flow
         if payment_method == "COD":
             return redirect("order_complete", order_id=order.order_id)
-        else:  # ONLINE (Razorpay)
+        else:  # ONLINE
             return redirect("start_payment", order_id=order.order_id)
 
     addresses = Address.objects.filter(user=request.user)
     return render(
         request,
         "user/orders/checkout.html",
-        {"cart_items": cart_items, "addresses": addresses, "total": total},
+        {
+            "cart_items": cart_items,
+            "addresses": addresses,
+            "subtotal": subtotal,
+            "discount": discount,
+            "total": total,
+            "coupon": coupon,
+        },
     )
+
 
 
 
