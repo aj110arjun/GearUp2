@@ -6,6 +6,6 @@
        <strong>#{{ order.order_code }}</strong>.</p>
     <p>Please try again or use a different payment method.</p>
     <a href="{% url 'start_payment' order.order_id %}" class="btn btn-warning">Retry Payment</a>
-    <a href="{% url 'order_list' %}" class="btn btn-secondary">Go to My Orders</a>
+    <a href="{% url 'order_detail' order.order_id %}" class="btn btn-secondary">Go to My Orders</a>
 </div>
 {% endblock %}
