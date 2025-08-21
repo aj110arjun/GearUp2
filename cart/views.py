@@ -1,4 +1,5 @@
 # cart/views.py
+from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .models import CartItem
@@ -48,7 +49,6 @@ def cart_view(request):
             subtotal += item.quantity * item.variant.price
 
     if adjusted:
-        from django.contrib import messages
         messages.warning(request, "Some cart items were adjusted due to stock changes.")
 
     # 🔹 Coupon discount
@@ -59,10 +59,17 @@ def cart_view(request):
         try:
             from coupons.models import Coupon
             coupon = Coupon.objects.get(id=coupon_id, active=True)
-            if coupon.is_valid():
+            # Check if coupon is valid AND subtotal meets min_purchase
+            if coupon.is_valid() and (coupon.min_purchase is None or subtotal >= coupon.min_purchase):
                 discount = (subtotal * coupon.discount) / 100
+            else:
+                # Coupon invalid due to min purchase
+                messages.warning(request, f'Invalid Coupon')
+                request.session.pop("coupon_id", None)
+                coupon = None
         except Coupon.DoesNotExist:
             request.session.pop("coupon_id", None)  # remove invalid coupon
+            coupon = None
 
     total = subtotal - discount
 
