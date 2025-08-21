@@ -220,6 +220,8 @@ def admin_approve_reject_cancellation(request, item_id, action):
     item.save()
     return redirect("admin_cancellation_requests")
 
+from django.contrib import messages
+
 @staff_member_required(login_url="admin_login")
 def admin_cancellation_request_view(request, item_id):
     item = get_object_or_404(
@@ -227,21 +229,60 @@ def admin_cancellation_request_view(request, item_id):
         item_id=item_id,
         cancellation_requested=True
     )
+    order = item.order
+    wallet, _ = Wallet.objects.get_or_create(user=order.user)
 
     if request.method == "POST":
         action = request.POST.get("action")
+
         if action == "approve":
-            if item.status != "Cancelled":  # prevent double restock
+            if item.status != "Cancelled":  # prevent double cancellation
                 item.status = "Cancelled"
                 item.cancellation_approved = True
+
+                # Restock the variant
                 item.variant.stock += item.quantity
                 item.variant.save()
+
+                # Refund to wallet for ONLINE/RAZORPAY payments
+                if order.payment_method in ["RAZORPAY", "ONLINE"] and order.payment_status == "Paid":
+                    refund_amount = item.price * item.quantity
+
+                    if not getattr(item, "refund_done", False):
+                        # Credit wallet
+                        wallet.balance += refund_amount
+                        wallet.save()
+
+                        # Log transaction
+                        wallet.transactions.create(
+                            transaction_type="CREDIT",
+                            amount=refund_amount,
+                            description=f"Refund for cancelled product '{item.variant.product.name}' (x{item.quantity})"
+                        )
+
+                        item.refund_done = True
+                        messages.success(
+                            request,
+                            f"Cancellation approved. ₹{refund_amount} has been refunded to {order.user.username}'s wallet."
+                        )
+                    else:
+                        messages.info(request, "Refund already processed for this item.")
+                else:
+                    messages.info(request, "Cancellation approved without refund (non-online payment).")
+
         elif action == "reject":
             item.cancellation_approved = False
+            messages.warning(request, "Cancellation request rejected.")
+
         item.save()
         return redirect("admin_cancellation_requests")
 
-    return render(request, "custom_admin/orders/cancellation_request_view.html", {"item": item})
+    return render(
+        request,
+        "custom_admin/orders/cancellation_request_view.html",
+        {"item": item}
+    )
+
 
 @staff_member_required(login_url="admin_login")
 def admin_return_requests(request):
@@ -497,3 +538,4 @@ def retry_payment(request, order_id):
     order = get_object_or_404(Order, order_id=order_id)
     # redirect to the same Razorpay payment page
     return redirect("start_payment", order_id=order.order_id)
+

@@ -11,8 +11,16 @@ class Wallet(models.Model):
         self.save()
         WalletTransaction.objects.create(wallet=self, transaction_type="CREDIT", amount=amount, description=description)
         
-        def __str__(self):
-            return f"{self.user.username} - Balance: {self.balance}"
+    def __str__(self):
+        return f"{self.user.username} - Balance: {self.balance}"
+    def debit(self, amount):
+        if self.balance >= amount:
+            self.balance -= amount
+            self.save()
+            return True
+        return False
+        
+        
         
 class WalletTransaction(models.Model):
     TRANSACTION_TYPES = (

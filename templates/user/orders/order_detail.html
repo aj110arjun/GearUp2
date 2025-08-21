@@ -8,18 +8,34 @@
         <h2>Order #{{ order.order_code }}</h2>
     </div>
     <p class="text-muted">Placed on: {{ order.created_at|date:"M d, Y H:i" }}</p>
-    <p><strong>Payment Method:</strong> {{ order.payment_method }}</p>
+    <p><strong>Payment Method:</strong> {{ order.payment_method }} {% if order.payment_status == "Failed" %} (Failed) {% endif %}</p>
     <a href="{% url 'download_invoice' order.order_code %}" class="btn btn-sm btn-outline-dark">
         <i class="bi bi-download"></i> Download Invoice
     </a>
-    {% if order.payment_status == "Failed" %}
-<div class="alert alert-danger d-flex justify-content-between align-items-center">
-    <span>❌ Payment failed for this order.</span>
-    <a href="{% url 'retry_payment' order.order_id %}" class="btn btn-sm btn-primary">
-        Retry Payment
-    </a>
+{% if order.payment_status == "Failed" %}
+<div class="card border-0 shadow-sm rounded-3 my-4 bg-light">
+    <div class="card-body d-flex align-items-center justify-content-between">
+        
+        <!-- Left side -->
+        <div class="d-flex align-items-center">
+            <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                <i class="bi bi-x-lg"></i>
+            </div>
+            <div>
+                <h6 class="mb-0 text-danger">Payment Failed</h6>
+                <small class="text-muted">Your transaction could not be completed.</small>
+            </div>
+        </div>
+
+        <!-- Right side (Retry Button) -->
+        <a href="{% url 'retry_payment' order.order_id %}" class="btn btn-danger btn-sm">
+            <i class="bi bi-arrow-repeat"></i> Retry Payment
+        </a>
+    </div>
 </div>
 {% endif %}
+
+
     <!-- Shipping Address -->
 <h5 class="mt-4">Shipping Address</h5>
 <div class="border rounded p-3 mb-4 shadow-sm">
