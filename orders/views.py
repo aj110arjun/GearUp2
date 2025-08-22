@@ -16,20 +16,21 @@ from decimal import Decimal
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse, HttpResponseBadRequest
+from coupons.models import Coupon
 
 
 # orders/views.py
 @login_required(login_url="login")
 def checkout(request):
     cart_items = CartItem.objects.filter(user=request.user).select_related("variant__product")
-    if not cart_items:
+    if not cart_items.exists():
         return redirect("cart_view")
 
     adjusted = False
-    subtotal = 0
+    subtotal = Decimal("0.00")
     payment_method = request.POST.get("payment_method", "COD")
 
-    # 🔹 Validate stock
+    # 🔹 Validate stock + calculate subtotal with offers
     for item in cart_items:
         max_limit = min(5, item.variant.stock)
 
@@ -43,7 +44,9 @@ def checkout(request):
             item.save()
             adjusted = True
 
-        subtotal += item.quantity * item.variant.price
+        # ✅ Use discounted price (offer applied)
+        price = Decimal(item.variant.get_discounted_price())
+        subtotal += price * item.quantity
 
     if adjusted:
         messages.warning(request, "Some items were adjusted due to stock limits. Please review your cart again.")
@@ -51,18 +54,19 @@ def checkout(request):
 
     # 🔹 Check for coupon
     coupon_id = request.session.get("coupon_id")
-    discount = 0
+    discount = Decimal("0.00")
     coupon = None
     if coupon_id:
         try:
-            from coupons.models import Coupon
             coupon = Coupon.objects.get(id=coupon_id, active=True)
             if coupon.is_valid():
-                discount = (subtotal * coupon.discount) / 100
+                discount = (subtotal * Decimal(coupon.discount)) / 100
         except Coupon.DoesNotExist:
             pass
 
     total = subtotal - discount
+    if total < 0:
+        total = Decimal("0.00")
 
     if request.method == "POST":
         address_id = request.POST.get("address")
@@ -82,17 +86,20 @@ def checkout(request):
             payment_method=payment_method,
         )
 
+        # 🔹 Create order items
         for item in cart_items:
+            price = Decimal(item.variant.get_discounted_price())
             OrderItem.objects.create(
                 order=order,
                 variant=item.variant,
                 quantity=item.quantity,
-                price=item.variant.price,
+                price=price,  # ✅ store discounted price
             )
             # 🔹 Deduct stock
             item.variant.stock -= item.quantity
             item.variant.save()
 
+        # Clear cart
         cart_items.delete()
 
         # 🔹 Payment flow
@@ -114,7 +121,6 @@ def checkout(request):
             "coupon": coupon,
         },
     )
-
 
 
 

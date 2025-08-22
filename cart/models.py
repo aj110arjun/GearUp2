@@ -11,8 +11,15 @@ class CartItem(models.Model):
     class Meta:
         unique_together = ("user", "variant")
 
+    @property
     def subtotal(self):
-        return self.quantity * self.variant.price
+        # ✅ Apply best offer price if available
+        discount_percent = self.variant.product.get_best_offer()
+        if discount_percent > 0:
+            price = self.variant.get_discounted_price()
+        else:
+            price = self.variant.price
+        return self.quantity * price
 
     def __str__(self):
         return f"{self.user.username} → {self.variant.product.name} ({self.variant.color}/{self.variant.size})"

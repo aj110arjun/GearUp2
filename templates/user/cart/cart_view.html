@@ -1,5 +1,5 @@
 {% extends "user/base.html" %}
-
+{% load cart_extras %}
 {% block content %}
 <div class="container my-5">
     <h2>🛒 My Cart</h2>
@@ -25,19 +25,50 @@
                         {{ item.variant.product.name }}
                     </td>
                     <td>{{ item.variant.color }} / {{ item.variant.size }}</td>
-                    <td>₹{{ item.variant.price }}</td>
+                    
+                    <!-- Price with discount -->
                     <td>
-                        <!-- Decrease -->
+                        {% with discount=item.variant.product.get_best_offer %}
+                            {% if discount > 0 %}
+                                <p class="text-muted text-decoration-line-through mb-0">
+                                    ₹{{ item.variant.price }}
+                                </p>
+                                <p class="fw-bold text-success mb-0">
+                                    ₹{{ item.variant.get_discounted_price }}
+                                    <span class="badge bg-danger">-{{ discount }}%</span>
+                                </p>
+                            {% else %}
+                                <p class="fw-bold mb-0">₹{{ item.variant.price }}</p>
+                            {% endif %}
+                        {% endwith %}
+                    </td>
+
+                    <!-- Quantity -->
+                    <td>
                         <a href="{% url 'update_cart' item.id %}?action=decrease" 
                            class="btn btn-sm btn-outline-secondary">-</a>
-
                         {{ item.quantity }}
-
-                        <!-- Increase (disabled if 5 reached OR stock reached) -->
                         <a href="{% url 'update_cart' item.id %}?action=increase" 
                            class="btn btn-sm btn-outline-secondary {% if item.quantity >= 5 or item.quantity >= item.variant.stock %}disabled{% endif %}">+</a>
                     </td>
-                    <td>₹{{ item.subtotal }}</td>
+
+                    <!-- Subtotal -->
+                    <td>
+                        {% with discount=item.variant.product.get_best_offer %}
+                            {% if discount > 0 %}
+                                <span class="text-muted text-decoration-line-through">
+                                    ₹{{ item.variant.price|mul:item.quantity }}
+                                </span><br>
+                                <span class="fw-bold text-success">
+                                    ₹{{ item.variant.get_discounted_price|mul:item.quantity }}
+                                </span>
+                            {% else %}
+                                ₹{{ item.variant.price|mul:item.quantity }}
+                            {% endif %}
+                        {% endwith %}
+                    </td>
+
+                    <!-- Remove -->
                     <td>
                         <a href="{% url 'remove_from_cart' item.id %}" class="btn btn-sm btn-danger">Remove</a>
                     </td>
@@ -60,24 +91,27 @@
 
             <h4>Total: <span class="text-success">₹{{ total }}</span></h4>
 
-            <!-- Coupon Form -->
-            <form method="post" action="{% url 'apply_coupon' %}" class="d-flex mt-3">
-                {% csrf_token %}
-                <input type="text" name="code" class="form-control me-2" placeholder="Enter coupon code" {% if coupon %} disabled value="{{ coupon.code }}" {% endif %}>
-                
-               
+            <!-- Coupon Form / Restriction -->
+           {% if not has_offer %}
+                <form method="post" action="{% url 'apply_coupon' %}" class="d-flex mt-3">
+                    {% csrf_token %}
+                    <input type="text" name="code" class="form-control me-2"
+                        placeholder="Enter coupon code"
+                        {% if coupon %} disabled value="{{ coupon.code }}" {% endif %}>
                     
-                {% if coupon %}
-                    <a href="{% url 'remove_coupon' %}" class="btn btn-outline-danger">Remove</a>
-                {% else %}
-                    <button type="submit" class="btn btn-outline-success">Apply</button>
-                {% endif %}
-            </form>
-             {% if messages %}
-                    {% for message in messages %}
-                        <span class="text-danger">{{message}}</span>
-                    {% endfor %}
-                {% endif %}
+                    {% if coupon %}
+                        <a href="{% url 'remove_coupon' %}" class="btn btn-outline-danger">Remove</a>
+                    {% else %}
+                        <button type="submit" class="btn btn-outline-success">Apply</button>
+                    {% endif %}
+                </form>
+            {% endif %}
+
+            {% if messages %}
+                {% for message in messages %}
+                    <span class="text-danger">{{ message }}</span>
+                {% endfor %}
+            {% endif %}
         </div>
 
         <div class="text-end mt-4">

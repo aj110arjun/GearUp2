@@ -21,16 +21,14 @@
          <a href="{% url 'category_list' %}">Categories</a>
          <a href="{% url 'admin_order_list' %}">Orders</a>
          <a href="{% url 'admin_coupon_list' %}">Coupons</a>
+         <a href="{% url 'admin_product_offers' %}">Product Offers</a>
+         <a href="{% url 'admin_category_offers' %}">Category Offers</a>
          <a href="{% url 'admin_cancellation_requests' %}">Cancel Requests</a> 
          <a href="{% url 'admin_return_requests' %}">Return Requests</a>
       </nav>
 
       <!-- Main Content -->
       <main class="col-md-10 ms-sm-auto col-lg-10 px-md-4">
-        <div class="dashboard-header">
-          {% block header_title %}Dashboard{% endblock header_title %}
-        </div>
-
         <div class="main-content">
           {% block content %}
           <!-- Admin content goes here -->
