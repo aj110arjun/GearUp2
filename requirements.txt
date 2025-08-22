@@ -16,8 +16,11 @@ pycparser==2.22
 PyJWT==2.10.1
 pyotp==2.9.0
 python-magic-bin==0.4.14
+razorpay==1.4.2
 reportlab==4.4.3
 requests==2.32.4
+setuptools==80.9.0
 sqlparse==0.5.3
 tzdata==2025.2
 urllib3==2.5.0
+wheel==0.45.1
