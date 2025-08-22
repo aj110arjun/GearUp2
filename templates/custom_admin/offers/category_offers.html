@@ -1,0 +1,29 @@
+{% extends "custom_admin/base.html" %}
+{% block content %}
+<h2>Product Offers</h2>
+<a href="{% url 'admin_add_category_offer' %}" class="btn btn-primary">+ Add Category Offer</a>
+<table class="table table-bordered mt-3">
+    <tr>
+        <th>Category</th>
+        <th>Discount %</th>
+        <th>Start</th>
+        <th>End</th>
+        <th>Active</th>
+        <th>Actions</th>
+    </tr>
+    {% for offer in offers %}
+    <tr>
+        <td>{{ offer.category.name }}</td>
+        <td>{{ offer.discount_percent }}%</td>
+        <td>{{ offer.start_date }}</td>
+        <td>{{ offer.end_date }}</td>
+        <td>{{ offer.active }}</td>
+        <td>
+            <a href="{% url 'admin_delete_category_offer' offer.id %}" class="btn btn-danger btn-sm">Delete</a>
+            <a href="{% url 'admin_category_offer_edit' offer.category.id %}" class="btn btn-warning btn-sm">Edit</a>
+            
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends "custom_admin/base.html" %}
+{% block content %}
+<div class="card p-3">
+  <h4>Edit Offer</h4>
+  <form method="post">
+    {% csrf_token %}
+
+    <!-- Select Product -->
+    <div class="mb-3">
+      <label>Product</label>
+      <select name="product" class="form-control">
+        {% for p in products %}
+          <option value="{{ p.product_id }}" {% if offer.product.product_id == p.product_id %}selected{% endif %}>
+            {{ p.name }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- Offer Fields -->
+    <div class="mb-3">
+      <label>Discount Percent</label>
+      <input type="number" name="discount_percent" class="form-control"
+             value="{{ offer.discount_percent }}" min="0" max="90">
+    </div>
+    <div class="mb-3">
+      <label>Active</label>
+      <input type="checkbox" name="active" {% if offer.active %}checked{% endif %}>
+    </div>
+    <div class="mb-3">
+      <label>Start Date</label>
+      <input type="date" name="start_date" class="form-control"
+             value="{{ offer.start_date|date:'Y-m-d' }}">
+    </div>
+    <div class="mb-3">
+      <label>End Date</label>
+      <input type="date" name="end_date" class="form-control"
+             value="{{ offer.end_date|date:'Y-m-d' }}">
+    </div>
+
+    <button type="submit" class="btn btn-success">Save</button>
+    <a href="{% url 'admin_product_offers' %}" class="btn btn-secondary">Cancel</a>
+  </form>
+</div>
+{% endblock %}

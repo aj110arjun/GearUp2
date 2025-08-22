@@ -64,26 +64,32 @@
         <h5>Order Summary</h5>
         <ul class="list-group mb-3">
             {% for item in cart_items %}
-                <li class="list-group-item d-flex justify-content-between">
-                    {{ item.variant.product.name }} ({{ item.variant.color }}/{{ item.variant.size }}) x{{ item.quantity }}
-                    <span>₹{{ item.subtotal }}</span>
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        {{ item.variant.product.name }} 
+                        ({{ item.variant.color }}/{{ item.variant.size }}) x{{ item.quantity }}
+                        {% if item.variant.product.get_best_offer > 0 %}
+                            <br>
+                            <small class="text-success">
+                                Offer Applied: {{ item.variant.product.get_best_offer }}% Off
+                            </small>
+                        {% endif %}
+                    </div>
+                    <div>
+                        {% if item.variant.product.get_best_offer > 0 %}
+                            <del class="text-muted">₹{{ item.variant.price }}</del>
+                            <span class="text-success fw-bold ms-2">₹{{ item.subtotal }}</span>
+                        {% else %}
+                            <span>₹{{ item.subtotal }}</span>
+                        {% endif %}
+                    </div>
                 </li>
             {% endfor %}
-        </ul>
-
-        <!-- Totals -->
-        <div class="card p-3">
-            <p>Subtotal: ₹{{ subtotal }}</p>
-            {% if coupon %}
-                <p class="text-success">
-                    Coupon "{{ coupon.code }}" Applied ({{ coupon.discount }}% off)
-                </p>
-                <p>Discount: -₹{{ discount }}</p>
-            {% endif %}
-            <h5>Total: <span class="text-success">₹{{ total }}</span></h5>
-        </div>
+            </ul>
 
         <button type="submit" class="btn btn-success mt-3">Place Order</button>
     </form>
 </div>
+
+
 {% endblock %}
