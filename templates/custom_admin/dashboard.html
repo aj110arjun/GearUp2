@@ -1,67 +1,144 @@
 {% extends "custom_admin/base.html" %}
 {% block title %}
-    Admin Dashboard
+Admin Dashboard
 {% endblock title %}
+
 {% block content %}
-    
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/chartist.js/latest/chartist.min.css">
 
-      <main class="col-md-10">
-        <div class="dashboard-header">
-          <h3>Welcome, {{ user.first_name }}</h3>
-          <p class="text-muted">Here's what's happening today</p>
-        </div>
+<main class="col-md-10">
+  <div class="mb-3 mt-2">
+    <a href="{% url 'download_sales_report_pdf' %}" class="btn btn-sm btn-outline-primary">
+        Download Sales Report (PDF)
+    </a>
+</div>
 
-        <div class="container mt-4">
-          <div class="row g-4">
-            <div class="col-md-4">
-              <div class="card text-white bg-primary">
-                <div class="card-body">
-                  <h5 class="card-title">Orders</h5>
-                  <p class="card-text">12 new orders today</p>
-                </div>
-              </div>
-            </div>
-
-            <div class="col-md-4">
-              <div class="card text-white bg-success">
-                <div class="card-body">
-                  <h5 class="card-title">Messages</h5>
-                  <p class="card-text">3 unread messages</p>
-                </div>
-              </div>
-            </div>
-
-            <div class="col-md-4">
-              <div class="card text-white bg-warning">
-                <div class="card-body">
-                  <h5 class="card-title">Profile</h5>
-                  <p class="card-text">Update your personal info</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="row mt-5">
-            <div class="col-12">
-              <div class="card">
-                <div class="card-header">
-                  Recent Activity
-                </div>
-                <div class="card-body">
-                  <ul>
-                    <li>You placed an order on July 22</li>
-                    <li>Your profile was updated</li>
-                    <li>You received a message from Support</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </main>
+    <div class="dashboard-header">
+        <h3>Welcome, {{ user.first_name }}</h3>
+        <p class="text-muted">Here's what's happening today</p>
     </div>
-  </div>
+
+    <div class="container mt-4">
+        <div class="row g-4">
+            <!-- Orders Widget -->
+            <div class="col-md-3">
+                <div class="card text-white bg-primary">
+                    <div class="card-body">
+                        <h5 class="card-title">Total Orders</h5>
+                        <p class="card-text">{{ total_orders }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sales Widget -->
+            <div class="col-md-3">
+                <div class="card text-white bg-success">
+                    <div class="card-body">
+                        <h5 class="card-title">Total Sales</h5>
+                        <p class="card-text">₹{{ total_sales }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Completed Orders Widget -->
+            <div class="col-md-3">
+                <div class="card text-white bg-warning">
+                    <div class="card-body">
+                        <h5 class="card-title">Completed Orders</h5>
+                        <p class="card-text">{{ completed_orders }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pending Orders Widget -->
+            <div class="col-md-3">
+                <div class="card text-white bg-danger">
+                    <div class="card-body">
+                        <h5 class="card-title">Pending Orders</h5>
+                        <p class="card-text">{{ pending_orders }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Products -->
+        <div class="row mt-5">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">Top Selling Products</div>
+                    <div class="card-body">
+                        <ul class="list-group">
+                            {% for product in top_products %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    {{ product.variant__product__name }}
+                                    <span class="badge bg-primary rounded-pill">{{ product.quantity_sold }}</span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Daily Sales Chart -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">Daily Sales (Last 7 Days)</div>
+                    <div class="card-body">
+                        <div class="ct-chart ct-perfect-fourth"></div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="row mt-5">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">Recent Activity</div>
+                    <div class="card-body">
+                        <ul>
+                            {% for activity in recent_activity %}
+                                <li>{{ activity }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Chart.js Script -->
+<script src="https://cdn.jsdelivr.net/chartist.js/latest/chartist.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var data = {
+        labels: [{% for day in daily_sales %}'{{ day.date }}',{% endfor %}],
+        series: [
+            [{% for day in daily_sales %}{{ day.sales }},{% endfor %}]
+        ]
+    };
+
+    var options = {
+        showArea: true,
+        lineSmooth: false,
+        fullWidth: true,
+        chartPadding: {
+            right: 40
+        },
+        axisY: {
+            onlyInteger: true,
+            offset: 20,
+            low: 0,
+            scaleMinSpace: 15
+        }
+    };
+
+    new Chartist.Line('.ct-chart', data, options);
+});
+</script>
+
+
 
 {% endblock content %}
-
