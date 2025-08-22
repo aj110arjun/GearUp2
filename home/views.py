@@ -34,8 +34,11 @@ def home(request):
 
 
 # Admin Views
+@never_cache
 @staff_member_required(login_url='admin_login')
 def dashboard(request):
+    if not request.user.is_staff or not request.user.is_authenticated:
+        return redirect('admin_login')
     # Total orders
     total_orders = Order.objects.count()
 

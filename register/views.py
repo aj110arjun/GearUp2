@@ -253,3 +253,8 @@ def admin_login(request):
 
     return render(request, "custom_admin/login.html")
 
+def admin_logout_view(request):
+    logout(request)
+    request.session.flush()
+    return redirect('admin_login')
+
