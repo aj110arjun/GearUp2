@@ -7,7 +7,7 @@ SECRET_KEY = 'django-insecure-1)98f-dpz90spty&nh3ph7i487r47euk8h6(%=@62%byi5v^#=
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['*',]
+ALLOWED_HOSTS = ["*"]
 
 CSRF_TRUSTED_ORIGINS = [
     "https://anchovy-lasting-marginally.ngrok-free.app"

@@ -88,6 +88,11 @@ class ProductOffer(models.Model):
     active = models.BooleanField(default=True)
     start_date = models.DateField()
     end_date = models.DateField()
+    
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["product"], name="unique_product_offer")
+        ]
 
     def __str__(self):
         return f"{self.discount_percent}% off on {self.product.name}"

@@ -12,6 +12,11 @@
                 </option>
             {% endfor %}
         </select>
+        
+        {% if error.category %}
+            <span class="text-danger">{{error.category}}</span>
+        {% endif %}
+            
     </div>
     <div class="mb-3">
         <label>Discount %</label>

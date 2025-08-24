@@ -1,7 +1,7 @@
 {% extends "custom_admin/base.html" %}
 {% block content %}
 <h2>Add Category Offer</h2>
-<form method="POST">
+<form method="POST" novalidate>
     {% csrf_token %}
     <div class="mb-3">
         <label>Category</label>
@@ -10,18 +10,30 @@
                 <option value="{{ category.id }}">{{ category.name }}</option>
             {% endfor %}
         </select>
+        {% if error.category %}
+            <span class="text-danger">{{error.category}}</span>
+        {% endif %}  
     </div>
     <div class="mb-3">
         <label>Discount %</label>
         <input type="number" name="discount" class="form-control" required>
+        {% if error.discount %}
+            <span class="text-danger">{{error.discount}}</span>
+        {% endif %}
     </div>
     <div class="mb-3">
         <label>Start Date</label>
         <input type="date" name="start_date" class="form-control" required>
+        {% if error.start_date %}
+            <span class="text-danger">{{error.start_date}}</span>
+        {% endif %}
     </div>
     <div class="mb-3">
         <label>End Date</label>
         <input type="date" name="end_date" class="form-control" required>
+        {% if error.end_date %}
+            <span class="text-danger">{{error.end_date}}</span>
+        {% endif %}
     </div>
     <div class="form-check">
         <input type="checkbox" name="active" class="form-check-input">
