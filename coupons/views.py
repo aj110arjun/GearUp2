@@ -57,6 +57,7 @@ from .models import Coupon
 
 @staff_member_required(login_url='admin_login')
 def admin_coupon_add(request):
+    error={}
     if request.method == "POST":
         code = request.POST.get("code", "").strip()
         discount = request.POST.get("discount")
@@ -69,26 +70,46 @@ def admin_coupon_add(request):
         valid_from = parse_datetime(valid_from_str) if valid_from_str else None
         valid_to = parse_datetime(valid_to_str) if valid_to_str else None
 
-        if not code or not discount:
-            messages.error(request, "Please fill all required fields.")
-            return redirect("admin_coupon_add")
+        if not code:
+            error["code"] = "Coupon code is required"
+        else:
+            if Coupon.objects.filter(code=code).exists():
+                error["code"] = "Coupon code is already exist"
+            
+        if not discount:
+            error["discount"] = "Discount is required"
+        else:   
+            if int(discount) < 10 or int(discount) > 90:
+                error["discount"] = "Discount must be in between 10 and 90"
+                
+        if not min_purchase:
+            error["min_purchase"] = "Minimum purchase amount is required"
+        else:
+            if int(min_purchase) < 100:
+                error["min_purchase"] = "Minimum purchase amount must be greater than 100"
+            
+        if not valid_from:
+            error["valid_from"] = "Valid from is required"
+            
+        if not valid_to:
+            error["valid_to"] = "Valid to is required"
 
-        # Create the coupon
-        coupon = Coupon.objects.create(
-            code=code,
-            discount=Decimal(discount),
-            min_purchase=Decimal(min_purchase) if min_purchase else None,
-            active=active,
-            valid_from=valid_from,
-            valid_to=valid_to
-        )
-        messages.success(request, f'Coupon "{coupon.code}" created successfully!')
-        return redirect("admin_coupon_list")
+        if not error:
+            Coupon.objects.create(
+                code=code,
+                discount=Decimal(discount),
+                min_purchase=Decimal(min_purchase) if min_purchase else None,
+                active=active,
+                valid_from=valid_from,
+                valid_to=valid_to
+            )
+            return redirect("admin_coupon_list")
 
-    return render(request, "custom_admin/coupons/coupon_form.html", {"action": "Add"})
+    return render(request, "custom_admin/coupons/coupon_form.html", {"action": "Add", "error": error})
 
 @staff_member_required(login_url='admin_login')
 def admin_coupon_edit(request, id):
+    error={}
     coupon = get_object_or_404(Coupon, id=id)
 
     if request.method == "POST":
@@ -97,20 +118,33 @@ def admin_coupon_edit(request, id):
         min_purchase = request.POST.get("min_purchase") or None
         active = request.POST.get("active") == "on"
 
-        if not code or not discount:
-            messages.error(request, "Please fill all required fields.")
-            return redirect("admin_coupon_edit", id=id)
+        if not code:
+            error["code"] = "Coupon code is required"
+        else:
+            if Coupon.objects.filter(code=code).exclude(id=coupon.id).exists():
+                error["code"] = "Coupon code is already exist"
+            
+        if not discount:
+            error["discount"] = "Discount is required"
+        else:   
+            if int(discount) < 10 or int(discount) > 90:
+                error["discount"] = "Discount must be in between 10 and 90"
+                
+        if not min_purchase:
+            error["min_purchase"] = "Minimum purchase amount is required"
+        else:
+            if float(min_purchase) < 100:
+                error["min_purchase"] = "Minimum purchase amount must be greater than 100"
+        
+        if not error:
+            coupon.code = code
+            coupon.discount = Decimal(discount)
+            coupon.min_purchase = Decimal(min_purchase) if min_purchase else None
+            coupon.active = active
+            coupon.save()
+            return redirect("admin_coupon_list")
 
-        coupon.code = code
-        coupon.discount = Decimal(discount)
-        coupon.min_purchase = Decimal(min_purchase) if min_purchase else None
-        coupon.active = active
-        coupon.save()
-
-        messages.success(request, f'Coupon "{coupon.code}" updated successfully!')
-        return redirect("admin_coupon_list")
-
-    return render(request, "custom_admin/coupons/coupon_form.html", {"coupon": coupon, "action": "Edit"})
+    return render(request, "custom_admin/coupons/coupon_form.html", {"coupon": coupon, "action": "Edit", "error": error})
 
 @staff_member_required(login_url='admin_login')
 def admin_coupon_delete(request, id):
