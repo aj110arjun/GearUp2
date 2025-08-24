@@ -19,7 +19,7 @@
         <td>{{ offer.end_date }}</td>
         <td>{{ offer.active }}</td>
         <td>
-            <a href="{% url 'admin_delete_product_offer' offer.id %}" class="btn btn-danger btn-sm">Delete</a>
+            <a onclick="return confirm('Are you sure you want to delete this offer?');" href="{% url 'admin_delete_product_offer' offer.id %}" class="btn btn-danger btn-sm">Delete</a>
             <a href="{% url 'admin_product_offer_edit' offer.product.product_id %}" class="btn btn-warning btn-sm">Edit</a>
         </td>
     </tr>

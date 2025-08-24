@@ -15,6 +15,7 @@ def admin_product_offers(request):
 
 @staff_member_required(login_url="admin_login")
 def admin_add_product_offer(request):
+    error={}
     if request.method == "POST":
         product_id = request.POST.get("product")
         discount = request.POST.get("discount")
@@ -22,23 +23,30 @@ def admin_add_product_offer(request):
         end_date = request.POST.get("end_date")
         active = request.POST.get("active") == "on"
 
-        if not product_id or not discount:
-            messages.error(request, "Please fill in all required fields.")
-            return redirect("admin_add_product_offer")
-
-        product = get_object_or_404(Product, id=product_id)
-        ProductOffer.objects.create(
-            product=product,
-            discount_percent=discount,
-            start_date=start_date,
-            end_date=end_date,
-            active=active,
-        )
-        messages.success(request, f"Offer added for {product.name}")
-        return redirect("admin_product_offers")
+        if not product_id:
+            error['product'] = "Product field required"
+        if not discount:
+            error['discount'] = "Discount field is required"
+        if not start_date:
+            error['start_date'] = "Start date is required"
+        if not end_date:
+            error['end_date'] = "End date is required"
+        if ProductOffer.objects.filter(product=product_id).exists():
+            error['product'] = "Offer on this product already exist"
+            
+        if not error:
+            product = get_object_or_404(Product, id=product_id)
+            ProductOffer.objects.create(
+                product=product,
+                discount_percent=discount,
+                start_date=start_date,
+                end_date=end_date,
+                active=active,
+            )
+            return redirect("admin_product_offers")
 
     products = Product.objects.all()
-    return render(request, "custom_admin/offers/add_product_offer.html", {"products": products})
+    return render(request, "custom_admin/offers/add_product_offer.html", {"products": products, "error": error})
 
 
 @staff_member_required(login_url="admin_login")
@@ -58,6 +66,7 @@ def admin_category_offers(request):
 
 @staff_member_required(login_url="admin_login")
 def admin_add_category_offer(request):
+    error={}
     if request.method == "POST":
         category_id = request.POST.get("category")
         discount = request.POST.get("discount")
@@ -65,23 +74,30 @@ def admin_add_category_offer(request):
         end_date = request.POST.get("end_date")
         active = request.POST.get("active") == "on"
 
-        if not category_id or not discount:
-            messages.error(request, "Please fill in all required fields.")
-            return redirect("admin_add_category_offer")
+        if not category_id:
+            error['category'] = "Category is required"
+        if not discount:
+            error['discount'] = "Discount is required"
+        if not start_date:
+            error['start_date'] = "Start date is required"
+        if not end_date:
+            error['end_date'] = "End date is required"
+        if CategoryOffer.objects.filter(category = category_id).exists():
+            error['category'] = "Offer on this category already exist"
 
-        category = get_object_or_404(Category, id=category_id)
-        CategoryOffer.objects.create(
-            category=category,
-            discount_percent=discount,
-            start_date=start_date,
-            end_date=end_date,
-            active=active,
-        )
-        messages.success(request, f"Offer added for {category.name}")
-        return redirect("admin_category_offers")
+        if not error:
+            category = get_object_or_404(Category, id=category_id)
+            CategoryOffer.objects.create(
+                category=category,
+                discount_percent=discount,
+                start_date=start_date,
+                end_date=end_date,
+                active=active,
+            )
+            return redirect("admin_category_offers")
 
     categories = Category.objects.all()
-    return render(request, "custom_admin/offers/add_category_offer.html", {"categories": categories})
+    return render(request, "custom_admin/offers/add_category_offer.html", {"categories": categories, "error":error})
 
 
 @staff_member_required(login_url="admin_login")
@@ -99,43 +115,55 @@ def admin_product_offer_edit(request, product_id):
     offer = get_object_or_404(ProductOffer, product=product)
 
     if request.method == "POST":
+        error={}
         # re-select product from dropdown (UUID)
         product_uuid = request.POST.get("product")
         if product_uuid:
             offer.product = get_object_or_404(Product, product_id=product_uuid)
+            
+        if ProductOffer.objects.filter(product=offer.product).exclude(id=offer.id).exists():
+            error['product'] = "Offer in the product already exist"
 
         # update offer fields
-        offer.discount_percent = int(request.POST.get("discount_percent") or 0)
-        offer.active = request.POST.get("active") == "on"
-        offer.start_date = parse_date(request.POST.get("start_date")) if request.POST.get("start_date") else None
-        offer.end_date = parse_date(request.POST.get("end_date")) if request.POST.get("end_date") else None
+        if not error:
+            offer.discount_percent = int(request.POST.get("discount_percent") or 0)
+            offer.active = request.POST.get("active") == "on"
+            offer.start_date = parse_date(request.POST.get("start_date")) if request.POST.get("start_date") else None
+            offer.end_date = parse_date(request.POST.get("end_date")) if request.POST.get("end_date") else None
 
-        offer.save()
-        messages.success(request, f"Offer updated for {offer.product.name}")
-        return redirect("admin_product_offers")
-
+            offer.save()
+            return redirect("admin_product_offers")
+        return render(request,"custom_admin/offers/product_offer_edit.html",{"offer": offer,"error":error, "products": Product.objects.all()})
+        
     products = Product.objects.all()
-    return render(
-        request,
-        "custom_admin/offers/product_offer_edit.html",
-        {"offer": offer, "products": products}
-    )
+    context = {
+        "offer": offer,
+        "products": products,
+        }
+    return render(request,"custom_admin/offers/product_offer_edit.html",context)
     
 @staff_member_required(login_url="admin_login")
 def admin_category_offer_edit(request, category_id):
+    error={}
     category = get_object_or_404(Category, id=category_id)
     offer = get_object_or_404(CategoryOffer, category=category)
 
     if request.method == "POST":
         category_id = request.POST.get("category")
-        offer.category = get_object_or_404(Category, id=category_id)
-        offer.discount_percent = request.POST.get("discount")
-        offer.start_date = request.POST.get("start_date")
-        offer.end_date = request.POST.get("end_date")
-        offer.active = request.POST.get("active") == "on"
-        offer.save()
-        messages.success(request, "Category offer updated successfully.")
-        return redirect("admin_category_offers")
+        new_category = get_object_or_404(Category, id=category_id)
+        if CategoryOffer.objects.filter(category=new_category).exclude(id=offer.id).exists():
+            error['category'] = "Offer on this category already exist"
+        if not error:
+            category_id = request.POST.get("category")
+            offer.category = get_object_or_404(Category, id=category_id)
+            offer.discount_percent = request.POST.get("discount")
+            offer.start_date = request.POST.get("start_date")
+            offer.end_date = request.POST.get("end_date")
+            offer.active = request.POST.get("active") == "on"
+            offer.save()
+            return redirect("admin_category_offers")
+        return render(request,"custom_admin/offers/category_offer_edit.html",{"offer": offer,"error":error, "categories": Category.objects.all()})
+        
 
     categories = Category.objects.all()
     return render(request, "custom_admin/offers/category_offer_edit.html", {"categories": categories, "offer": offer})

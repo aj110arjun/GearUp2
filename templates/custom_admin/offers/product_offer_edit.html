@@ -15,6 +15,11 @@
           </option>
         {% endfor %}
       </select>
+      
+      {% if error.product %}
+        <span class="text-danger">{{error.product}}</span>
+      {% endif %}
+        
     </div>
 
     <!-- Offer Fields -->
