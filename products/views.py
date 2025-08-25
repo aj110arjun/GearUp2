@@ -107,9 +107,9 @@ def product_detail(request, product_id):
 @staff_member_required(login_url='admin_login')
 def admin_product_list(request):
     products = Product.objects.select_related('category').annotate(
-    min_variant_price=Min('variants__price'),
-    total_stock=Sum('variants__stock')
-)
+        min_variant_price=Min('variants__price'),
+        total_stock=Sum('variants__stock')
+    )
     categories = Category.objects.all()
 
     # Capture filters from query params
@@ -120,12 +120,6 @@ def admin_product_list(request):
         'search': request.GET.get('q', ''),
         'sort': request.GET.get('sort', '')
     }
-
-    # Annotate price and stock
-    products = products.annotate(
-        min_variant_price=Min('variants__price'),
-        total_stock=Sum('variants__stock')
-    )
 
     # Category filter
     if filters['category']:
@@ -166,17 +160,17 @@ def admin_product_list(request):
     else:
         products = products.order_by('-id')  # latest first
 
+    paginator = Paginator(products, 6)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
     context = {
-        'products': products,
+        'products': page_obj,   # pass paginated products
         'categories': categories,
-        'filters': filters
+        'filters': filters,
     }
     return render(request, 'custom_admin/products/product_list.html', context)
 
-import re
-from django.contrib.admin.views.decorators import staff_member_required
-from django.shortcuts import render, redirect, get_object_or_404
-from .models import Product, Category
 
 @staff_member_required(login_url='admin_login')
 def admin_product_add(request):
@@ -260,8 +254,18 @@ def admin_product_add(request):
 
 @staff_member_required(login_url='admin_login')
 def category_list(request):
-    categories = Category.objects.all()
-    return render(request, 'custom_admin/category/category_list.html', {'categories': categories})
+    categories = Category.objects.all().order_by('name')  # optional sorting
+
+    # ✅ Pagination (6 categories per page, you can change number)
+    paginator = Paginator(categories, 6)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(
+        request,
+        'custom_admin/category/category_list.html',
+        {'categories': page_obj}
+    )
 
 @staff_member_required(login_url='admin_login')
 def category_add(request):

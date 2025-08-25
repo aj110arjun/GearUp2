@@ -17,6 +17,7 @@ from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse, HttpResponseBadRequest
 from coupons.models import Coupon
+from django.core.paginator import Paginator
 
 
 # orders/views.py
@@ -166,16 +167,24 @@ def request_return_order_item(request, item_id):
 
     return redirect("order_detail", order_id=item.order.order_id)
 
-
 @staff_member_required(login_url="admin_login")
 def admin_order_list(request):
-    # Optional: filter by status
     status_filter = request.GET.get("status", "")
     orders = Order.objects.all().order_by("-created_at")
+
     if status_filter:
         orders = orders.filter(status=status_filter)
 
-    return render(request, "custom_admin/orders/order_list.html", {"orders": orders})
+    # Pagination (10 orders per page)
+    paginator = Paginator(orders, 10)  
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    return render(
+        request,
+        "custom_admin/orders/order_list.html",
+        {"orders": page_obj}  # pass page_obj instead of orders
+    )
 
 @staff_member_required(login_url="admin_login")
 def admin_order_detail(request, order_id):

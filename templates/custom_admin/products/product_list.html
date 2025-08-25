@@ -7,10 +7,11 @@
 
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h4>All Products</h4>
-    <a href="{% url 'product_add' %}" class="btn btn-primary">+ Add Product</a>
+    <a href="{% url 'product_add' %}" class="btn btn-primary">+ Add Product</a> 
   </div>
 
- <form method="get" class="row g-2 mb-4">
+  <!-- Filters -->
+  <form method="get" class="row g-2 mb-4">
     <div class="col-md-3">
         <select name="category" class="form-select">
             <option value="">All Categories</option>
@@ -55,9 +56,9 @@
             <button class="btn btn-primary">Search</button>
         </div>
     </div>
-</form>
+  </form>
 
-
+  <!-- Table -->
   <div class="table-responsive">
     <table class="table table-hover align-middle shadow-sm">
       <thead class="table-dark">
@@ -73,17 +74,16 @@
         </tr>
       </thead>
       <tbody>
-        
         {% for product in products %}
         <tr>
-          <th scope="row">{{ forloop.counter }}</th>
+          <th scope="row">{{ forloop.counter0|add:products.start_index }}</th>
           <td>
             <img src="{{ product.image.url }}" alt="{{ product.name }}" width="60" class="rounded shadow-sm">
           </td>
-          <td>{{ product.name | title }}</td>
+          <td>{{ product.name|title }}</td>
           <td>{{ product.category.name }}</td>
           {% if product.is_active %}
-            <td ><span class="badge bg-success">Active</span></td>
+            <td><span class="badge bg-success">Active</span></td>
           {% else %}
             <td><span class="badge bg-danger">Blocked</span></td>
           {% endif %}
@@ -95,11 +95,50 @@
         </tr>
         {% empty %}
         <tr>
-          <td colspan="7" class="text-center text-muted">No products found.</td>
+          <td colspan="8" class="text-center text-muted">No products found.</td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
+
+  <!-- Pagination Info -->
+  {% if products.paginator.count > 0 %}
+  <div class="d-flex justify-content-between align-items-center mt-3">
+    <p class="text-muted small mb-0">
+      Showing {{ products.start_index }}–{{ products.end_index }} of {{ products.paginator.count }} products
+    </p>
+
+    <!-- Pagination Controls -->
+    <nav>
+      <ul class="pagination mb-0">
+        {% if products.has_previous %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ products.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+              Previous
+            </a>
+          </li>
+        {% endif %}
+
+        {% for num in products.paginator.page_range %}
+          <li class="page-item {% if products.number == num %}active{% endif %}">
+            <a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+              {{ num }}
+            </a>
+          </li>
+        {% endfor %}
+
+        {% if products.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ products.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+              Next
+            </a>
+          </li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+
 </div>
 {% endblock content %}
