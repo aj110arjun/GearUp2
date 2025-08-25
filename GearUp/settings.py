@@ -10,7 +10,7 @@ DEBUG = True
 ALLOWED_HOSTS = ["*"]
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://anchovy-lasting-marginally.ngrok-free.app"
+    "https://*.ngrok-free.app/", "https://*.ngrok.io"
 ]
 
 

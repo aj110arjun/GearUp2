@@ -11,7 +11,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 from io import BytesIO
-from wallet.models import Wallet
+from wallet.models import Wallet, WalletTransaction
 from decimal import Decimal
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
@@ -29,7 +29,9 @@ def checkout(request):
     adjusted = False
     subtotal = Decimal("0.00")
     payment_method = request.POST.get("payment_method", "COD")
+    wallet, _ = Wallet.objects.get_or_create(user=request.user)
 
+    # calculate subtotal & adjust stock
     for item in cart_items:
         max_limit = min(5, item.variant.stock)
 
@@ -50,6 +52,7 @@ def checkout(request):
         messages.warning(request, "Some items were adjusted due to stock limits. Please review your cart again.")
         return redirect("cart_view")
 
+    # coupon check
     coupon_id = request.session.get("coupon_id")
     discount = Decimal("0.00")
     coupon = None
@@ -65,14 +68,22 @@ def checkout(request):
     if total < 0:
         total = Decimal("0.00")
 
+    # -------- HANDLE POST --------
     if request.method == "POST":
         address_id = request.POST.get("address")
         address = Address.objects.filter(user=request.user, id=address_id).first()
-        
+
         if not address:
             messages.error(request, "Please select an address before placing your order.")
             return redirect("checkout")
 
+        # If WALLET selected, check balance first
+        if payment_method == "WALLET":
+            if wallet.balance < total:
+                messages.error(request, "Insufficient wallet balance.")
+                return redirect("checkout")
+
+        # create order
         order = Order.objects.create(
             user=request.user,
             address=address,
@@ -80,26 +91,44 @@ def checkout(request):
             discount=discount,
             coupon=coupon,
             payment_method=payment_method,
+            payment_status="PAID" if payment_method == "WALLET" else "PENDING"
         )
 
+        # create order items & reduce stock
         for item in cart_items:
             price = Decimal(item.variant.get_discounted_price())
             OrderItem.objects.create(
                 order=order,
                 variant=item.variant,
                 quantity=item.quantity,
-                price=price,  
+                price=price,
             )
             item.variant.stock -= item.quantity
             item.variant.save()
 
+        # clear cart
         cart_items.delete()
 
+        # If WALLET -> deduct balance & add transaction
+        if payment_method == "WALLET":
+            wallet.balance -= total
+            wallet.save()
+            WalletTransaction.objects.create(
+                wallet=wallet,
+                amount=total,
+                transaction_type="DEBIT",
+                description=f"Order {order.order_id} Payment"
+            )
+            return redirect("order_complete", order_id=order.order_id)
+
+        # If COD
         if payment_method == "COD":
             return redirect("order_complete", order_id=order.order_id)
-        else: 
-            return redirect("start_payment", order_id=order.order_id)
 
+        # Else -> ONLINE (Razorpay)
+        return redirect("start_payment", order_id=order.order_id)
+
+    # -------- GET --------
     addresses = Address.objects.filter(user=request.user)
     return render(
         request,
@@ -111,8 +140,10 @@ def checkout(request):
             "discount": discount,
             "total": total,
             "coupon": coupon,
+            "wallet": wallet,   # 👈 Pass wallet to template
         },
     )
+
 
 
 
