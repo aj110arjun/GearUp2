@@ -20,7 +20,6 @@ from coupons.models import Coupon
 from django.core.paginator import Paginator
 
 
-# orders/views.py
 @login_required(login_url="login")
 def checkout(request):
     cart_items = CartItem.objects.filter(user=request.user).select_related("variant__product")
@@ -31,7 +30,6 @@ def checkout(request):
     subtotal = Decimal("0.00")
     payment_method = request.POST.get("payment_method", "COD")
 
-    # 🔹 Validate stock + calculate subtotal with offers
     for item in cart_items:
         max_limit = min(5, item.variant.stock)
 
@@ -45,7 +43,6 @@ def checkout(request):
             item.save()
             adjusted = True
 
-        # ✅ Use discounted price (offer applied)
         price = Decimal(item.variant.get_discounted_price())
         subtotal += price * item.quantity
 
@@ -53,7 +50,6 @@ def checkout(request):
         messages.warning(request, "Some items were adjusted due to stock limits. Please review your cart again.")
         return redirect("cart_view")
 
-    # 🔹 Check for coupon
     coupon_id = request.session.get("coupon_id")
     discount = Decimal("0.00")
     coupon = None
@@ -77,7 +73,6 @@ def checkout(request):
             messages.error(request, "Please select an address before placing your order.")
             return redirect("checkout")
 
-        # 🔹 Create the order with coupon applied
         order = Order.objects.create(
             user=request.user,
             address=address,
@@ -87,26 +82,22 @@ def checkout(request):
             payment_method=payment_method,
         )
 
-        # 🔹 Create order items
         for item in cart_items:
             price = Decimal(item.variant.get_discounted_price())
             OrderItem.objects.create(
                 order=order,
                 variant=item.variant,
                 quantity=item.quantity,
-                price=price,  # ✅ store discounted price
+                price=price,  
             )
-            # 🔹 Deduct stock
             item.variant.stock -= item.quantity
             item.variant.save()
 
-        # Clear cart
         cart_items.delete()
 
-        # 🔹 Payment flow
         if payment_method == "COD":
             return redirect("order_complete", order_id=order.order_id)
-        else:  # ONLINE
+        else: 
             return redirect("start_payment", order_id=order.order_id)
 
     addresses = Address.objects.filter(user=request.user)
@@ -134,19 +125,23 @@ def order_complete(request, order_id):
 @login_required(login_url="login")
 def order_list(request):
     orders = Order.objects.filter(user=request.user).order_by("-created_at")
-    return render(request, "user/orders/orders.html", {"orders": orders})
+    
+    paginator = Paginator(orders, 10)  
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, "user/orders/orders.html", {"page_obj": page_obj})
 
 @login_required(login_url='login')
 def order_detail(request, order_id):
     order = get_object_or_404(Order, order_id=order_id, user=request.user)
-    items = order.items.select_related('variant__product')  # fetch products efficiently
+    items = order.items.select_related('variant__product')  
     return render(request, 'user/orders/order_detail.html', {'order': order, 'items': items})
 
 @login_required(login_url="login")
 def request_return_order_item(request, item_id):
     item = get_object_or_404(OrderItem, item_id=item_id, order__user=request.user)
 
-    # ✅ Only allow return if status is Delivered
     if item.status != "delivered":
         messages.error(request, "You can only return delivered items.")
         return redirect("order_detail", order_id=item.order.order_id)
@@ -159,7 +154,7 @@ def request_return_order_item(request, item_id):
 
         item.return_requested = True
         item.return_reason = reason
-        item.return_approved = None  # pending
+        item.return_approved = None
         item.save()
 
         messages.success(request, "Return request sent. Admin will review it.")
@@ -175,7 +170,6 @@ def admin_order_list(request):
     if status_filter:
         orders = orders.filter(status=status_filter)
 
-    # Pagination (10 orders per page)
     paginator = Paginator(orders, 10)  
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
@@ -183,7 +177,7 @@ def admin_order_list(request):
     return render(
         request,
         "custom_admin/orders/order_list.html",
-        {"orders": page_obj}  # pass page_obj instead of orders
+        {"orders": page_obj} 
     )
 
 @staff_member_required(login_url="admin_login")

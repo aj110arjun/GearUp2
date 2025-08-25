@@ -1,46 +1,98 @@
 {% extends "user/base.html" %}
-
 {% block content %}
-<div class="container my-4">
-    <h2>My Wallet</h2>
+<div class="container my-5">
 
-    <!-- Wallet Balance -->
-    <div class="card mb-4 p-3">
-        <h4>Current Balance: ₹{{ wallet.balance }}</h4>
+    <!-- Page Title -->
+    <div class="text-center mb-4">
+        <h2 class="fw-bold">💰 My Wallet</h2>
+        <p class="text-muted">Track your balance and transactions easily</p>
     </div>
 
-    <!-- Transaction History -->
-    <div class="card p-3">
-        <h5>Transactions:</h5>
-        {% if transactions %}
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Type</th>
-                        <th>Amount (₹)</th>
-                        <th>Description</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for txn in transactions %}
-                        <tr>
-                            <td>{{ txn.created_at|date:"d-m-Y H:i" }}</td>
-                            <td>{{ txn.transaction_type }}</td>
-                            <td>{{ txn.amount }}</td>
-                            <td>
-                                {{ txn.description }}
-                                {% if "Refund" in txn.description and "coupon" in txn.description %}
-                                    <span class="badge bg-success">Includes Coupon</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <p>No transactions yet.</p>
-        {% endif %}
+    <!-- Wallet Balance Card -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body text-center">
+            <h5 class="text-muted">Current Balance</h5>
+            <h2 class="fw-bold text-success">₹{{ wallet.balance }}</h2>
+        </div>
+    </div>
+
+    <!-- Transactions -->
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">📑 Transaction History</h5>
+        </div>
+        <div class="card-body">
+            {% if page_obj %}
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Amount (₹)</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for txn in page_obj %}
+                                <tr>
+                                    <td>{{ txn.created_at|date:"d M Y, H:i" }}</td>
+                                    <td>
+                                        {% if txn.transaction_type == "CREDIT" %}
+                                            <span class="badge bg-success">{{ txn.transaction_type }}</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">{{ txn.transaction_type }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="fw-bold {% if txn.transaction_type == 'CREDIT' %}text-success{% else %}text-danger{% endif %}">
+                                        {% if txn.transaction_type == "CREDIT" %}+{% else %}-{% endif %}₹{{ txn.amount }}
+                                    </td>
+                                    <td>
+                                        {{ txn.description }}
+                                        {% if "Refund" in txn.description and "coupon" in txn.description %}
+                                            <span class="badge bg-info">Includes Coupon</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination controls -->
+                <nav aria-label="Transaction pages">
+                    <ul class="pagination justify-content-center mt-3">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">Previous</span></li>
+                        {% endif %}
+
+                        {% for num in page_obj.paginator.page_range %}
+                            {% if page_obj.number == num %}
+                                <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                            {% elif num > page_obj.number|add:'-2' and num < page_obj.number|add:'2' %}
+                                <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">Next</span></li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            {% else %}
+                <div class="text-center text-muted py-4">
+                    <p class="mb-0">No transactions yet.</p>
+                </div>
+            {% endif %}
+        </div>
     </div>
 </div>
 {% endblock %}

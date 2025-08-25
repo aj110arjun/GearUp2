@@ -3,6 +3,7 @@ from decimal import Decimal
 from .models import Wallet
 from orders.models import OrderItem
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 
 @login_required
 def approve_return(request, order_item_id):
@@ -81,5 +82,16 @@ def approve_return(request, order_item_id):
 def user_wallet(request):
     wallet = request.user.wallet
     wallet.refresh_from_db()  # ✅ ensures latest balance is fetched
+
     transactions = wallet.transactions.all().order_by("-created_at")
-    return render(request, "user/wallet/wallet.html", {"wallet": wallet, "transactions": transactions})
+
+    # Pagination: 10 transactions per page
+    paginator = Paginator(transactions, 10)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    return render(
+        request,
+        "user/wallet/wallet.html",
+        {"wallet": wallet, "page_obj": page_obj}
+    )
