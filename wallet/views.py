@@ -1,9 +1,14 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from decimal import Decimal
-from .models import Wallet
+from .models import Wallet, WalletTransaction
 from orders.models import OrderItem
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+import json
+import razorpay
+from django.conf import settings
 
 @login_required
 def approve_return(request, order_item_id):
@@ -80,12 +85,37 @@ def approve_return(request, order_item_id):
     
 @login_required(login_url="login")
 def user_wallet(request):
+    error = {}
     wallet = request.user.wallet
-    wallet.refresh_from_db()  # ✅ ensures latest balance is fetched
-
+    wallet.refresh_from_db()
     transactions = wallet.transactions.all().order_by("-created_at")
 
-    # Pagination: 10 transactions per page
+    if request.method == "POST":
+        amount = request.POST.get("amount")
+        if amount and amount.isdigit() and int(amount) > 0:
+            amount = int(amount) * 100  # Razorpay works in paise
+
+            # Razorpay client
+            client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+
+            # Create Razorpay order
+            razorpay_order = client.order.create({
+                "amount": amount,
+                "currency": "INR",
+                "payment_capture": "1"
+            })
+
+            context = {
+                "wallet": wallet,
+                "page_obj": Paginator(transactions, 10).get_page(request.GET.get("page")),
+                "razorpay_order_id": razorpay_order["id"],
+                "razorpay_key": settings.RAZORPAY_KEY_ID,
+                "amount": amount,
+            }
+            return render(request, "user/wallet/wallet_payment.html", context)
+        else:
+            error['wallet'] = "Please enter a valid amount."
+
     paginator = Paginator(transactions, 10)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
@@ -93,5 +123,60 @@ def user_wallet(request):
     return render(
         request,
         "user/wallet/wallet.html",
-        {"wallet": wallet, "page_obj": page_obj}
+        {"wallet": wallet, "page_obj": page_obj, "error": error, "razorpay_key": settings.RAZORPAY_KEY_ID,}
     )
+    
+@login_required(login_url="login")
+def create_order(request):
+    if request.method == "POST":
+        amount = int(request.POST.get("amount")) * 100  # in paise
+
+        client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+        payment = client.order.create({
+            "amount": amount,
+            "currency": "INR",
+            "payment_capture": "1"
+        })
+        return JsonResponse(payment)
+    return JsonResponse({"error": "Invalid request"}, status=400)
+
+@csrf_exempt
+@login_required(login_url="login")
+def wallet_payment_success(request):
+    try:
+        data = json.loads(request.body)
+        razorpay_order_id = data.get("razorpay_order_id")
+        razorpay_payment_id = data.get("razorpay_payment_id")
+        razorpay_signature = data.get("razorpay_signature")
+
+        client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+
+        # Verify payment signature
+        client.utility.verify_payment_signature({
+            "razorpay_order_id": razorpay_order_id,
+            "razorpay_payment_id": razorpay_payment_id,
+            "razorpay_signature": razorpay_signature
+        })
+
+        # Fetch payment details
+        payment = client.payment.fetch(razorpay_payment_id)
+        amount = int(payment["amount"]) / 100  # convert back from paise
+
+        wallet = request.user.wallet
+
+        # Update wallet balance
+        wallet.balance += amount
+        wallet.save()
+
+        # ✅ Create transaction record
+        WalletTransaction.objects.create(
+            wallet=wallet,
+            transaction_type="CREDIT",
+            amount=amount,
+            description=f"Added ₹{amount} via Razorpay (Payment ID: {razorpay_payment_id})"
+        )
+
+        return JsonResponse({"status": "success"})
+
+    except Exception as e:
+        return JsonResponse({"status": "failed", "error": str(e)})

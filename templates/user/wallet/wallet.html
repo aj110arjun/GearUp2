@@ -2,6 +2,20 @@
 {% block content %}
 <div class="container my-5">
 
+    <div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-light"><h5 class="mb-0">➕ Add Money</h5></div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-8">
+                <input type="number" id="amount" min="1" class="form-control" placeholder="Enter amount in ₹">
+            </div>
+            <div class="col-md-4">
+                <button class="btn btn-success w-100" onclick="payNow()">Add Money</button>
+            </div>
+        </div>
+    </div>
+</div>
+
     <!-- Page Title -->
     <div class="text-center mb-4">
         <h2 class="fw-bold">💰 My Wallet</h2>
@@ -95,4 +109,57 @@
         </div>
     </div>
 </div>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+function payNow() {
+    var amount = document.getElementById("amount").value;
+    if (!amount || amount <= 0) {
+        alert("Enter a valid amount");
+        return;
+    }
+
+    fetch("{% url 'create_order' %}", {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": "{{ csrf_token }}",
+            "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: "amount=" + amount
+    })
+    .then(response => response.json())
+    .then(data => {
+        var options = {
+            "key": "{{ razorpay_key }}",
+            "amount": data.amount,
+            "currency": "INR",
+            "name": "GearUp Wallet",
+            "description": "Add Money to Wallet",
+            "order_id": data.id,
+            "handler": function (response){
+                // call backend to verify payment and update wallet
+                fetch("{% url 'payment_success' %}", {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": "{{ csrf_token }}",
+                        "Content-Type": "application/x-www-form-urlencoded",
+                    },
+                    body: "amount=" + data.amount
+                }).then(() => {
+                    window.location.reload();
+                });
+            },
+            "prefill": {
+                "name": "{{ request.user.first_name }}",
+                "email": "{{ request.user.email }}",
+            },
+            "theme": {
+                "color": "#3399cc"
+            }
+        };
+        var rzp1 = new Razorpay(options);
+        rzp1.open();
+    });
+}
+</script>
 {% endblock %}
