@@ -33,9 +33,9 @@ def add_to_cart(request, variant_id=None):
 
 @login_required(login_url="login")
 def cart_view(request):
+    error={}
     items = CartItem.objects.filter(user=request.user).select_related("variant__product")
     subtotal = Decimal("0.00")
-    adjusted = False
     has_offer = False  # ✅ flag for offer products
 
     for item in items:
@@ -44,7 +44,7 @@ def cart_view(request):
         if item.quantity > max_limit:
             item.quantity = max_limit
             item.save()
-            adjusted = True
+            
 
         if item.variant.stock == 0:
             item.delete()
@@ -60,8 +60,7 @@ def cart_view(request):
 
         subtotal += item.quantity * price
 
-    if adjusted:
-        messages.warning(request, "Some cart items were adjusted due to stock changes.")
+    
 
     # 🔹 Coupon logic
     coupon = None
@@ -72,7 +71,7 @@ def cart_view(request):
         # ✅ If offer exists, remove coupon
         if coupon_id:
             request.session.pop("coupon_id", None)
-            messages.info(request, "Coupons cannot be applied when products already have offers.")
+            error['coupon'] = "Coupons cannot be applied when products already have offers."
     else:
         if coupon_id:
             try:
@@ -82,11 +81,14 @@ def cart_view(request):
                     discount = (subtotal * Decimal(coupon.discount)) / 100
                 else:
                     messages.warning(request, "Invalid coupon or minimum purchase not met.")
+                    error['coupon'] = "Invalid coupon or minimum purchase not met."
                     request.session.pop("coupon_id", None)
                     coupon = None
             except Coupon.DoesNotExist:
+                error["coupon"] = "Coupon does not exist."
                 request.session.pop("coupon_id", None)
                 coupon = None
+                return redirect('cart_view')
 
     total = subtotal - discount
 
@@ -99,7 +101,8 @@ def cart_view(request):
             "discount": discount,
             "total": total,
             "coupon": coupon,
-            "has_offer": has_offer,  # ✅ send to template
+            "has_offer": has_offer,
+            "error": error,
         },
     )
 

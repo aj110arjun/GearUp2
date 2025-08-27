@@ -107,12 +107,11 @@
                 </form>
             {% endif %}
 
-            {% if messages %}
-                {% for message in messages %}
-                    <span class="text-danger">{{ message }}</span>
-                {% endfor %}
-            {% endif %}
+            
         </div>
+        {% if error.coupon %}
+            <span class="text-danger">{{error.coupon}}</span>
+        {% endif %}
 
         <div class="text-end mt-4">
             <a href="{% url 'checkout' %}" class="btn btn-primary">Proceed to Checkout</a>

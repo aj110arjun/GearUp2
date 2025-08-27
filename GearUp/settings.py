@@ -17,8 +17,6 @@ config = Config(RepositoryEnv(str(ENV_FILE)))
 CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", cast=Csv())
 
 
-
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -46,12 +44,6 @@ INSTALLED_APPS = [
     'offers',
     'wallet.apps.WalletConfig',
 ]
-
-# rzp_test_R7V0e5hoyTOTHo       keyid
-# zFFwYLsv9IpSGyzpKcn2mUsF      keysecret
-
-# RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID", "rzp_test_R7V0e5hoyTOTHo ")
-# RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET", "zFFwYLsv9IpSGyzpKcn2mUsF")
 
 RAZORPAY_KEY_ID = config("RAZORPAY_KEY_ID") 
 RAZORPAY_KEY_SECRET = config("RAZORPAY_KEY_SECRET")
