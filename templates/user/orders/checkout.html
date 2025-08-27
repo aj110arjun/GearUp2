@@ -61,12 +61,11 @@
         </div>
         <div class="card p-3 mb-2">
         <label class="d-flex align-items-center">
-            <input type="radio" name="payment_method" value="WALLET" class="me-2"
-                {% if wallet.balance < total_amount %} disabled {% endif %}>
+            <input type="radio" name="payment_method" value="WALLET" class="me-2">
             <span>Pay with Wallet 
                 (Balance: ₹{{ wallet.balance }})
-                {% if wallet.balance < total_amount %}
-                    <small class="text-danger">(Insufficient Balance)</small>
+                {% if error.wallet %}
+                    <small class="text-danger">{{error.wallet}}</small>
                 {% endif %}
             </span>
         </label>

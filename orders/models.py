@@ -18,6 +18,7 @@ class Order(models.Model):
     PAYMENT_METHODS = [
         ("COD", "Cash on Delivery"),
         ("ONLINE", "Online Payment"),
+        ("WALLET", "Wallet")
     ]
     id = models.BigAutoField(primary_key=True)
     order_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True, null=True, blank=True)
