@@ -20,6 +20,7 @@
             <th style="padding:10px; border-bottom:1px solid #ddd;">Discount</th>
             <th style="padding:10px; border-bottom:1px solid #ddd;">Min Purchase</th>
             <th style="padding:10px; border-bottom:1px solid #ddd;">Active</th>
+            <th style="padding:10px; border-bottom:1px solid #ddd;">Valid From</th>
             <th style="padding:10px; border-bottom:1px solid #ddd;">Valid To</th>
             <th style="padding:10px; border-bottom:1px solid #ddd;">Actions</th>
         </tr>
@@ -38,7 +39,8 @@
                 {% endif %}
             </td>
             <td style="padding:10px;">{{ coupon.active|yesno:"Yes,No" }}</td>
-            <td style="padding:10px;">{{ coupon.valid_to|date:"d M Y, H:i" }}</td>
+            <td style="padding:10px;">{{ coupon.valid_from|date:"d M Y" }}</td>
+            <td style="padding:10px;">{{ coupon.valid_to|date:"d M Y" }}</td>
             <td style="padding:10px;">
                 <a href="{% url 'admin_coupon_edit' coupon.id %}" 
                    style="background-color:#2196F3; color:white; padding:5px 10px; border-radius:4px; text-decoration:none; margin-right:5px;">Edit</a>

@@ -3,11 +3,6 @@
 <div class="container my-4">
     <h2>My Addresses</h2>
     <a href="{% url 'add_address' %}" class="btn btn-primary mb-3">Add New Address</a>
-    {% if messages %}
-        {% for message in messages %}
-            <span class='text-danger fw-bold ms-4'>{{message}}</span>
-        {% endfor %}
-    {% endif %}
         
 
     <!-- Scrollable container -->
