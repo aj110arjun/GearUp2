@@ -1,17 +1,20 @@
 import os
 from pathlib import Path
+from decouple import config, Csv, Config, RepositoryEnv
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-1)98f-dpz90spty&nh3ph7i487r47euk8h6(%=@62%byi5v^#='
+SECRET_KEY = config("SECRET_KEY")
 
-DEBUG = True
+DEBUG = config("DEBUG", default=False, cast=bool)
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", cast=Csv())
 
-CSRF_TRUSTED_ORIGINS = [
-    "https://*.ngrok-free.app/", "https://*.ngrok.io"
-]
+ENV_FILE = BASE_DIR.parent.parent / ".env"
+config = Config(RepositoryEnv(str(ENV_FILE)))
+
+CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", cast=Csv())
 
 
 
@@ -50,8 +53,8 @@ INSTALLED_APPS = [
 # RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID", "rzp_test_R7V0e5hoyTOTHo ")
 # RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET", "zFFwYLsv9IpSGyzpKcn2mUsF")
 
-RAZORPAY_KEY_ID = "rzp_test_R7V0e5hoyTOTHo"   # Example
-RAZORPAY_KEY_SECRET = "zFFwYLsv9IpSGyzpKcn2mUsF"
+RAZORPAY_KEY_ID = config("RAZORPAY_KEY_ID") 
+RAZORPAY_KEY_SECRET = config("RAZORPAY_KEY_SECRET")
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -92,17 +95,15 @@ DATABASES = {
     }
 }
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'pythondjango110@gmail.com'
-EMAIL_HOST_PASSWORD = 'dksg muxy fwpo zaki'
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+EMAIL_BACKEND = config("EMAIL_BACKEND")
+EMAIL_HOST = config("EMAIL_HOST")
+EMAIL_PORT = config("EMAIL_PORT", cast=int)
+EMAIL_USE_TLS = config("EMAIL_USE_TLS", cast=bool)
+EMAIL_HOST_USER = config("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL")
 
-# ===================================
-# AUTH & ALLAUTH SETTINGS
-# ===================================
+
 
 LOGIN_REDIRECT_URL = 'home'
 ACCOUNT_LOGOUT_REDIRECT_URL = 'login'
@@ -116,8 +117,8 @@ ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
         'APP': {
-            'client_id': os.getenv('GOOGLE_CLIENT_ID', '60084242284-8qf2jc3gq6qepf14k4ghp6045ktv060d.apps.googleusercontent.com'),
-            'secret': os.getenv('GOOGLE_CLIENT_SECRET', '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'),
+            'client_id': config("GOOGLE_CLIENT_ID"),
+            'secret': config("GOOGLE_CLIENT_SECRET"),
         }
     }
 }

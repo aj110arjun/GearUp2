@@ -22,6 +22,7 @@ from django.core.paginator import Paginator
 
 @login_required(login_url="login")
 def checkout(request):
+    error={}
     cart_items = CartItem.objects.filter(user=request.user).select_related("variant__product")
     if not cart_items.exists():
         return redirect("cart_view")
@@ -80,8 +81,10 @@ def checkout(request):
         # If WALLET selected, check balance first
         if payment_method == "WALLET":
             if wallet.balance < total:
-                messages.error(request, "Insufficient wallet balance.")
-                return redirect("checkout")
+                error['wallet'] = "Insufficient wallet balance."
+        
+        if error:
+            return render(request,"user/orders/checkout.html",{"error":error})
 
         # create order
         order = Order.objects.create(
@@ -91,7 +94,7 @@ def checkout(request):
             discount=discount,
             coupon=coupon,
             payment_method=payment_method,
-            payment_status="PAID" if payment_method == "WALLET" else "PENDING"
+            payment_status="Paid" if payment_method == "WALLET" else "PENDING"
         )
 
         # create order items & reduce stock
