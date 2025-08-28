@@ -16,7 +16,6 @@ pycparser==2.22
 PyJWT==2.10.1
 pyotp==2.9.0
 python-decouple==3.8
-python-magic-bin==0.4.14
 razorpay==1.4.2
 reportlab==4.4.3
 requests==2.32.4

@@ -1,6 +1,7 @@
 import random
 
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.cache import never_cache
 from django.contrib.auth import update_session_auth_hash
 from django.core.mail import send_mail
 from django.shortcuts import render, redirect
@@ -12,7 +13,11 @@ from .forms import ProfileEditForm
 from .models import Profile
 
 @login_required(login_url='login')
+@never_cache
 def account_info(request):
+    if not request.session:
+        return redirect('login')
+
     profile, created = Profile.objects.get_or_create(user=request.user)
     success_message = None
     if request.session.get('profile_updated'):

@@ -274,8 +274,8 @@ def admin_approve_reject_cancellation(request, item_id, action):
     item = get_object_or_404(OrderItem, item_id=item_id)
 
     if action == "approve":
-        if item.status != "Cancelled":  # prevent double restock
-            item.status = "Cancelled"
+        if item.status != "cancelled":  # prevent double restock
+            item.status = "cancelled"
             item.cancellation_approved = True
 
             # 🔹 Restock product
@@ -304,8 +304,8 @@ def admin_cancellation_request_view(request, item_id):
         action = request.POST.get("action")
 
         if action == "approve":
-            if item.status != "Cancelled":  # prevent double cancellation
-                item.status = "Cancelled"
+            if item.status != "cancelled":  # prevent double cancellation
+                item.status = "cancelled"
                 item.cancellation_approved = True
 
                 # Restock the variant
@@ -373,7 +373,7 @@ def admin_approve_reject_return(request, item_id, action):
 
     if action == "approve":
         if item.status == "delivered" and not item.return_approved:
-            item.status = "returned"
+            item.status = "delivered"
             item.return_approved = True
 
             # Restock product
@@ -472,12 +472,12 @@ def download_invoice(request, order_code):
         data.append([
             item.variant.product.name,
             str(item.quantity),
-            f"₹{item.price}",
-            f"₹{item.quantity * item.price}",
+            f"Rs. {item.price}",
+            f"Rs. {item.quantity * item.price}",
             f"{item.get_status_display()}",
         ])
 
-    data.append(["", "", "Total:", f"₹{order.total_price}"])
+    data.append(["", "", "Total:", f"Rs. {order.total_price}"])
 
     table = Table(data, hAlign="LEFT")
     table.setStyle(TableStyle([
