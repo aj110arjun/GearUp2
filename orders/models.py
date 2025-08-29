@@ -25,7 +25,7 @@ class Order(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="orders")
     address = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True, blank=True)
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
-    discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)   # ✅ add this
+    discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     coupon = models.ForeignKey(Coupon, null=True, blank=True, on_delete=models.SET_NULL) 
     payment_method = models.CharField(max_length=20, choices=PAYMENT_METHODS, default="COD")
     payment_status = models.CharField(

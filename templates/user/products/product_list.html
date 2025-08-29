@@ -50,30 +50,56 @@
     </div>
 
     <!-- Product Grid -->
-    <div class="row g-4">
-        {% if products %}
-            {% for product in products %}
-                <div class="col-6 col-md-3"> <!-- 2 rows × 4 columns on desktop -->
-                    <div class="card h-100 shadow-sm">
-                        {% if product.image %}
-                            <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.name }}">
-                        {% else %}
-                            <img src="{% static 'images/placeholder.png' %}" class="card-img-top" alt="No image">
+    <!-- Product Grid -->
+<div class="row g-4">
+    {% if products %}
+        {% for product in products %}
+            <div class="col-6 col-md-3">
+                <div class="card h-100 shadow-sm d-flex flex-column">
+
+                    <!-- Product Image -->
+                    {% if product.image %}
+                        <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.name }}">
+                    {% else %}
+                        <img src="{% static 'images/placeholder.png' %}" class="card-img-top" alt="No image">
+                    {% endif %}
+
+                    <!-- Card Body -->
+                    <div class="card-body d-flex flex-column">
+                        <h6 class="card-title text-truncate">{{ product.name }}</h6>
+
+                        <!-- Offer Badge -->
+                        {% if product.best_offer %}
+                            <span class="badge bg-danger align-self-start mb-2">
+                                {{ product.best_offer.discount_percent }}% OFF
+                            </span>
                         {% endif %}
-                        <div class="card-body">
-                            <h5 class="card-title">{{ product.name }}</h5>
-                            <p class="card-text text-muted">From ₹{{ product.variants.first.price }}</p>
-                            <a href="{% url 'product_detail' product.product_id %}" class="btn btn-outline-primary btn-sm w-100">
+
+                        <!-- Price -->
+                        {% if product.variants.all %}
+                            <p class="card-text mb-2">
+                                From <strong>₹{{ product.variants.all.0.price }}</strong>
+                            </p>
+                        {% else %}
+                            <p class="text-muted mb-2">No variants available</p>
+                        {% endif %}
+
+                        <!-- Spacer pushes button to bottom -->
+                        <div class="mt-auto">
+                            <a href="{% url 'product_detail' product.product_id %}"
+                               class="btn btn-outline-primary btn-sm w-100">
                                 View Details
                             </a>
                         </div>
                     </div>
                 </div>
-            {% endfor %}
-        {% else %}
-            <p>No products found.</p>
-        {% endif %}
-    </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>No products found.</p>
+    {% endif %}
+</div>
+
 
     <!-- Pagination -->
     {% if products.has_other_pages %}

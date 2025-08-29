@@ -1,9 +1,27 @@
 {% extends "user/base.html" %}
 {% block content %}
-  <div class="container mt-5">
-      <h2>🎉 Payment Successful!</h2>
-      <p>Your order <strong>#{{ order.order_code }}</strong> has been confirmed.</p>
-      <p>Amount Paid: ₹{{ order.total_price }}</p>
-      <a href="{% url 'order_detail' order.order_id %}" class="btn btn-primary">Go to My Orders</a>
+
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+  <div class="card shadow-lg border-0 p-4 text-center" style="max-width: 500px; border-radius: 20px;">
+      
+      <h2 class="fw-bold text-success">Payment Successful </h2>
+      <p class="text-muted">Your order has been placed successfully.</p>
+      
+      <!-- Order Details -->
+      <div class="mt-3 text-start">
+          <p class="mb-1"><strong>Order ID:</strong> <span class="text-dark">#{{ order.order_code }}</span></p>
+          <p class="mb-1"><strong>Amount Paid:</strong> <span class="text-dark">₹{{ order.total_price }}</span></p>
+      </div>
+      
+      <!-- Action Button -->
+      <div class="mt-4">
+          <a href="{% url 'order_detail' order.order_id %}" class="btn btn-lg btn-primary w-100" 
+             style="border-radius: 12px;">
+             View My Order
+          </a>
+      </div>
+      
   </div>
+</div>
 {% endblock %}
+

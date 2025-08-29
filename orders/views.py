@@ -20,51 +20,76 @@ from coupons.models import Coupon
 from django.core.paginator import Paginator
 
 
+from decimal import Decimal
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.utils import timezone
+
 @login_required(login_url="login")
 def checkout(request):
-    error={}
+    error = {}
     cart_items = CartItem.objects.filter(user=request.user).select_related("variant__product")
     if not cart_items.exists():
         return redirect("cart_view")
-
+    
     adjusted = False
     subtotal = Decimal("0.00")
     payment_method = request.POST.get("payment_method", "COD")
     wallet, _ = Wallet.objects.get_or_create(user=request.user)
 
-    # calculate subtotal & adjust stock
+    # Calculate subtotal & adjust stock
     for item in cart_items:
         max_limit = min(5, item.variant.stock)
-
         if item.variant.stock == 0:
             item.delete()
             adjusted = True
             continue
-
         if item.quantity > max_limit:
             item.quantity = max_limit
             item.save()
             adjusted = True
-
         price = Decimal(item.variant.get_discounted_price())
         subtotal += price * item.quantity
-
+    
     if adjusted:
         messages.warning(request, "Some items were adjusted due to stock limits. Please review your cart again.")
         return redirect("cart_view")
-
-    # coupon check
+    
+    # Coupon check
     coupon_id = request.session.get("coupon_id")
     discount = Decimal("0.00")
     coupon = None
+
     if coupon_id:
         try:
-            coupon = Coupon.objects.get(id=coupon_id, active=True)
+            coupon = Coupon.objects.get(code=coupon_id, active=True)
+            print(f"Coupon found: {coupon.code}, Active: {coupon.active}")
+            print(f"Now: {timezone.now()}, Valid From: {coupon.valid_from}, Valid To: {coupon.valid_to}")
+            print(f"Subtotal: {subtotal}, Coupon Min Purchase: {coupon.min_purchase}, Discount %: {coupon.discount}")
             if coupon.is_valid():
-                discount = (subtotal * Decimal(coupon.discount)) / 100
+                print("Coupon is valid")
+            else:
+                print("Coupon is NOT valid")
+            
+            if coupon.is_valid() and (coupon.min_purchase is None or subtotal >= coupon.min_purchase):
+                discount = (subtotal * Decimal(str(coupon.discount))) / Decimal("100")
+                print(f"Calculated discount: {discount}")
+                if discount > subtotal:
+                    discount = subtotal
+            else:
+                error['coupon'] = "Invalid coupon or minimum purchase not met."
+                coupon = None
+                discount = Decimal("0.00")
+                request.session.pop("coupon_id", None)
         except Coupon.DoesNotExist:
-            pass
-
+            print("Coupon does not exist")
+            error['coupon'] = "Coupon does not exist."
+            coupon = None
+            discount = Decimal("0.00")
+            request.session.pop("coupon_id", None)
+    
+    # Calculate total after discount
     total = subtotal - discount
     if total < 0:
         total = Decimal("0.00")
@@ -73,20 +98,38 @@ def checkout(request):
     if request.method == "POST":
         address_id = request.POST.get("address")
         address = Address.objects.filter(user=request.user, id=address_id).first()
-
         if not address:
             messages.error(request, "Please select an address before placing your order.")
-            return redirect("checkout")
-
+            addresses = Address.objects.filter(user=request.user)
+            return render(request, "user/orders/checkout.html", {
+                "error": {"address": "Please select an address before placing your order."},
+                "cart_items": cart_items,
+                "addresses": addresses,
+                "subtotal": subtotal,
+                "discount": discount,
+                "total": total,
+                "coupon": coupon,
+                "wallet": wallet,
+            })
+        
         # If WALLET selected, check balance first
-        if payment_method == "WALLET":
-            if wallet.balance < total:
-                error['wallet'] = "Insufficient wallet balance."
+        if payment_method == "WALLET" and wallet.balance < total:
+            error['wallet'] = "Insufficient wallet balance."
         
         if error:
-            return render(request,"user/orders/checkout.html",{"error":error})
-
-        # create order
+            addresses = Address.objects.filter(user=request.user)
+            return render(request, "user/orders/checkout.html", {
+                "error": error,
+                "cart_items": cart_items,
+                "addresses": addresses,
+                "subtotal": subtotal,
+                "discount": discount,
+                "total": total,
+                "coupon": coupon,
+                "wallet": wallet,
+            })
+        
+        # Create order
         order = Order.objects.create(
             user=request.user,
             address=address,
@@ -94,10 +137,10 @@ def checkout(request):
             discount=discount,
             coupon=coupon,
             payment_method=payment_method,
-            payment_status="Paid" if payment_method == "WALLET" else "PENDING"
+            payment_status="Paid" if payment_method == "WALLET" else "Pending"
         )
-
-        # create order items & reduce stock
+        
+        # Create order items & reduce stock
         for item in cart_items:
             price = Decimal(item.variant.get_discounted_price())
             OrderItem.objects.create(
@@ -108,11 +151,11 @@ def checkout(request):
             )
             item.variant.stock -= item.quantity
             item.variant.save()
-
-        # clear cart
+        
+        # Clear cart
         cart_items.delete()
-
-        # If WALLET -> deduct balance & add transaction
+        
+        # WALLET payment handling
         if payment_method == "WALLET":
             wallet.balance -= total
             wallet.save()
@@ -123,14 +166,14 @@ def checkout(request):
                 description=f"Order {order.order_id} Payment"
             )
             return redirect("order_complete", order_id=order.order_id)
-
-        # If COD
+        
+        # COD payment handling
         if payment_method == "COD":
             return redirect("order_complete", order_id=order.order_id)
-
-        # Else -> ONLINE (Razorpay)
+        
+        # ONLINE payment handling (e.g., Razorpay)
         return redirect("start_payment", order_id=order.order_id)
-
+    
     # -------- GET --------
     addresses = Address.objects.filter(user=request.user)
     return render(
@@ -143,9 +186,10 @@ def checkout(request):
             "discount": discount,
             "total": total,
             "coupon": coupon,
-            "wallet": wallet,   # 👈 Pass wallet to template
+            "wallet": wallet,
         },
     )
+
 
 
 
@@ -274,8 +318,8 @@ def admin_approve_reject_cancellation(request, item_id, action):
     item = get_object_or_404(OrderItem, item_id=item_id)
 
     if action == "approve":
-        if item.status != "Cancelled":  # prevent double restock
-            item.status = "Cancelled"
+        if item.status != "cancelled":  # prevent double restock
+            item.status = "cancelled"
             item.cancellation_approved = True
 
             # 🔹 Restock product
@@ -304,8 +348,8 @@ def admin_cancellation_request_view(request, item_id):
         action = request.POST.get("action")
 
         if action == "approve":
-            if item.status != "Cancelled":  # prevent double cancellation
-                item.status = "Cancelled"
+            if item.status != "cancelled":  # prevent double cancellation
+                item.status = "cancelled"
                 item.cancellation_approved = True
 
                 # Restock the variant
@@ -373,7 +417,7 @@ def admin_approve_reject_return(request, item_id, action):
 
     if action == "approve":
         if item.status == "delivered" and not item.return_approved:
-            item.status = "returned"
+            item.status = "delivered"
             item.return_approved = True
 
             # Restock product
@@ -472,12 +516,12 @@ def download_invoice(request, order_code):
         data.append([
             item.variant.product.name,
             str(item.quantity),
-            f"₹{item.price}",
-            f"₹{item.quantity * item.price}",
+            f"Rs. {item.price}",
+            f"Rs. {item.quantity * item.price}",
             f"{item.get_status_display()}",
         ])
 
-    data.append(["", "", "Total:", f"₹{order.total_price}"])
+    data.append(["", "", "Total:", f"Rs. {order.total_price}"])
 
     table = Table(data, hAlign="LEFT")
     table.setStyle(TableStyle([

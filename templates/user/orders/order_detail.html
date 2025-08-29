@@ -91,8 +91,9 @@
                 <!-- Cancellation Button / Status -->
 <!-- Cancellation Section -->
 <!-- Cancellation Section -->
-{% if item.status|lower in "pending shipped" %}
+{% if item.status == "pending" or item.status == "shipped" %}
     {% if not item.cancellation_requested %}
+        <span class="badge bg-danger">{{item.status}}</span>
         <a href="{% url 'cancel_order_item_page' item.item_id %}" 
            class="btn btn-sm btn-danger mt-2">
             Request Cancellation
@@ -102,23 +103,24 @@
         {% if item.cancellation_approved is none %}
             <span class="badge bg-warning text-dark">Cancellation Pending</span>
             <small class="d-block text-muted">Reason: {{ item.cancellation_reason }}</small>
-
-        {% elif item.cancellation_approved %}
-            <span class="badge bg-danger">Cancellation Approved</span>
-            <small class="d-block text-danger">Reason: {{ item.cancellation_reason }}</small>
-
         {% elif item.cancellation_approved == False %}
-            <span class="badge bg-secondary">Cancellation Rejected</span>
-            <small class="d-block text-muted">Reason: {{ item.cancellation_reason }}</small>
+                <span class="badge bg-secondary">Cancellation Rejected</span>
+                <small class="d-block text-muted">Reason: {{ item.cancellation_reason }}</small>
+        {% else%}
+                <h1>Hello</h1>
         {% endif %}
     {% endif %}
 {% endif %}
 
+{% if item.status == "cancelled" %}
+            <span class="badge bg-danger">Cancelled</span>
+{% endif %}
 
 
 
 {% if item.status|lower == "delivered" %}
     {% if not item.return_requested %}
+    <span class="badge bg-success">{{item.status}}</span>
         <a href="{% url 'return_order_item_page' item.item_id %}" 
            class="btn btn-sm btn-dark mt-2">
             Request Return
@@ -130,8 +132,7 @@
             <small class="d-block text-muted">Reason: {{ item.return_reason }}</small>
 
         {% elif item.return_approved %}
-            <span class="badge bg-success">Return Approved</span>
-            <small class="d-block text-success">Reason: {{ item.return_reason }}</small>
+            <span class="badge bg-success">Returned</span>
 
         {% elif item.return_approved == False %}
             <span class="badge bg-danger">Return Rejected</span>
@@ -139,6 +140,8 @@
         {% endif %}
     {% endif %}
 {% endif %}
+
+
             </div>
 
         </li>

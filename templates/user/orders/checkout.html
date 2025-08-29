@@ -3,10 +3,8 @@
 <div class="container my-5">
     <h2>Checkout</h2>
     <hr>
-
     <form method="post">
         {% csrf_token %}
-
         <!-- Shipping Address -->
         <h5>Shipping Address</h5>
         <div class="mb-3">
@@ -22,14 +20,12 @@
                                 <small class="text-muted">{{ addr.full_address }}</small>
                             </div>
                         </label>
-
                         {% if addr.is_default %}
                             <span class="badge bg-success d-flex align-items-center">
                                 <i class="bi bi-star-fill me-1"></i> Default
                             </span>
                         {% endif %}
                     </div>
-
                     <div class="mt-2 text-end">
                         <a href="{% url 'edit_address' addr.id %}?next={{ request.path }}" 
                            class="btn btn-sm btn-outline-primary">Edit</a>
@@ -41,10 +37,8 @@
                 <p class="text-muted">No addresses found. Please add one.</p>
             {% endfor %}
         </div>
-
         <!-- Add New Address -->
         <a href="{% url 'add_address' %}?next={{ request.path }}" class="btn btn-sm btn-success mb-3">+ Add New Address</a>
-
         <!-- Payment Method -->
         <h5>Payment Method</h5>
         <div class="card p-3 mb-2">
@@ -60,17 +54,16 @@
             </label>
         </div>
         <div class="card p-3 mb-2">
-        <label class="d-flex align-items-center">
-            <input type="radio" name="payment_method" value="WALLET" class="me-2">
-            <span>Pay with Wallet 
-                (Balance: ₹{{ wallet.balance }})
-                {% if error.wallet %}
-                    <small class="text-danger">{{error.wallet}}</small>
-                {% endif %}
-            </span>
-        </label>
-    </div>
-
+            <label class="d-flex align-items-center">
+                <input type="radio" name="payment_method" value="WALLET" class="me-2">
+                <span>Pay with Wallet 
+                    (Balance: ₹{{ wallet.balance }})
+                    {% if error.wallet %}
+                        <small class="text-danger">{{ error.wallet }}</small>
+                    {% endif %}
+                </span>
+            </label>
+        </div>
         <!-- Order Summary -->
         <h5>Order Summary</h5>
         <ul class="list-group mb-3">
@@ -96,11 +89,25 @@
                     </div>
                 </li>
             {% endfor %}
-            </ul>
+        </ul>
+
+        <!-- Coupon Discount Display -->
+        {% if coupon %}
+    <div class="mb-3 p-2 bg-light border rounded">
+        <strong>Coupon "{{ coupon.code }}" Applied:</strong>
+        <span class="text-success">
+            -₹{{ discount }}
+        </span>
+    </div>
+{% endif %}
+<!-- Final Total -->
+<div class="d-flex justify-content-between fs-5 fw-bold">
+    <span>Total to Pay:</span>
+    <span>₹{{ total }}</span>
+</div>
+
 
         <button type="submit" class="btn btn-success mt-3">Place Order</button>
     </form>
 </div>
-
-
 {% endblock %}

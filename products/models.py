@@ -26,29 +26,48 @@ class Product(models.Model):
     image = models.ImageField(upload_to='products/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
+
+    def get_best_offer_obj(self):
+        """Return the actual offer object (ProductOffer or CategoryOffer) with the highest discount."""
+        today = date.today()
+        product_offer = (
+            self.productoffer_set.filter(active=True, start_date__lte=today, end_date__gte=today)
+            .order_by("-discount_percent")
+            .first()
+        )
+        category_offer = None
+        if self.category:
+            category_offer = (
+                self.category.categoryoffer_set.filter(active=True, start_date__lte=today, end_date__gte=today)
+                .order_by("-discount_percent")
+                .first()
+            )
+
+        # return whichever has higher discount
+        if product_offer and category_offer:
+            return product_offer if product_offer.discount_percent >= category_offer.discount_percent else category_offer
+        return product_offer or category_offer
     
     def get_best_offer(self):
         today = date.today()
-        product_offer = ProductOffer.objects.filter(
-            product=self,
-            active=True,
-            start_date__lte=today,
-            end_date__gte=today
-        ).first()
+        product_offer = (
+            self.productoffer_set.filter(active=True, start_date__lte=today, end_date__gte=today)
+            .order_by("-discount_percent")
+            .first()
+        )
 
-        category_offer = CategoryOffer.objects.filter(
-            category=self.category,
-            active=True,
-            start_date__lte=today,
-            end_date__gte=today
-        ).first()
-
-        # Decide which offer to apply
+        category_offer = None
+        if self.category:  # ✅ safe check
+            category_offer = (
+                self.category.categoryoffer_set.filter(active=True, start_date__lte=today, end_date__gte=today)
+                .order_by("-discount_percent")
+                .first()
+            )
         product_discount = product_offer.discount_percent if product_offer else 0
         category_discount = category_offer.discount_percent if category_offer else 0
 
-        best_discount = max(product_discount, category_discount)
-        return best_discount
+        return max(product_discount, category_discount)
+    
     
     def total_stock(self):
         """Return total stock based on variants."""

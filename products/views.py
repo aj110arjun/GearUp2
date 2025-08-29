@@ -7,50 +7,26 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.paginator import Paginator
 
-
 from django.db.models import Q, Min, Max, Sum
 from .models import Product, ProductVariant, Category, ProductImage
 from wishlist.models import Wishlist
 from cart.models import CartItem
 
+
 @login_required(login_url='login')
 def product_list(request):
-    products = Product.objects.filter(is_active=True)
+    products = Product.objects.filter(is_active=True).prefetch_related("variants")
     categories = Category.objects.all()
 
-    # Capture filters
     filters = {
         'category': request.GET.get('category', ''),
-        'min_price': request.GET.get('min_price', ''),
-        'max_price': request.GET.get('max_price', ''),
-        'in_stock': request.GET.get('in_stock', ''),
-        'search': request.GET.get('q', ''),  # Match form input name
+        'search': request.GET.get('q', ''),
         'sort': request.GET.get('sort', '')
     }
 
-    # Annotate for price & stock
-    products = products.annotate(
-        min_variant_price=Min('variants__price'),
-        total_stock=Sum('variants__stock')
-    )
-
-    # Category filter
     if filters['category']:
         products = products.filter(category_id=filters['category'])
 
-    # Price filters
-    if filters['min_price']:
-        products = products.filter(min_variant_price__gte=filters['min_price'])
-    if filters['max_price']:
-        products = products.filter(min_variant_price__lte=filters['max_price'])
-
-    # Stock filter
-    if filters['in_stock'] == 'true':
-        products = products.filter(total_stock__gt=0)
-    elif filters['in_stock'] == 'false':
-        products = products.filter(Q(total_stock__lte=0) | Q(total_stock__isnull=True))
-
-    # Search filter
     if filters['search']:
         products = products.filter(
             Q(name__icontains=filters['search']) |
@@ -64,21 +40,27 @@ def product_list(request):
     elif filters['sort'] == 'name2':
         products = products.order_by('-name')
     elif filters['sort'] == 'price_asc':
-        products = products.order_by('min_variant_price')
+        products = products.annotate(min_price=Min('variants__price')).order_by('min_price')
     elif filters['sort'] == 'price_desc':
-        products = products.order_by('-min_variant_price')
+        products = products.annotate(min_price=Min('variants__price')).order_by('-min_price')
 
-    # ✅ Pagination AFTER filters + sorting
+    # Pagination
     paginator = Paginator(products, 8)
     page_number = request.GET.get('page')
     products = paginator.get_page(page_number)
 
-    context = {
+    # ✅ Attach best offer objects
+    for p in products:
+        p.best_offer = p.get_best_offer_obj()
+
+    return render(request, 'user/products/product_list.html', {
         'products': products,
         'categories': categories,
         'filters': filters
-    }
-    return render(request, 'user/products/product_list.html', context)
+    })
+
+
+
 
 
 @login_required(login_url='login')
