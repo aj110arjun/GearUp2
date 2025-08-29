@@ -29,16 +29,20 @@ def apply_coupon(request):
                 now = timezone.now()
                 if (coupon.valid_from and coupon.valid_from > now) or (coupon.valid_to and coupon.valid_to < now):
                     error["coupon"] = "This coupon is expired or not yet valid."
+                    request.session.pop("coupon_id", None)
                     coupon = None
 
                 elif coupon.min_purchase and subtotal < coupon.min_purchase:
                     error["coupon"] = f"Coupon requires minimum purchase of ₹{coupon.min_purchase}."
+                    request.session.pop("coupon_id", None)
                     coupon = None
                 else:
                     discount = subtotal * Decimal(coupon.discount) / 100
+                    request.session["coupon_id"] = coupon.code
 
             except Coupon.DoesNotExist:
                 error["coupon"] = "Invalid or expired coupon code."
+                request.session.pop("coupon_id", None)
 
     total = subtotal - discount
 

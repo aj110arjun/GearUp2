@@ -33,10 +33,13 @@ def add_to_cart(request, variant_id=None):
 
 @login_required(login_url="login")
 def cart_view(request):
-    error={}
+    error = {}
     items = CartItem.objects.filter(user=request.user).select_related("variant__product")
-    subtotal = Decimal("0.00")
-    has_offer = False  # ✅ flag for offer products
+
+    subtotal = Decimal("0.00")       # after applying offers
+    offer_savings = Decimal("0.00")  # how much saved from offers
+    discount = Decimal("0.00")       # coupon discount
+    coupon = None
 
     for item in items:
         max_limit = min(5, item.variant.stock)
@@ -44,64 +47,53 @@ def cart_view(request):
         if item.quantity > max_limit:
             item.quantity = max_limit
             item.save()
-            
 
         if item.variant.stock == 0:
             item.delete()
             continue
 
-        # ✅ Check if product has an offer
-        discount_percent = item.variant.product.get_best_offer()
-        if discount_percent > 0:
-            has_offer = True
-            price = item.variant.get_discounted_price()
-        else:
-            price = item.variant.price
+        # Original price
+        original_price = item.variant.price
+        # Discounted price (if offer)
+        discounted_price = item.variant.get_discounted_price()
 
-        subtotal += item.quantity * price
+        # Offer savings
+        if discounted_price < original_price:
+            offer_savings += (original_price - discounted_price) * item.quantity
 
-    
+        # Subtotal after applying product offers
+        subtotal += discounted_price * item.quantity
 
-    # 🔹 Coupon logic
-    coupon = None
-    discount = Decimal("0.00")
+    # 🔹 Coupon logic (applied on top of offers)
     coupon_id = request.session.get("coupon_id")
-
-    if has_offer:
-        # ✅ If offer exists, remove coupon
-        if coupon_id:
-            request.session.pop("coupon_id", None)
-            error['coupon'] = "Coupons cannot be applied when products already have offers."
-    else:
-        if coupon_id:
-            try:
-                coupon = Coupon.objects.get(id=coupon_id, active=True)
-                # Check coupon validity
-                if coupon.is_valid() and (coupon.min_purchase is None or subtotal >= coupon.min_purchase):
-                    discount = (subtotal * Decimal(coupon.discount)) / 100
-                else:
-                    messages.warning(request, "Invalid coupon or minimum purchase not met.")
-                    error['coupon'] = "Invalid coupon or minimum purchase not met."
-                    request.session.pop("coupon_id", None)
-                    coupon = None
-            except Coupon.DoesNotExist:
-                error["coupon"] = "Coupon does not exist."
+    if coupon_id:
+        try:
+            coupon = Coupon.objects.get(id=coupon_id, active=True)
+            if coupon.is_valid() and (coupon.min_purchase is None or subtotal >= coupon.min_purchase):
+                discount = (subtotal * Decimal(coupon.discount)) / 100
+            else:
+                error["coupon"] = "Invalid coupon or minimum purchase not met."
                 request.session.pop("coupon_id", None)
                 coupon = None
-                return redirect('cart_view')
+        except Coupon.DoesNotExist:
+            error["coupon"] = "Coupon does not exist."
+            request.session.pop("coupon_id", None)
+            coupon = None
 
     total = subtotal - discount
+    if total < 0:
+        total = Decimal('0.00')
 
     return render(
         request,
         "user/cart/cart_view.html",
         {
             "items": items,
-            "subtotal": subtotal,
-            "discount": discount,
-            "total": total,
+            "subtotal": subtotal,         # after offers
+            "offer_savings": offer_savings,
+            "discount": discount,         # coupon discount
+            "total": total,               # final payable
             "coupon": coupon,
-            "has_offer": has_offer,
             "error": error,
         },
     )

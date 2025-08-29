@@ -26,6 +26,27 @@ class Product(models.Model):
     image = models.ImageField(upload_to='products/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
+
+    def get_best_offer_obj(self):
+        """Return the actual offer object (ProductOffer or CategoryOffer) with the highest discount."""
+        today = date.today()
+        product_offer = (
+            self.productoffer_set.filter(active=True, start_date__lte=today, end_date__gte=today)
+            .order_by("-discount_percent")
+            .first()
+        )
+        category_offer = None
+        if self.category:
+            category_offer = (
+                self.category.categoryoffer_set.filter(active=True, start_date__lte=today, end_date__gte=today)
+                .order_by("-discount_percent")
+                .first()
+            )
+
+        # return whichever has higher discount
+        if product_offer and category_offer:
+            return product_offer if product_offer.discount_percent >= category_offer.discount_percent else category_offer
+        return product_offer or category_offer
     
     def get_best_offer(self):
         today = date.today()

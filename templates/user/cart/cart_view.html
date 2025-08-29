@@ -4,7 +4,6 @@
 <div class="container my-5">
     <h2>🛒 My Cart</h2>
     <hr>
-
     {% if items %}
         <table class="table table-bordered align-middle">
             <thead class="table-light">
@@ -25,8 +24,7 @@
                         {{ item.variant.product.name }}
                     </td>
                     <td>{{ item.variant.color }} / {{ item.variant.size }}</td>
-                    
-                    <!-- Price with discount -->
+                    <!-- Price with product-level offer -->
                     <td>
                         {% with discount=item.variant.product.get_best_offer %}
                             {% if discount > 0 %}
@@ -42,8 +40,7 @@
                             {% endif %}
                         {% endwith %}
                     </td>
-
-                    <!-- Quantity -->
+                    <!-- Quantity controls -->
                     <td>
                         <a href="{% url 'update_cart' item.id %}?action=decrease" 
                            class="btn btn-sm btn-outline-secondary">-</a>
@@ -51,7 +48,6 @@
                         <a href="{% url 'update_cart' item.id %}?action=increase" 
                            class="btn btn-sm btn-outline-secondary {% if item.quantity >= 5 or item.quantity >= item.variant.stock %}disabled{% endif %}">+</a>
                     </td>
-
                     <!-- Subtotal -->
                     <td>
                         {% with discount=item.variant.product.get_best_offer %}
@@ -67,8 +63,7 @@
                             {% endif %}
                         {% endwith %}
                     </td>
-
-                    <!-- Remove -->
+                    <!-- Remove item -->
                     <td>
                         <a href="{% url 'remove_from_cart' item.id %}" class="btn btn-sm btn-danger">Remove</a>
                     </td>
@@ -76,47 +71,48 @@
                 {% endfor %}
             </tbody>
         </table>
-
-        <!-- Totals Section -->
+        <!-- Order Summary -->
         <div class="card p-3 mt-4">
             <h5>Order Summary</h5>
-            <p>Subtotal: ₹{{ subtotal }}</p>
-
-            {% if coupon %}
-                <p class="text-success">
-                    Coupon "{{ coupon.code }}" Applied ({{ coupon.discount }}% off)
-                </p>
-                <p>Discount: -₹{{ discount }}</p>
+            {% if offer_savings > 0 %}
+                <p class="text-success">You saved ₹{{ offer_savings }} from product offers</p>
+                <p class="fw-bold text-warning">Coupon cannot be applied with active offers.</p>
+            {% else %}
+                {% if coupon %}
+                    <p class="text-success">
+                        Coupon "{{ coupon.code }}" Applied ({{ coupon.discount }}% off)
+                    </p>
+                    <p>Coupon Discount: -₹{{ discount }}</p>
+                {% endif %}
             {% endif %}
-
+            
+            <p>Subtotal (after offers): ₹{{ subtotal }}</p>
+            <hr>
             <h4>Total: <span class="text-success">₹{{ total }}</span></h4>
-
-            <!-- Coupon Form / Restriction -->
-           {% if not has_offer %}
-                <form method="post" action="{% url 'apply_coupon' %}" class="d-flex mt-3">
-                    {% csrf_token %}
-                    <input type="text" name="code" class="form-control me-2"
-                        placeholder="Enter coupon code"
-                        {% if coupon %} disabled value="{{ coupon.code }}" {% endif %}>
-                    
-                    {% if coupon %}
-                        <a href="{% url 'remove_coupon' %}" class="btn btn-outline-danger">Remove</a>
-                    {% else %}
+            
+            <!-- Coupon Form or Remove Button -->
+            
+                {% if coupon %}
+                    <form method="post" action="{% url 'remove_coupon' %}" class="d-flex mt-3">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-danger">Remove Coupon</button>
+                    </form>
+                {% else %}
+                    <form method="post" action="{% url 'apply_coupon' %}" class="d-flex mt-3">
+                        {% csrf_token %}
+                        <input type="text" name="code" class="form-control me-2"
+                            placeholder="Enter coupon code">
                         <button type="submit" class="btn btn-outline-success">Apply</button>
-                    {% endif %}
-                </form>
-            {% endif %}
-
+                    </form>
+                {% endif %}
+                {% if error.coupon %}
+                    <span class="text-danger">{{ error.coupon }}</span>
+                {% endif %}
             
         </div>
-        {% if error.coupon %}
-            <span class="text-danger">{{error.coupon}}</span>
-        {% endif %}
-
         <div class="text-end mt-4">
             <a href="{% url 'checkout' %}" class="btn btn-primary">Proceed to Checkout</a>
         </div>
-
     {% else %}
         <p class="text-muted">Your cart is empty.</p>
     {% endif %}
