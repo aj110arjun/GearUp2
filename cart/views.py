@@ -68,7 +68,7 @@ def cart_view(request):
     coupon_id = request.session.get("coupon_id")
     if coupon_id:
         try:
-            coupon = Coupon.objects.get(id=coupon_id, active=True)
+            coupon = Coupon.objects.get(code=coupon_id, active=True)
             if coupon.is_valid() and (coupon.min_purchase is None or subtotal >= coupon.min_purchase):
                 discount = (subtotal * Decimal(coupon.discount)) / 100
             else:

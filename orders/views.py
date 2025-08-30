@@ -18,8 +18,6 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse, HttpResponseBadRequest
 from coupons.models import Coupon
 from django.core.paginator import Paginator
-
-
 from decimal import Decimal
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
@@ -163,7 +161,7 @@ def checkout(request):
                 wallet=wallet,
                 amount=total,
                 transaction_type="DEBIT",
-                description=f"Order {order.order_id} Payment"
+                description=f"Order #{order.order_code} Payment"
             )
             return redirect("order_complete", order_id=order.order_id)
         
@@ -302,7 +300,6 @@ def request_cancel_order_item(request, item_id):
         item.cancellation_approved = None  # pending
         item.save()
 
-        messages.success(request, "Cancellation request sent. Admin will review it.")
         return redirect("order_detail", order_id=item.order.order_id)
 
     return redirect("order_detail", order_id=item.order.order_id)
@@ -343,36 +340,36 @@ def admin_cancellation_request_view(request, item_id):
     )
     order = item.order
     wallet, _ = Wallet.objects.get_or_create(user=order.user)
-
+    
     if request.method == "POST":
         action = request.POST.get("action")
-
+        
         if action == "approve":
             if item.status != "cancelled":  # prevent double cancellation
                 item.status = "cancelled"
                 item.cancellation_approved = True
-
+                
                 # Restock the variant
                 item.variant.stock += item.quantity
                 item.variant.save()
-
-                # Refund to wallet for ONLINE/RAZORPAY payments
-                if order.payment_method in ["RAZORPAY", "ONLINE"] and order.payment_status == "Paid":
+                
+                # Refund to wallet for Razorpay/Online Wallet payments
+                if order.payment_method in ["RAZORPAY", "ONLINE", "WALLET"] and order.payment_status == "Paid":
                     refund_amount = item.price * item.quantity
-
                     if not getattr(item, "refund_done", False):
                         # Credit wallet
                         wallet.balance += refund_amount
                         wallet.save()
-
+                        
                         # Log transaction
                         wallet.transactions.create(
                             transaction_type="CREDIT",
                             amount=refund_amount,
                             description=f"Refund for cancelled product '{item.variant.product.name}' (x{item.quantity})"
                         )
-
+                        
                         item.refund_done = True
+                        
                         messages.success(
                             request,
                             f"Cancellation approved. ₹{refund_amount} has been refunded to {order.user.username}'s wallet."
@@ -381,14 +378,14 @@ def admin_cancellation_request_view(request, item_id):
                         messages.info(request, "Refund already processed for this item.")
                 else:
                     messages.info(request, "Cancellation approved without refund (non-online payment).")
-
+        
         elif action == "reject":
             item.cancellation_approved = False
             messages.warning(request, "Cancellation request rejected.")
-
+        
         item.save()
         return redirect("admin_cancellation_requests")
-
+    
     return render(
         request,
         "custom_admin/orders/cancellation_request_view.html",

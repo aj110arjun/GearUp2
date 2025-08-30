@@ -27,6 +27,10 @@ class Product(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
 
+    def get_active_product_offer(self):
+        today = date.today()
+        return self.productoffer_set.filter(active=True, start_date__lte=today, end_date__gte=today).order_by("-discount_percent").first()
+
     def get_best_offer_obj(self):
         """Return the actual offer object (ProductOffer or CategoryOffer) with the highest discount."""
         today = date.today()
