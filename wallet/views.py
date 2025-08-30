@@ -148,25 +148,35 @@ def wallet_payment_success(request):
         razorpay_order_id = data.get("razorpay_order_id")
         razorpay_payment_id = data.get("razorpay_payment_id")
         razorpay_signature = data.get("razorpay_signature")
+
         client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+
+        # Verify payment signature
         client.utility.verify_payment_signature({
             "razorpay_order_id": razorpay_order_id,
             "razorpay_payment_id": razorpay_payment_id,
             "razorpay_signature": razorpay_signature
         })
+
+        # Fetch payment details
         payment = client.payment.fetch(razorpay_payment_id)
-        amount = int(payment["amount"]) / 100
+        amount = int(payment["amount"]) / 100  # convert back from paise
+
         wallet = request.user.wallet
+
+        # Update wallet balance
         wallet.balance += amount
         wallet.save()
-        # Must always create the transaction for the right wallet, and immediately refresh the object afterward
+
+        # ✅ Create transaction record
         WalletTransaction.objects.create(
             wallet=wallet,
             transaction_type="CREDIT",
             amount=amount,
             description=f"Added ₹{amount} via Razorpay (Payment ID: {razorpay_payment_id})"
         )
-        wallet.refresh_from_db()
+
         return JsonResponse({"status": "success"})
+
     except Exception as e:
         return JsonResponse({"status": "failed", "error": str(e)})

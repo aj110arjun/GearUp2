@@ -26,16 +26,15 @@
                     <td>{{ item.variant.color }} / {{ item.variant.size }}</td>
                     <!-- Price with product-level offer -->
                     <td>
-                        {% with product_offer=item.variant.product.get_active_product_offer %}
-                            {% if product_offer %}
+                        {% with discount=item.variant.product.get_best_offer %}
+                            {% if discount > 0 %}
                                 <p class="text-muted text-decoration-line-through mb-0">
                                     ₹{{ item.variant.price }}
                                 </p>
                                 <p class="fw-bold text-success mb-0">
                                     ₹{{ item.variant.get_discounted_price }}
-                                    <span class="badge bg-danger">-{{ product_offer.discount_percent }}%</span>
+                                    <span class="badge bg-danger">-{{ discount }}%</span>
                                 </p>
-                                <small class="text-info fst-italic">{{ product_offer }}</small>
                             {% else %}
                                 <p class="fw-bold mb-0">₹{{ item.variant.price }}</p>
                             {% endif %}
@@ -53,15 +52,14 @@
                     <td>
                         {% with discount=item.variant.product.get_best_offer %}
                             {% if discount > 0 %}
-                                <p class="text-muted text-decoration-line-through mb-0">
-                                    ₹{{ item.variant.price }}
-                                </p>
-                                <p class="fw-bold text-success mb-0">
-                                    ₹{{ item.variant.get_discounted_price }}
-                                    <span class="badge bg-danger">-{{ discount }}%</span>
-                                </p>
+                                <span class="text-muted text-decoration-line-through">
+                                    ₹{{ item.variant.price|mul:item.quantity }}
+                                </span><br>
+                                <span class="fw-bold text-success">
+                                    ₹{{ item.variant.get_discounted_price|mul:item.quantity }}
+                                </span>
                             {% else %}
-                                <p class="fw-bold mb-0">₹{{ item.variant.price }}</p>
+                                ₹{{ item.variant.price|mul:item.quantity }}
                             {% endif %}
                         {% endwith %}
                     </td>
@@ -93,7 +91,7 @@
             <h4>Total: <span class="text-success">₹{{ total }}</span></h4>
             
             <!-- Coupon Form or Remove Button -->
-            {% if offer_savings <= 0 %}
+            
                 {% if coupon %}
                     <form method="post" action="{% url 'remove_coupon' %}" class="d-flex mt-3">
                         {% csrf_token %}
@@ -110,7 +108,7 @@
                 {% if error.coupon %}
                     <span class="text-danger">{{ error.coupon }}</span>
                 {% endif %}
-            {% endif %}
+            
         </div>
         <div class="text-end mt-4">
             <a href="{% url 'checkout' %}" class="btn btn-primary">Proceed to Checkout</a>
