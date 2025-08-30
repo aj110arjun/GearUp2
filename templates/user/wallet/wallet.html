@@ -118,7 +118,6 @@ function payNow() {
         alert("Enter a valid amount");
         return;
     }
-
     fetch("{% url 'create_order' %}", {
         method: "POST",
         headers: {
@@ -137,14 +136,18 @@ function payNow() {
             "description": "Add Money to Wallet",
             "order_id": data.id,
             "handler": function (response){
-                // call backend to verify payment and update wallet
+                // Send all Razorpay payment details to backend for verification
                 fetch("{% url 'payment_success' %}", {
                     method: "POST",
                     headers: {
                         "X-CSRFToken": "{{ csrf_token }}",
-                        "Content-Type": "application/x-www-form-urlencoded",
+                        "Content-Type": "application/json"
                     },
-                    body: "amount=" + data.amount
+                    body: JSON.stringify({
+                        razorpay_payment_id: response.razorpay_payment_id,
+                        razorpay_order_id: response.razorpay_order_id,
+                        razorpay_signature: response.razorpay_signature
+                    })
                 }).then(() => {
                     window.location.reload();
                 });
@@ -161,5 +164,6 @@ function payNow() {
         rzp1.open();
     });
 }
+
 </script>
 {% endblock %}
