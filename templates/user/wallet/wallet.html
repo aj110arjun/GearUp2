@@ -63,9 +63,6 @@
                                     </td>
                                     <td>
                                         {{ txn.description }}
-                                        {% if "Refund" in txn.description and "coupon" in txn.description %}
-                                            <span class="badge bg-info">Includes Coupon</span>
-                                        {% endif %}
                                     </td>
                                 </tr>
                             {% endfor %}

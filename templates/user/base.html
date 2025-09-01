@@ -21,6 +21,8 @@
             
         {% endblock css %}
     <link rel="stylesheet" type="text/css" href="{% static 'css/home.css' %}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+
             
     </head>
     <body style="background-color: #BAA991;">
@@ -33,24 +35,36 @@
             
             <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
                 <ul class="navbar-nav">
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'home' %}">Home</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'product_list' %}">Shop</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'cart_view' %}">Cart</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'wishlist_view' %}">Wishlist</a>
-                </li>
-                <li class="nav-item">
-                   <a class="nav-link" href="{% url 'user_wallet' %}">Wallet</a>
-               </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'account_info' %}">Account</a>
-                </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'home' %}">
+                            <i class="fas fa-home"></i> Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'product_list' %}">
+                            <i class="fas fa-store"></i> Shop
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'cart_view' %}">
+                            <i class="fas fa-shopping-cart"></i> Cart
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'wishlist_view' %}">
+                            <i class="fas fa-heart"></i> Wishlist
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'user_wallet' %}">
+                            <i class="fas fa-wallet"></i> Wallet
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'account_info' %}">
+                            <i class="fas fa-user"></i> Account
+                        </a>
+                    </li>
                 </ul>
             </div>
             </div>

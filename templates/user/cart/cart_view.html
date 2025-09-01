@@ -93,7 +93,7 @@
             <h4>Total: <span class="text-success">₹{{ total }}</span></h4>
             
             <!-- Coupon Form or Remove Button -->
-            {% if offer_savings <= 0 %}
+            {% if offer_savings == 0 %}
                 {% if coupon %}
                     <form method="post" action="{% url 'remove_coupon' %}" class="d-flex mt-3">
                         {% csrf_token %}

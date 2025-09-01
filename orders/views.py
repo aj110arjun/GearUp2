@@ -405,53 +405,84 @@ def admin_return_requests(request):
 def admin_approve_reject_return(request, item_id, action):
     errors = {}
     item = get_object_or_404(OrderItem, item_id=item_id)
-
+    
     # Ensure user has a wallet
     if not hasattr(item.order.user, "wallet"):
         Wallet.objects.create(user=item.order.user)
-
     wallet = item.order.user.wallet
-
+    
+    # Calculate original total price for all items (before discount)
+    order_total_original = sum([
+        Decimal(oi.variant.price) * oi.quantity for oi in item.order.items.all()
+    ])
+    
+    # Calculate original price for this item
+    item_original_price = Decimal(item.variant.price) * item.quantity
+    
+    # Get total coupon discount on order
+    coupon_discount = getattr(item.order, "coupon_discount", Decimal("0.00"))
+    
+    # Calculate proportional coupon discount for this item
+    item_discount = Decimal("0.00")
+    if order_total_original > 0 and coupon_discount > 0:
+        item_discount = (item_original_price / order_total_original) * coupon_discount
+    
+    # Determine refund amount = actual paid price minus proportional coupon discount
+    refund_amount = getattr(item, "total_price", None)
+    if refund_amount is None:
+        refund_amount = item_original_price
+    refund_amount = Decimal(refund_amount) - item_discount
+    if refund_amount < 0:
+        refund_amount = Decimal("0.00")
+    
     if action == "approve":
         if item.status == "delivered" and not item.return_approved:
             item.status = "delivered"
             item.return_approved = True
-
+            
             # Restock product
             item.variant.stock += item.quantity
             item.variant.save()
-
-            # Handle COD refund to wallet
+            
+            # Handle refund based on payment method
             if item.order.payment_method == "COD":
-                refund_amount = getattr(item, "total_price", None)
-                if refund_amount is None:
-                    unit_price = getattr(item.variant, "price", item.price)
-                    refund_amount = unit_price * item.quantity
-
                 if not getattr(item, "refund_done", False):
                     wallet.credit(
-                        Decimal(refund_amount),
-                        f"Refund for returned product {item.variant.product.name} (x{item.quantity})"
+                        refund_amount,
+                        f"Refund for returned product {item.variant.product.name} (x{item.quantity}) including coupon discount"
                     )
                     item.refund_done = True
-                    errors['wallet'] = f"Refund of ₹{refund_amount} credited to {item.order.user.username}'s wallet."
+                    errors['wallet'] = f"Refund of ₹{refund_amount:.2f} credited to {item.order.user.username}'s wallet."
+                else:
+                    errors['wallet'] = "Refund already processed for this item."
+            
+            elif item.order.payment_method in ["ONLINE", "RAZORPAY", "WALLET"]:
+                if not getattr(item, "refund_done", False):
+                    wallet.balance += refund_amount
+                    wallet.save()
+                    wallet.transactions.create(
+                        transaction_type="CREDIT",
+                        amount=refund_amount,
+                        description=f"Refund for returned product '{item.variant.product.name}' (x{item.quantity}) including coupon discount"
+                    )
+                    item.refund_done = True
+                    errors['wallet'] = f"Refund of ₹{refund_amount:.2f} credited to {item.order.user.username}'s wallet."
                 else:
                     errors['wallet'] = "Refund already processed for this item."
         else:
             errors['return'] = "Return cannot be approved. Either already processed or not delivered."
-
+    
     elif action == "reject":
         item.return_approved = False
         errors['return'] = "Return request rejected."
-
-    # Save fields safely
+    
     save_fields = ["status", "return_approved"]
     if hasattr(item, "refund_done"):
         save_fields.append("refund_done")
     item.save(update_fields=save_fields)
-
-    # Render the wallet template for admin to view
+    
     return render(request, "custom_admin/wallet/wallet.html", {"item": item, "errors": errors})
+
 
 
 @login_required(login_url="login")
