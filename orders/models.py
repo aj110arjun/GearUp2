@@ -82,3 +82,5 @@ class OrderItem(models.Model):
 
     # def __str__(self):
     #     return f"{self.variant.product.name} ({self.variant.color}/{self.variant.size}) x{self.quantity}"
+
+        

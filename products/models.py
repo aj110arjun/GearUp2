@@ -2,6 +2,7 @@ import uuid
 
 from django.db import models
 from datetime import date
+from django.utils import timezone
 
 
 class Category(models.Model):
@@ -111,6 +112,10 @@ class ProductOffer(models.Model):
     active = models.BooleanField(default=True)
     start_date = models.DateField()
     end_date = models.DateField()
+
+    @property
+    def is_expired(self):
+        return self.end_date < timezone.localdate()
     
     class Meta:
         constraints = [
@@ -126,6 +131,10 @@ class CategoryOffer(models.Model):
     active = models.BooleanField(default=True)
     start_date = models.DateField()
     end_date = models.DateField()
+
+    @property
+    def is_expired(self):
+        return self.end_date < timezone.localdate()
 
     def __str__(self):
         return f"{self.discount_percent}% off on {self.category.name}"
