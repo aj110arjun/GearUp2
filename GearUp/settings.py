@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'orders',
     'coupons',
     'offers',
+    'transaction',
     'wallet.apps.WalletConfig',
 ]
 

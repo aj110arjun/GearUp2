@@ -19,6 +19,7 @@ urlpatterns = [
     path('wallet/', include('wallet.urls')),
     path('coupons/', include('coupons.urls')),
     path('offers/', include('offers.urls')),
+    path('transactions/', include('transaction.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 def custom_404_view(request, exception):
