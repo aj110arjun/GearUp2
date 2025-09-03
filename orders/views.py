@@ -26,6 +26,15 @@ from django.utils import timezone
 from django.views.decorators.cache import never_cache
 
 
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.cache import never_cache
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from decimal import Decimal
+from orders.models import Order, OrderItem, Coupon, Address
+from wallet.models import Wallet, WalletTransaction
+from transaction.models import Transaction  # Import your Transaction model accordingly
+
 @login_required(login_url="login")
 @never_cache
 def checkout(request):
@@ -33,12 +42,13 @@ def checkout(request):
     cart_items = CartItem.objects.filter(user=request.user).select_related("variant__product")
     if not cart_items.exists():
         return redirect("cart_view")
-    
+
     adjusted = False
     subtotal = Decimal("0.00")
     payment_method = request.POST.get("payment_method", "COD")
     wallet, _ = Wallet.objects.get_or_create(user=request.user)
-    # Calculate subtotal & adjust stock
+
+    # Calculate subtotal & adjust stock limits
     for item in cart_items:
         max_limit = min(5, item.variant.stock)
         if item.variant.stock == 0:
@@ -51,12 +61,12 @@ def checkout(request):
             adjusted = True
         price = Decimal(item.variant.get_discounted_price())
         subtotal += price * item.quantity
-    
+
     if adjusted:
         messages.warning(request, "Some items were adjusted due to stock limits. Please review your cart again.")
         return redirect("cart_view")
-    
-    # Coupon check
+
+    # Coupon processing
     coupon_id = request.session.get("coupon_id")
     discount = Decimal("0.00")
     coupon = None
@@ -77,17 +87,14 @@ def checkout(request):
             coupon = None
             discount = Decimal("0.00")
             request.session.pop("coupon_id", None)
-    
-    # Delivery charge (fixed for all orders)
-    delivery_charge = Decimal("50.00")
 
-    # Calculate grand total including delivery charge
+    delivery_charge = Decimal("50.00")  # Fixed delivery charge
     total = subtotal - discount
     if total < 0:
         total = Decimal("0.00")
     grand_total = total + delivery_charge
-    
-    # -------- HANDLE POST --------
+
+    # POST request handling (order placement)
     if request.method == "POST":
         address_id = request.POST.get("address")
         address = Address.objects.filter(user=request.user, id=address_id).first()
@@ -106,11 +113,11 @@ def checkout(request):
                 "grand_total": grand_total,
                 "delivery_charge": delivery_charge,
             })
-        
-        # If WALLET selected, check balance for grand total
+
+        # Wallet balance check for WALLET payment
         if payment_method == "WALLET" and wallet.balance < grand_total:
             error['wallet'] = "Insufficient wallet balance."
-        
+
         if error:
             addresses = Address.objects.filter(user=request.user)
             return render(request, "user/orders/checkout.html", {
@@ -125,8 +132,8 @@ def checkout(request):
                 "grand_total": grand_total,
                 "delivery_charge": delivery_charge,
             })
-        
-        # Create order with grand total price
+
+        # Create order with delivery charge
         order = Order.objects.create(
             user=request.user,
             address=address,
@@ -135,10 +142,9 @@ def checkout(request):
             coupon=coupon,
             payment_method=payment_method,
             payment_status="Paid" if payment_method == "WALLET" else "Pending",
-             # Ensure order model has delivery_charge field
         )
-        
-        # Create order items & reduce stock
+
+        # Create order items and adjust stock
         for item in cart_items:
             price = Decimal(item.variant.get_discounted_price())
             OrderItem.objects.create(
@@ -149,11 +155,26 @@ def checkout(request):
             )
             item.variant.stock -= item.quantity
             item.variant.save()
-        
-        # Clear cart
+
+        # Clear cart after order creation
         cart_items.delete()
-        
-        # WALLET payment handling
+
+        # Log unified transaction for admin tracking
+        transaction_type_map = {
+            'WALLET': 'WALLET_DEBIT',
+            'COD': 'COD',
+            'ONLINE': 'ONLINE_PAYMENT',
+        }
+        Transaction.objects.create(
+            user=request.user,
+            transaction_type=transaction_type_map.get(payment_method, 'ONLINE_PAYMENT'),
+            payment_status=order.payment_status,
+            amount=grand_total,
+            description=f"Order Payment for Order #{order.order_code}",
+            order=order,
+        )
+
+        # Handle specific payment methods
         if payment_method == "WALLET":
             wallet.balance -= grand_total
             wallet.save()
@@ -164,14 +185,14 @@ def checkout(request):
                 description=f"Order #{order.order_code} Payment"
             )
             return redirect("order_complete", order_id=order.order_id)
-        
-        # COD payment handling
+
         if payment_method == "COD":
             return redirect("order_complete", order_id=order.order_id)
-        
-        # ONLINE payment handling (e.g., Razorpay)
+
+        # ONLINE payment redirect (e.g., Razorpay)
         return redirect("start_payment", order_id=order.order_id)
-    
+
+    # GET request or fallback render
     addresses = Address.objects.filter(user=request.user)
     return render(
         request,
@@ -188,6 +209,7 @@ def checkout(request):
             "delivery_charge": delivery_charge,
         },
     )
+
 
 
 
