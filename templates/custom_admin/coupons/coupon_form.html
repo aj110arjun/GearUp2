@@ -31,7 +31,7 @@
     <div class="mb-3">
         <label class="form-label">Valid From</label>
         <input type="date" name="valid_from" class="form-control" 
-               value="{{ coupon.valid_from|date:'d/m/Y'|default:'' }}">
+            value="{{ coupon.valid_from|date:'Y-m-d'|default:'' }}">
         {% if error.valid_from %}
             <span class="text-danger">{{error.valid_from}}</span>
         {% endif %}
@@ -39,7 +39,7 @@
     <div class="mb-3">
         <label class="form-label">Valid To</label>
         <input type="date" name="valid_to" class="form-control" 
-               value="{{ coupon.valid_to|date:'d/m/Y'|default:'' }}">
+            value="{{ coupon.valid_to|date:'Y-m-d'|default:'' }}">
         {% if error.valid_to %}
             <span class="text-danger">{{error.valid_to}}</span>
         {% endif %}

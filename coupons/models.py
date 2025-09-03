@@ -10,6 +10,8 @@ class Coupon(models.Model):
     min_purchase = models.DecimalField(max_digits=10, decimal_places=2,default=0)
     usage_limit = models.PositiveIntegerField(default=1, help_text="How many times a user can use this coupon")
 
+    
+
     def is_valid(self):
         now = timezone.now()
         return self.active and self.valid_from <= now <= self.valid_to

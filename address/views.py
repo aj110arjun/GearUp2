@@ -2,13 +2,17 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .models import Address
 from django.contrib import messages
+from django.views.decorators.cache import never_cache
+
 
 @login_required(login_url='login')
+@never_cache
 def address_list(request):
     addresses = request.user.addresses.all()
     return render(request, "user/address/address_list.html", {"addresses": addresses})
 
 @login_required(login_url='login')
+@never_cache
 def add_address(request):
     if request.method == "POST":
         full_name = request.POST.get("full_name")
@@ -46,6 +50,7 @@ def add_address(request):
     return render(request, "user/address/address_form.html")
 
 @login_required(login_url='login')
+@never_cache
 def edit_address(request, pk):
     address = get_object_or_404(Address, pk=pk, user=request.user)
 
@@ -70,6 +75,7 @@ def edit_address(request, pk):
     return render(request, "user/address/address_form.html", {"address": address})
 
 @login_required(login_url='login')
+@never_cache
 def delete_address(request, pk):
     address = get_object_or_404(Address, pk=pk, user=request.user)  # ✅ Fetch first
 

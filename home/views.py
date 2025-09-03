@@ -99,7 +99,7 @@ def download_sales_report_pdf(request):
     pdf.drawCentredString(width / 2, height - 50, "Sales Report (Last 7 Days)")
 
     # Prepare table data
-    table_data = [['Date', 'Total Sales (₹)', 'Orders Count', 'Top Products']]
+    table_data = [['Date', 'Total Sales (Rs.)', 'Orders Count', 'Top Products']]
 
     today = date.today()
     for i in range(6, -1, -1):

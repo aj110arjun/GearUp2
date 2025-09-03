@@ -18,54 +18,46 @@
             </thead>
             <tbody>
                 {% for item in items %}
-                <tr>
+                <tr data-item-id="{{ item.id }}">
                     <td>
                         <img src="{{ item.variant.product.image.url }}" style="height:60px;">
                         {{ item.variant.product.name }}
                     </td>
                     <td>{{ item.variant.color }} / {{ item.variant.size }}</td>
-                    <!-- Price with product-level offer -->
                     <td>
                         {% with product_offer=item.variant.product.get_active_product_offer %}
                             {% if product_offer %}
-                                <p class="text-muted text-decoration-line-through mb-0">
-                                    ₹{{ item.variant.price }}
-                                </p>
+                                <p class="text-muted text-decoration-line-through mb-0">₹{{ item.variant.price }}</p>
                                 <p class="fw-bold text-success mb-0">
-                                    ₹{{ item.variant.get_discounted_price }}
+                                    ₹{{ item.variant.get_discounted_price|floatformat:2 }}
                                     <span class="badge bg-danger">-{{ product_offer.discount_percent }}%</span>
                                 </p>
                                 <small class="text-info fst-italic">{{ product_offer }}</small>
                             {% else %}
-                                <p class="fw-bold mb-0">₹{{ item.variant.price }}</p>
+                                <p class="fw-bold mb-0">₹{{ item.variant.price|floatformat:2 }}</p>
                             {% endif %}
                         {% endwith %}
                     </td>
-                    <!-- Quantity controls -->
                     <td>
-                        <a href="{% url 'update_cart' item.id %}?action=decrease" 
-                           class="btn btn-sm btn-outline-secondary">-</a>
-                        {{ item.quantity }}
-                        <a href="{% url 'update_cart' item.id %}?action=increase" 
-                           class="btn btn-sm btn-outline-secondary {% if item.quantity >= 5 or item.quantity >= item.variant.stock %}disabled{% endif %}">+</a>
+                        <a href="{% url 'update_cart' item.id %}?action=decrease"
+                           class="btn btn-sm btn-outline-secondary {% if item.quantity|add:'-1' <= 0 %}disabled{% endif %} decrement-btn">-</a>
+                        <span class="quantity-text">{{ item.quantity }}</span>
+                        <a href="{% url 'update_cart' item.id %}?action=increase"
+                           class="btn btn-sm btn-outline-secondary {% if item.quantity >= 5 or item.quantity >= item.variant.stock %}disabled{% endif %} increment-btn">+</a>
                     </td>
-                    <!-- Subtotal -->
-                    <td>
+                    <td class="subtotal-text">
                         {% with discount=item.variant.product.get_best_offer %}
                             {% if discount > 0 %}
-                                <p class="text-muted text-decoration-line-through mb-0">
-                                    ₹{{ item.variant.price }}
-                                </p>
+                                <p class="text-muted text-decoration-line-through mb-0">₹{{ item.variant.price|floatformat:2 }}</p>
                                 <p class="fw-bold text-success mb-0">
-                                    ₹{{ item.variant.get_discounted_price }}
+                                    ₹{{ item.variant.get_discounted_price|floatformat:2 }}
                                     <span class="badge bg-danger">-{{ discount }}%</span>
                                 </p>
                             {% else %}
-                                <p class="fw-bold mb-0">₹{{ item.variant.price }}</p>
+                                <p class="fw-bold mb-0">₹{{ item.variant.price|floatformat:2 }}</p>
                             {% endif %}
                         {% endwith %}
                     </td>
-                    <!-- Remove item -->
                     <td>
                         <a href="{% url 'remove_from_cart' item.id %}" class="btn btn-sm btn-danger">Remove</a>
                     </td>
@@ -73,7 +65,6 @@
                 {% endfor %}
             </tbody>
         </table>
-        <!-- Order Summary -->
         <div class="card p-3 mt-4">
             <h5>Order Summary</h5>
             {% if offer_savings > 0 %}
@@ -85,32 +76,25 @@
                         Coupon "{{ coupon.code }}" Applied ({{ coupon.discount }}% off)
                     </p>
                     <p>Coupon Discount: -₹{{ discount }}</p>
-                {% endif %}
-            {% endif %}
-            
-            <p>Subtotal (after offers): ₹{{ subtotal }}</p>
-            <hr>
-            <h4>Total: <span class="text-success">₹{{ total }}</span></h4>
-            
-            <!-- Coupon Form or Remove Button -->
-            {% if offer_savings == 0 %}
-                {% if coupon %}
-                    <form method="post" action="{% url 'remove_coupon' %}" class="d-flex mt-3">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-outline-danger">Remove Coupon</button>
-                    </form>
                 {% else %}
-                    <form method="post" action="{% url 'apply_coupon' %}" class="d-flex mt-3">
+                    <form method="post" action="{% url 'apply_coupon' %}" class="d-flex mt-3" novalidate>
                         {% csrf_token %}
-                        <input type="text" name="code" class="form-control me-2"
-                            placeholder="Enter coupon code">
+                        <input type="text" name="code" class="form-control me-2" placeholder="Enter coupon code" required>
                         <button type="submit" class="btn btn-outline-success">Apply</button>
                     </form>
                 {% endif %}
-                {% if error.coupon %}
-                    <span class="text-danger">{{ error.coupon }}</span>
-                {% endif %}
             {% endif %}
+            {% if coupon %}
+                <form method="post" action="{% url 'remove_coupon' %}" class="d-flex mt-3">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-danger">Remove Coupon</button>
+                </form>
+            {% endif %}
+            {% if error.coupon %}
+                <div class="text-danger mt-2">{{ error.coupon }}</div>
+            {% endif %}
+            <hr>
+            <h4>Total: <span id="cart-total" class="text-success">₹{{ total|floatformat:2 }}</span></h4>
         </div>
         <div class="text-end mt-4">
             <a href="{% url 'checkout' %}" class="btn btn-primary">Proceed to Checkout</a>
@@ -119,4 +103,95 @@
         <p class="text-muted">Your cart is empty.</p>
     {% endif %}
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    function getCSRFToken() {
+        const tokenElem = document.querySelector('[name=csrfmiddlewaretoken]');
+        return tokenElem ? tokenElem.value : '';
+    }
+
+    function updateCart(event) {
+        event.preventDefault();
+        const btn = event.currentTarget;
+        if (btn.classList.contains('disabled')) return;
+
+        const url = btn.href;
+        const row = btn.closest('tr');
+        const qtyElem = row.querySelector('.quantity-text');
+        let currentQty = parseInt(qtyElem.textContent);
+
+        // Determine increment / decrement
+        const isIncrement = btn.classList.contains('increment-btn');
+        const isDecrement = btn.classList.contains('decrement-btn');
+        let newQty = currentQty;
+
+        if (isIncrement && !btn.classList.contains('disabled')) {
+            newQty = currentQty + 1;
+        } else if (isDecrement && currentQty > 1) {
+            newQty = currentQty - 1;
+        }
+        // Optimistically update quantity in the DOM
+        qtyElem.textContent = newQty;
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Overwrite quantity with backend value (in case of concurrency)
+                qtyElem.textContent = data.new_quantity;
+
+                // Update subtotal
+                const subtotalElem = row.querySelector('.subtotal-text');
+                if (subtotalElem) {
+                    subtotalElem.innerHTML = '';
+                    if (data.discount > 0) {
+                        subtotalElem.innerHTML = `
+                            <p class="text-muted text-decoration-line-through mb-0">₹${data.old_price.toFixed(2)}</p>
+                            <p class="fw-bold text-success mb-0">
+                                ₹${data.new_subtotal.toFixed(2)}
+                                <span class="badge bg-danger">-${data.discount}%</span>
+                            </p>`;
+                    } else {
+                        subtotalElem.innerHTML = `<p class="fw-bold mb-0">₹${data.new_subtotal.toFixed(2)}</p>`;
+                    }
+                }
+                // Update total
+                const totalElem = document.querySelector('#cart-total');
+                if (totalElem) totalElem.textContent = '₹' + data.new_total.toFixed(2);
+
+                // Adjust button states
+                const incBtn = row.querySelector('.increment-btn');
+                if (incBtn) {
+                    if (data.disable_increment) incBtn.classList.add('disabled');
+                    else incBtn.classList.remove('disabled');
+                }
+                const decBtn = row.querySelector('.decrement-btn');
+                if (decBtn) {
+                    if (data.new_quantity <= 1) decBtn.classList.add('disabled');
+                    else decBtn.classList.remove('disabled');
+                }
+            } else if (data.error) {
+                // Revert optimistic UI if server sees a problem
+                qtyElem.textContent = currentQty;
+                alert(data.error);
+            }
+        })
+        .catch(error => {
+            qtyElem.textContent = currentQty;
+            console.error('Error:', error);
+        });
+    }
+
+    document.querySelectorAll('a.increment-btn,a.decrement-btn').forEach(btn => {
+        btn.addEventListener('click', updateCart);
+    });
+});
+</script>
 {% endblock %}

@@ -23,8 +23,11 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.utils import timezone
+from django.views.decorators.cache import never_cache
+
 
 @login_required(login_url="login")
+@never_cache
 def checkout(request):
     error = {}
     cart_items = CartItem.objects.filter(user=request.user).select_related("variant__product")
@@ -35,7 +38,6 @@ def checkout(request):
     subtotal = Decimal("0.00")
     payment_method = request.POST.get("payment_method", "COD")
     wallet, _ = Wallet.objects.get_or_create(user=request.user)
-
     # Calculate subtotal & adjust stock
     for item in cart_items:
         max_limit = min(5, item.variant.stock)
@@ -58,21 +60,11 @@ def checkout(request):
     coupon_id = request.session.get("coupon_id")
     discount = Decimal("0.00")
     coupon = None
-
     if coupon_id:
         try:
             coupon = Coupon.objects.get(code=coupon_id, active=True)
-            print(f"Coupon found: {coupon.code}, Active: {coupon.active}")
-            print(f"Now: {timezone.now()}, Valid From: {coupon.valid_from}, Valid To: {coupon.valid_to}")
-            print(f"Subtotal: {subtotal}, Coupon Min Purchase: {coupon.min_purchase}, Discount %: {coupon.discount}")
-            if coupon.is_valid():
-                print("Coupon is valid")
-            else:
-                print("Coupon is NOT valid")
-            
             if coupon.is_valid() and (coupon.min_purchase is None or subtotal >= coupon.min_purchase):
                 discount = (subtotal * Decimal(str(coupon.discount))) / Decimal("100")
-                print(f"Calculated discount: {discount}")
                 if discount > subtotal:
                     discount = subtotal
             else:
@@ -81,17 +73,20 @@ def checkout(request):
                 discount = Decimal("0.00")
                 request.session.pop("coupon_id", None)
         except Coupon.DoesNotExist:
-            print("Coupon does not exist")
             error['coupon'] = "Coupon does not exist."
             coupon = None
             discount = Decimal("0.00")
             request.session.pop("coupon_id", None)
     
-    # Calculate total after discount
+    # Delivery charge (fixed for all orders)
+    delivery_charge = Decimal("50.00")
+
+    # Calculate grand total including delivery charge
     total = subtotal - discount
     if total < 0:
         total = Decimal("0.00")
-
+    grand_total = total + delivery_charge
+    
     # -------- HANDLE POST --------
     if request.method == "POST":
         address_id = request.POST.get("address")
@@ -108,10 +103,12 @@ def checkout(request):
                 "total": total,
                 "coupon": coupon,
                 "wallet": wallet,
+                "grand_total": grand_total,
+                "delivery_charge": delivery_charge,
             })
         
-        # If WALLET selected, check balance first
-        if payment_method == "WALLET" and wallet.balance < total:
+        # If WALLET selected, check balance for grand total
+        if payment_method == "WALLET" and wallet.balance < grand_total:
             error['wallet'] = "Insufficient wallet balance."
         
         if error:
@@ -125,17 +122,20 @@ def checkout(request):
                 "total": total,
                 "coupon": coupon,
                 "wallet": wallet,
+                "grand_total": grand_total,
+                "delivery_charge": delivery_charge,
             })
         
-        # Create order
+        # Create order with grand total price
         order = Order.objects.create(
             user=request.user,
             address=address,
-            total_price=total,
+            total_price=grand_total,
             discount=discount,
             coupon=coupon,
             payment_method=payment_method,
-            payment_status="Paid" if payment_method == "WALLET" else "Pending"
+            payment_status="Paid" if payment_method == "WALLET" else "Pending",
+             # Ensure order model has delivery_charge field
         )
         
         # Create order items & reduce stock
@@ -155,11 +155,11 @@ def checkout(request):
         
         # WALLET payment handling
         if payment_method == "WALLET":
-            wallet.balance -= total
+            wallet.balance -= grand_total
             wallet.save()
             WalletTransaction.objects.create(
                 wallet=wallet,
-                amount=total,
+                amount=grand_total,
                 transaction_type="DEBIT",
                 description=f"Order #{order.order_code} Payment"
             )
@@ -172,7 +172,6 @@ def checkout(request):
         # ONLINE payment handling (e.g., Razorpay)
         return redirect("start_payment", order_id=order.order_id)
     
-    # -------- GET --------
     addresses = Address.objects.filter(user=request.user)
     return render(
         request,
@@ -185,6 +184,8 @@ def checkout(request):
             "total": total,
             "coupon": coupon,
             "wallet": wallet,
+            "grand_total": grand_total,
+            "delivery_charge": delivery_charge,
         },
     )
 
@@ -192,13 +193,16 @@ def checkout(request):
 
 
 
+
 @login_required(login_url="login")
+@never_cache
 def order_complete(request, order_id):
     order = get_object_or_404(Order, order_id=order_id, user=request.user)
     items = order.items.select_related("variant__product")
     return render(request, "user/orders/order_complete.html", {"order": order, "items": items})
 
 @login_required(login_url="login")
+@never_cache
 def order_list(request):
     orders = Order.objects.filter(user=request.user).order_by("-created_at")
     
@@ -209,12 +213,14 @@ def order_list(request):
     return render(request, "user/orders/orders.html", {"page_obj": page_obj})
 
 @login_required(login_url='login')
+@never_cache
 def order_detail(request, order_id):
     order = get_object_or_404(Order, order_id=order_id, user=request.user)
     items = order.items.select_related('variant__product')  
     return render(request, 'user/orders/order_detail.html', {'order': order, 'items': items})
 
 @login_required(login_url="login")
+@never_cache
 def request_return_order_item(request, item_id):
     item = get_object_or_404(OrderItem, item_id=item_id, order__user=request.user)
 
@@ -239,6 +245,7 @@ def request_return_order_item(request, item_id):
     return redirect("order_detail", order_id=item.order.order_id)
 
 @staff_member_required(login_url="admin_login")
+@never_cache
 def admin_order_list(request):
     status_filter = request.GET.get("status", "")
     orders = Order.objects.all().order_by("-created_at")
@@ -257,12 +264,14 @@ def admin_order_list(request):
     )
 
 @staff_member_required(login_url="admin_login")
+@never_cache
 def admin_order_detail(request, order_id):
     order = get_object_or_404(Order, order_id=order_id)
     items = OrderItem.objects.filter(order=order).select_related("variant__product")
     return render(request, "custom_admin/orders/order_detail.html", {"order": order, "items": items})
 
 @staff_member_required(login_url="admin_login")
+@never_cache
 def admin_update_order_item_status(request, item_id):
     order_item = get_object_or_404(OrderItem, item_id=item_id)
 
@@ -281,6 +290,7 @@ def admin_update_order_item_status(request, item_id):
 
 # views.py
 @login_required(login_url="login")
+@never_cache
 def request_cancel_order_item(request, item_id):
     item = get_object_or_404(OrderItem, item_id=item_id, order__user=request.user)
 
@@ -305,12 +315,14 @@ def request_cancel_order_item(request, item_id):
     return redirect("order_detail", order_id=item.order.order_id)
     
 @staff_member_required(login_url="admin_login")
+@never_cache
 def admin_cancellation_requests(request):
     items = OrderItem.objects.filter(cancellation_requested=True, cancellation_approved__isnull=True).select_related("order", "variant__product", "order__user")
     return render(request, "custom_admin/orders/cancellation_request.html", {"items": items})
 
 
 @staff_member_required(login_url="admin_login")
+@never_cache
 def admin_approve_reject_cancellation(request, item_id, action):
     item = get_object_or_404(OrderItem, item_id=item_id)
 
@@ -332,6 +344,7 @@ def admin_approve_reject_cancellation(request, item_id, action):
 from django.contrib import messages
 
 @staff_member_required(login_url="admin_login")
+@never_cache
 def admin_cancellation_request_view(request, item_id):
     item = get_object_or_404(
         OrderItem,
@@ -394,6 +407,7 @@ def admin_cancellation_request_view(request, item_id):
 
 
 @staff_member_required(login_url="admin_login")
+@never_cache
 def admin_return_requests(request):
     items = OrderItem.objects.filter(return_requested=True, return_approved__isnull=True) \
                              .select_related("order", "variant__product", "order__user")
@@ -402,6 +416,7 @@ def admin_return_requests(request):
 
 
 @staff_member_required(login_url="admin_login")
+@never_cache
 def admin_approve_reject_return(request, item_id, action):
     errors = {}
     item = get_object_or_404(OrderItem, item_id=item_id)
@@ -486,6 +501,7 @@ def admin_approve_reject_return(request, item_id, action):
 
 
 @login_required(login_url="login")
+@never_cache
 def track_order_search(request):
     order = None
     if request.method == "POST":
@@ -498,6 +514,7 @@ def track_order_search(request):
     return render(request, "user/orders/order_track.html", {"order": order})
 
 @login_required(login_url='login')
+@never_cache
 def download_invoice(request, order_code):
     order = get_object_or_404(Order, order_code=order_code, user=request.user)
 
@@ -574,6 +591,7 @@ def download_invoice(request, order_code):
     return response
 
 @login_required(login_url="login")
+@never_cache
 def cancel_order_item_page(request, item_id):
     item = get_object_or_404(OrderItem, item_id=item_id, order__user=request.user)
 
@@ -589,6 +607,7 @@ def cancel_order_item_page(request, item_id):
 
 
 @login_required(login_url="login")
+@never_cache
 def return_order_item_page(request, item_id):
     item = get_object_or_404(OrderItem, item_id=item_id, order__user=request.user)
 
@@ -603,11 +622,13 @@ def return_order_item_page(request, item_id):
     return render(request, "user/orders/return_request.html", {"item": item})
 
 @staff_member_required(login_url='admin_login')
+@never_cache
 def admin_view_return_reason(request, item_id):
     item = get_object_or_404(OrderItem, item_id=item_id)
     return render(request, "custom_admin/orders/view_return_reason.html", {"item": item})
 
 @login_required
+@never_cache
 def start_payment(request, order_id):
     order = get_object_or_404(Order, order_id=order_id, user=request.user)
 
@@ -633,6 +654,7 @@ def start_payment(request, order_id):
 
 
 @login_required(login_url='login')
+@never_cache
 def order_success(request, order_id):
     order = get_object_or_404(Order, order_id=order_id, user=request.user)
     return render(request, "user/orders/order_success.html", {"order": order})
@@ -668,6 +690,7 @@ def payment_success(request, order_id):
             return redirect("order_failed", order_id=order.order_id)
         
 @login_required(login_url='login')
+@never_cache
 def payment_failed(request, order_id):
     order = get_object_or_404(Order, order_id=order_id, user=request.user)
     order.payment_status = "Failed"
