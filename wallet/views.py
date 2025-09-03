@@ -9,8 +9,11 @@ from django.http import JsonResponse
 import json
 import razorpay
 from django.conf import settings
+from django.views.decorators.cache import never_cache
+
 
 @login_required
+@never_cache
 def approve_return(request, order_item_id):
     """
     Admin view to approve or process a return for an order item.
@@ -84,6 +87,7 @@ def approve_return(request, order_item_id):
 
     
 @login_required(login_url="login")
+@never_cache
 def user_wallet(request):
     error = {}
     wallet = request.user.wallet
@@ -127,6 +131,7 @@ def user_wallet(request):
     )
     
 @login_required(login_url="login")
+@never_cache
 def create_order(request):
     if request.method == "POST":
         amount = int(request.POST.get("amount")) * 100  # in paise
@@ -142,6 +147,7 @@ def create_order(request):
 
 @csrf_exempt
 @login_required(login_url="login")
+@never_cache
 def wallet_payment_success(request):
     try:
         data = json.loads(request.body)

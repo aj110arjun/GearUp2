@@ -7,8 +7,11 @@ from products.models import ProductVariant
 from wishlist.models import Wishlist
 from decimal import Decimal
 from coupons.models import Coupon
+from django.views.decorators.cache import never_cache
+
 
 @login_required(login_url="login")
+@never_cache
 def add_to_cart(request, variant_id=None):
     if request.method == "POST":
         variant_id = request.POST.get("variant_id")
@@ -32,6 +35,7 @@ def add_to_cart(request, variant_id=None):
 
 
 @login_required(login_url="login")
+@never_cache
 def cart_view(request):
     error = {}
     items = CartItem.objects.filter(user=request.user).select_related("variant__product")
@@ -100,6 +104,7 @@ def cart_view(request):
 
 
 @login_required(login_url="login")
+@never_cache
 def update_cart(request, item_id):
     cart_item = get_object_or_404(CartItem, id=item_id, user=request.user)
     action = request.GET.get("action")
@@ -117,6 +122,7 @@ def update_cart(request, item_id):
     return redirect("cart_view")
 
 @login_required(login_url="login")
+@never_cache
 def remove_from_cart(request, item_id):
     cart_item = get_object_or_404(CartItem, id=item_id, user=request.user)
     cart_item.delete()

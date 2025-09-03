@@ -43,13 +43,19 @@
         <h5>Payment Method</h5>
         <div class="card p-3 mb-2">
             <label class="d-flex align-items-center">
-                <input type="radio" name="payment_method" value="COD" checked class="me-2">
+                <input type="radio" name="payment_method" value="COD" 
+                       {% if total > 1000 %}disabled{% else %}checked{% endif %}
+                       class="me-2">
                 <span>Cash on Delivery</span>
+                {% if total > 1000 %}
+                    <span class="text-danger ms-2">(COD not available for orders above ₹1000)</span>
+                {% endif %}
             </label>
         </div>
         <div class="card p-3 mb-2">
             <label class="d-flex align-items-center">
-                <input type="radio" name="payment_method" value="ONLINE" class="me-2">
+                <input type="radio" name="payment_method" value="ONLINE" 
+                       {% if grand_total > 1000 %}checked{% endif %} class="me-2">
                 <span>Pay Online (Razorpay)</span>
             </label>
         </div>
@@ -90,23 +96,27 @@
                 </li>
             {% endfor %}
         </ul>
-
         <!-- Coupon Discount Display -->
         {% if coupon %}
-    <div class="mb-3 p-2 bg-light border rounded">
-        <strong>Coupon "{{ coupon.code }}" Applied:</strong>
-        <span class="text-success">
-            -₹{{ discount }}
-        </span>
-    </div>
-{% endif %}
-<!-- Final Total -->
-<div class="d-flex justify-content-between fs-5 fw-bold">
-    <span>Total to Pay:</span>
-    <span>₹{{ total }}</span>
-</div>
+        <div class="mb-3 p-2 bg-light border rounded">
+            <strong>Coupon "{{ coupon.code }}" Applied:</strong>
+            <span class="text-success">
+                -₹{{ discount }}
+            </span>
+        </div>
+        {% endif %}
 
+        <!-- Delivery Charge -->
+        <div class="d-flex justify-content-between fs-6 mb-1">
+            <span>Delivery Charges:</span>
+            <span>₹{{ delivery_charge }}</span>
+        </div>
 
+        <!-- Final Total -->
+        <div class="d-flex justify-content-between fs-5 fw-bold">
+            <span>Total to Pay:</span>
+            <span>₹{{ grand_total }}</span>
+        </div>
         <button type="submit" class="btn btn-success mt-3">Place Order</button>
     </form>
 </div>

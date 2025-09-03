@@ -4,16 +4,19 @@ from django.contrib import messages
 from products.models import Product, Category, ProductOffer, CategoryOffer
 from datetime import date
 from django.utils.dateparse import parse_date
+from django.views.decorators.cache import never_cache
 
 
 # ---------------- Product Offers ---------------- #
 @staff_member_required(login_url="admin_login")
+@never_cache
 def admin_product_offers(request):
     offers = ProductOffer.objects.select_related("product").order_by("-start_date")
     return render(request, "custom_admin/offers/product_offers.html", {"offers": offers})
 
 
 @staff_member_required(login_url="admin_login")
+@never_cache
 def admin_add_product_offer(request):
     error={}
     if request.method == "POST":
@@ -50,6 +53,7 @@ def admin_add_product_offer(request):
 
 
 @staff_member_required(login_url="admin_login")
+@never_cache
 def admin_delete_product_offer(request, offer_id):
     offer = get_object_or_404(ProductOffer, id=offer_id)
     offer.delete()
@@ -59,12 +63,14 @@ def admin_delete_product_offer(request, offer_id):
 
 # ---------------- Category Offers ---------------- #
 @staff_member_required(login_url="admin_login")
+@never_cache
 def admin_category_offers(request):
     offers = CategoryOffer.objects.select_related("category").order_by("-start_date")
     return render(request, "custom_admin/offers/category_offers.html", {"offers": offers})
 
 
 @staff_member_required(login_url="admin_login")
+@never_cache
 def admin_add_category_offer(request):
     error={}
     if request.method == "POST":
@@ -101,6 +107,7 @@ def admin_add_category_offer(request):
 
 
 @staff_member_required(login_url="admin_login")
+@never_cache
 def admin_delete_category_offer(request, offer_id):
     offer = get_object_or_404(CategoryOffer, id=offer_id)
     offer.delete()
@@ -108,6 +115,7 @@ def admin_delete_category_offer(request, offer_id):
     return redirect("admin_category_offers")
 
 @staff_member_required(login_url="admin_login")
+@never_cache
 def admin_product_offer_edit(request, product_id):
     # fetch product by UUID
     product = get_object_or_404(Product, product_id=product_id)
@@ -143,6 +151,7 @@ def admin_product_offer_edit(request, product_id):
     return render(request,"custom_admin/offers/product_offer_edit.html",context)
     
 @staff_member_required(login_url="admin_login")
+@never_cache
 def admin_category_offer_edit(request, category_id):
     error={}
     category = get_object_or_404(Category, id=category_id)

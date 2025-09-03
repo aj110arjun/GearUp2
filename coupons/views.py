@@ -9,8 +9,12 @@ from .models import Coupon
 from django.contrib.auth.decorators import login_required
 from decimal import Decimal
 from cart.models import CartItem
+from django.utils.dateparse import parse_date
+from django.views.decorators.cache import never_cache
+
 
 @login_required(login_url="login")
+@never_cache
 def apply_coupon(request):
     error = {}
     items = CartItem.objects.filter(user=request.user).select_related("variant__product")
@@ -64,7 +68,8 @@ def remove_coupon(request):
     request.session.pop("coupon_id", None)
     return redirect("cart_view")
 
-@staff_member_required(login_url='admin:login')
+@staff_member_required(login_url='admin_login')
+@never_cache
 def admin_coupon_list(request):
     coupons = Coupon.objects.all().order_by('-valid_from')  # Order by latest
     context = {
@@ -73,6 +78,7 @@ def admin_coupon_list(request):
     return render(request, 'custom_admin/coupons/coupon_list.html', context)
 
 @staff_member_required(login_url='admin_login')
+@never_cache
 def admin_coupon_add(request):
     error={}
     if request.method == "POST":
@@ -125,6 +131,7 @@ def admin_coupon_add(request):
     return render(request, "custom_admin/coupons/coupon_form.html", {"action": "Add", "error": error})
 
 @staff_member_required(login_url='admin_login')
+@never_cache
 def admin_coupon_edit(request, id):
     error = {}
     coupon = get_object_or_404(Coupon, id=id)
@@ -194,6 +201,7 @@ def admin_coupon_edit(request, id):
     )
 
 @staff_member_required(login_url='admin_login')
+@never_cache
 def admin_coupon_delete(request, id):
     coupon = get_object_or_404(Coupon, id=id)
     coupon.delete()

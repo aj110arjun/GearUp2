@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.shortcuts import render
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.cache import never_cache
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.paginator import Paginator
 
@@ -14,6 +15,7 @@ from cart.models import CartItem
 
 
 @login_required(login_url='login')
+@never_cache
 def product_list(request):
     products = Product.objects.filter(is_active=True).prefetch_related("variants")
     categories = Category.objects.all()
@@ -64,6 +66,7 @@ def product_list(request):
 
 
 @login_required(login_url='login')
+@never_cache
 def product_detail(request, product_id):
     product = get_object_or_404(Product, product_id=product_id, is_active=True)
     variants = product.variants.all()
@@ -87,6 +90,7 @@ def product_detail(request, product_id):
 # Admin View
 
 @staff_member_required(login_url='admin_login')
+@never_cache
 def admin_product_list(request):
     products = Product.objects.select_related('category').annotate(
         min_variant_price=Min('variants__price'),
@@ -155,6 +159,7 @@ def admin_product_list(request):
 
 
 @staff_member_required(login_url='admin_login')
+@never_cache
 def admin_product_add(request):
     categories = Category.objects.all()
     errors = {}
@@ -235,6 +240,7 @@ def admin_product_add(request):
 
 
 @staff_member_required(login_url='admin_login')
+@never_cache
 def category_list(request):
     categories = Category.objects.all().order_by('name')  # optional sorting
 
@@ -250,6 +256,7 @@ def category_list(request):
     )
 
 @staff_member_required(login_url='admin_login')
+@never_cache
 def category_add(request):
     errors={}
     if request.method == 'POST':
@@ -271,6 +278,7 @@ def category_add(request):
     return render(request, 'custom_admin/category/category_form.html', {'categories': categories, 'errors':errors})
 
 @staff_member_required(login_url='admin_login')
+@never_cache
 def category_edit(request, id):
     errors = {}
     category = get_object_or_404(Category, id=id)
@@ -303,6 +311,7 @@ def category_edit(request, id):
 
 
 @staff_member_required(login_url='admin_login')
+@never_cache
 def admin_product_detail(request, product_id):
     product = get_object_or_404(Product, product_id=product_id)
     variants = product.variants.all()  # assuming related_name="variants" in ProductVariant model
@@ -316,6 +325,7 @@ def admin_product_detail(request, product_id):
 
 
 @staff_member_required(login_url='admin_login')
+@never_cache
 def admin_product_edit(request, product_id):
     product = get_object_or_404(Product, product_id=product_id)
     categories = Category.objects.all()
@@ -445,7 +455,8 @@ def admin_product_edit(request, product_id):
 
 
 
-@staff_member_required(login_url='admin_login')   
+@staff_member_required(login_url='admin_login')
+@never_cache 
 def toggle_product_status(request, product_id):
     product = get_object_or_404(Product, product_id=product_id)
     
