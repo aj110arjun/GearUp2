@@ -10,8 +10,8 @@ class Transaction(models.Model):
         ('ONLINE_PAYMENT', 'Online Payment'),
     ]
     PAYMENT_STATUS_CHOICES = [
-        ('Pending', 'Pending'),
-        ('Paid', 'Paid'),
+        ('Debit', 'Debit'),
+        ('Credit', 'Credit'),
         ('Failed', 'Failed'),
     ]
 
