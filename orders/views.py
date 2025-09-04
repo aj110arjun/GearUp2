@@ -42,13 +42,10 @@ def checkout(request):
     cart_items = CartItem.objects.filter(user=request.user).select_related("variant__product")
     if not cart_items.exists():
         return redirect("cart_view")
-
     adjusted = False
     subtotal = Decimal("0.00")
     payment_method = request.POST.get("payment_method", "COD")
     wallet, _ = Wallet.objects.get_or_create(user=request.user)
-
-    # Calculate subtotal & adjust stock limits
     for item in cart_items:
         max_limit = min(5, item.variant.stock)
         if item.variant.stock == 0:
@@ -61,12 +58,9 @@ def checkout(request):
             adjusted = True
         price = Decimal(item.variant.get_discounted_price())
         subtotal += price * item.quantity
-
     if adjusted:
         messages.warning(request, "Some items were adjusted due to stock limits. Please review your cart again.")
         return redirect("cart_view")
-
-    # Coupon processing
     coupon_id = request.session.get("coupon_id")
     discount = Decimal("0.00")
     coupon = None
@@ -87,14 +81,11 @@ def checkout(request):
             coupon = None
             discount = Decimal("0.00")
             request.session.pop("coupon_id", None)
-
-    delivery_charge = Decimal("50.00")  # Fixed delivery charge
+    delivery_charge = Decimal("50.00")
     total = subtotal - discount
     if total < 0:
         total = Decimal("0.00")
     grand_total = total + delivery_charge
-
-    # POST request handling (order placement)
     if request.method == "POST":
         address_id = request.POST.get("address")
         address = Address.objects.filter(user=request.user, id=address_id).first()
@@ -113,11 +104,8 @@ def checkout(request):
                 "grand_total": grand_total,
                 "delivery_charge": delivery_charge,
             })
-
-        # Wallet balance check for WALLET payment
         if payment_method == "WALLET" and wallet.balance < grand_total:
             error['wallet'] = "Insufficient wallet balance."
-
         if error:
             addresses = Address.objects.filter(user=request.user)
             return render(request, "user/orders/checkout.html", {
@@ -132,8 +120,6 @@ def checkout(request):
                 "grand_total": grand_total,
                 "delivery_charge": delivery_charge,
             })
-
-        # Create order with delivery charge
         order = Order.objects.create(
             user=request.user,
             address=address,
@@ -143,8 +129,6 @@ def checkout(request):
             payment_method=payment_method,
             payment_status="Paid" if payment_method == "WALLET" else "Pending",
         )
-
-        # Create order items and adjust stock
         for item in cart_items:
             price = Decimal(item.variant.get_discounted_price())
             OrderItem.objects.create(
@@ -155,27 +139,18 @@ def checkout(request):
             )
             item.variant.stock -= item.quantity
             item.variant.save()
-
-        # Clear cart after order creation
         cart_items.delete()
 
-        # Log unified transaction for admin tracking
-        transaction_type_map = {
-            'WALLET': 'WALLET_DEBIT',
-            'COD': 'COD',
-            'ONLINE': 'ONLINE_PAYMENT',
-        }
-        Transaction.objects.create(
-            user=request.user,
-            transaction_type=transaction_type_map.get(payment_method, 'ONLINE_PAYMENT'),
-            payment_status=order.payment_status,
-            amount=grand_total,
-            description=f"Order Payment for Order #{order.order_code}",
-            order=order,
-        )
-
-        # Handle specific payment methods
+        # Only create Transaction now for WALLET payments
         if payment_method == "WALLET":
+            Transaction.objects.create(
+                user=request.user,
+                transaction_type="WALLET_DEBIT",
+                payment_status="Credit",
+                amount=grand_total,
+                description=f"Order Payment for Order #{order.order_code} via Wallet",
+                order=order,
+            )
             wallet.balance -= grand_total
             wallet.save()
             WalletTransaction.objects.create(
@@ -187,12 +162,11 @@ def checkout(request):
             return redirect("order_complete", order_id=order.order_id)
 
         if payment_method == "COD":
+            # You may choose to record a transaction for COD after delivery or here
             return redirect("order_complete", order_id=order.order_id)
 
-        # ONLINE payment redirect (e.g., Razorpay)
+        # ONLINE: Don't create a transaction yet; handle in payment_success after confirmation
         return redirect("start_payment", order_id=order.order_id)
-
-    # GET request or fallback render
     addresses = Address.objects.filter(user=request.user)
     return render(
         request,
@@ -209,6 +183,7 @@ def checkout(request):
             "delivery_charge": delivery_charge,
         },
     )
+
 
 
 
@@ -300,14 +275,49 @@ def admin_update_order_item_status(request, item_id):
     if request.method == "POST":
         new_status = request.POST.get("status")
         if new_status in ["Pending", "Shipped", "Delivered", "Cancelled"]:
-            # Reset cancellation if the status is changed to Pending or Shipped
             if new_status.lower() in ["pending", "shipped"]:
                 order_item.cancellation_requested = False
                 order_item.cancellation_reason = ""
                 order_item.cancellation_approved = None
-            
+
             order_item.status = new_status.lower()
             order_item.save()
+
+            if new_status.lower() == "delivered" and order_item.order.payment_method == "COD":
+                existing_txn = Transaction.objects.filter(
+                    order=order_item.order,
+                    transaction_type="COD",
+                    description__icontains=f"OrderItem #{order_item.item_id}"
+                ).exists()
+
+                if not existing_txn:
+                    # Calculate item original price and proportional coupon discount
+                    order_items = order_item.order.items.all()
+                    order_total_original = sum([
+                        Decimal(oi.variant.price) * oi.quantity for oi in order_items
+                    ])
+                    item_original_price = Decimal(order_item.variant.price) * order_item.quantity
+                    coupon_discount_total = getattr(order_item.order, "coupon_discount", Decimal("0.00"))
+
+                    # Proportional coupon discount for this item
+                    item_coupon_discount = Decimal("0.00")
+                    if order_total_original > 0 and coupon_discount_total > 0:
+                        item_coupon_discount = (item_original_price / order_total_original) * coupon_discount_total
+
+                    # Calculate final amount considering coupon discount
+                    amount = item_original_price - item_coupon_discount
+                    if amount < 0:
+                        amount = Decimal('0.00')
+
+                    Transaction.objects.create(
+                        user=order_item.order.user,
+                        transaction_type="COD",
+                        payment_status="Credit",
+                        amount=amount,
+                        description=f"COD Payment recorded for delivered OrderItem #{order_item.item_id} (Order #{order_item.order.order_code})",
+                        order=order_item.order,
+                    )
+
     return redirect("admin_order_detail", order_id=order_item.order.order_id)
 
 # views.py
@@ -343,19 +353,53 @@ def admin_cancellation_requests(request):
     return render(request, "custom_admin/orders/cancellation_request.html", {"items": items})
 
 
+
 @staff_member_required(login_url="admin_login")
 @never_cache
 def admin_approve_reject_cancellation(request, item_id, action):
     item = get_object_or_404(OrderItem, item_id=item_id)
-
     if action == "approve":
-        if item.status != "cancelled":  # prevent double restock
+        if item.status != "cancelled":  # prevent double restock and duplicate refunds
             item.status = "cancelled"
             item.cancellation_approved = True
-
-            # 🔹 Restock product
+            
+            # Restock product
             item.variant.stock += item.quantity
             item.variant.save()
+
+            # Record refund transaction only for online payments
+            if item.order.payment_method in ["ONLINE", "RAZORPAY", "WALLET"]:
+                # Avoid duplicate refund records
+                refund_exists = Transaction.objects.filter(
+                    order=item.order,
+                    transaction_type="WALLET_CREDIT",
+                    description__icontains=f"Cancellation refund for OrderItem #{item.item_id}"
+                ).exists()
+                
+                if not refund_exists:
+                    # Calculate refund amount including coupon discount if needed
+                    order_items = item.order.items.all()
+                    order_total_original = sum([
+                        Decimal(oi.variant.price) * oi.quantity for oi in order_items
+                    ])
+                    item_original_price = Decimal(item.variant.price) * item.quantity
+                    coupon_discount_total = getattr(item.order, "coupon_discount", Decimal("0.00"))
+                    item_coupon_discount = Decimal("0.00")
+                    if order_total_original > 0 and coupon_discount_total > 0:
+                        item_coupon_discount = (item_original_price / order_total_original) * coupon_discount_total
+                    refund_amount = getattr(item, "total_price", item_original_price) - item_coupon_discount
+                    if refund_amount < 0:
+                        refund_amount = Decimal("0.00")
+
+                    # Create refund transaction
+                    Transaction.objects.create(
+                        user=item.order.user,
+                        transaction_type="WALLET_CREDIT",
+                        payment_status="Debit",
+                        amount=refund_amount,
+                        description=f"Cancellation refund for OrderItem #{item.item_id} (Order #{item.order.order_code})",
+                        order=item.order,
+                    )
 
     elif action == "reject":
         item.cancellation_approved = False
@@ -363,7 +407,7 @@ def admin_approve_reject_cancellation(request, item_id, action):
     item.save()
     return redirect("admin_cancellation_requests")
 
-from django.contrib import messages
+
 
 @staff_member_required(login_url="admin_login")
 @never_cache
@@ -443,7 +487,6 @@ def admin_approve_reject_return(request, item_id, action):
     errors = {}
     item = get_object_or_404(OrderItem, item_id=item_id)
     
-    # Ensure user has a wallet
     if not hasattr(item.order.user, "wallet"):
         Wallet.objects.create(user=item.order.user)
     wallet = item.order.user.wallet
@@ -452,19 +495,12 @@ def admin_approve_reject_return(request, item_id, action):
     order_total_original = sum([
         Decimal(oi.variant.price) * oi.quantity for oi in item.order.items.all()
     ])
-    
-    # Calculate original price for this item
     item_original_price = Decimal(item.variant.price) * item.quantity
-    
-    # Get total coupon discount on order
     coupon_discount = getattr(item.order, "coupon_discount", Decimal("0.00"))
-    
-    # Calculate proportional coupon discount for this item
     item_discount = Decimal("0.00")
     if order_total_original > 0 and coupon_discount > 0:
         item_discount = (item_original_price / order_total_original) * coupon_discount
     
-    # Determine refund amount = actual paid price minus proportional coupon discount
     refund_amount = getattr(item, "total_price", None)
     if refund_amount is None:
         refund_amount = item_original_price
@@ -481,12 +517,20 @@ def admin_approve_reject_return(request, item_id, action):
             item.variant.stock += item.quantity
             item.variant.save()
             
-            # Handle refund based on payment method
             if item.order.payment_method == "COD":
                 if not getattr(item, "refund_done", False):
                     wallet.credit(
                         refund_amount,
                         f"Refund for returned product {item.variant.product.name} (x{item.quantity}) including coupon discount"
+                    )
+                    # Create refund transaction for admin tracking
+                    Transaction.objects.create(
+                        user=item.order.user,
+                        transaction_type="WALLET_CREDIT",
+                        payment_status="Debit",
+                        amount=refund_amount,
+                        description=f"Refund for returned product '{item.variant.product.name}' (Order #{item.order.order_code})",
+                        order=item.order,
                     )
                     item.refund_done = True
                     errors['wallet'] = f"Refund of ₹{refund_amount:.2f} credited to {item.order.user.username}'s wallet."
@@ -501,6 +545,15 @@ def admin_approve_reject_return(request, item_id, action):
                         transaction_type="CREDIT",
                         amount=refund_amount,
                         description=f"Refund for returned product '{item.variant.product.name}' (x{item.quantity}) including coupon discount"
+                    )
+                    # Create refund transaction for admin tracking
+                    Transaction.objects.create(
+                        user=item.order.user,
+                        transaction_type="WALLET_CREDIT",
+                        payment_status="Debit",
+                        amount=refund_amount,
+                        description=f"Refund for returned product '{item.variant.product.name}' (Order #{item.order.order_code})",
+                        order=item.order,
                     )
                     item.refund_done = True
                     errors['wallet'] = f"Refund of ₹{refund_amount:.2f} credited to {item.order.user.username}'s wallet."
@@ -519,6 +572,7 @@ def admin_approve_reject_return(request, item_id, action):
     item.save(update_fields=save_fields)
     
     return render(request, "custom_admin/wallet/wallet.html", {"item": item, "errors": errors})
+
 
 
 
@@ -682,34 +736,42 @@ def order_success(request, order_id):
     return render(request, "user/orders/order_success.html", {"order": order})
 
 
+
 @csrf_exempt
 def payment_success(request, order_id):
     order = get_object_or_404(Order, order_id=order_id)
-
     if request.method == "POST":
         payment_id = request.POST.get("razorpay_payment_id")
         razorpay_order_id = request.POST.get("razorpay_order_id")
         signature = request.POST.get("razorpay_signature")
-
         client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
-
         try:
             client.utility.verify_payment_signature({
                 "razorpay_order_id": razorpay_order_id,
                 "razorpay_payment_id": payment_id,
                 "razorpay_signature": signature
             })
-
             order.razorpay_payment_id = payment_id
             order.razorpay_signature = signature
             order.payment_status = "Paid"
             order.save()
 
-            return redirect("order_success", order_id=order.order_id)  # ✅ better UX
+            # Record transaction ONLY after payment succeeds:
+            Transaction.objects.create(
+                user=order.user,
+                transaction_type='ONLINE_PAYMENT',
+                payment_status='Credit',
+                amount=order.total_price,
+                description=f"Order Payment for Order #{order.order_code} via Razorpay",
+                order=order,
+            )
+
+            return redirect("order_success", order_id=order.order_id)
         except Exception as e:
             order.payment_status = "Failed"
             order.save()
             return redirect("order_failed", order_id=order.order_id)
+
         
 @login_required(login_url='login')
 @never_cache

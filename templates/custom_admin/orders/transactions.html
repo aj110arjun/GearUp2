@@ -10,7 +10,7 @@
             <th>Payment Status</th>
             <th>Amount (₹)</th>
             <th>Description</th>
-            <th>Order Code</th>
+            <th>Order Id</th>
             <th>Date & Time</th>
         </tr>
     </thead>
@@ -19,8 +19,23 @@
         <tr>
             <td>{{ txn.user.email }}</td>
             <td>{{ txn.get_transaction_type_display }}</td>
-            <td>{{ txn.payment_status }}</td>
-            <td>{{ txn.amount }}</td>
+            <td>
+                {% if txn.payment_status == "Credit" %}
+                    <span class="badge bg-success">{{ txn.payment_status }}</span>
+                {% elif txn.payment_status == "Debit" %}
+                    <span class="badge bg-danger">{{ txn.payment_status }}</span>
+                {% else %}
+                    <span class="badge bg-secondary">{{ txn.payment_status }}</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if txn.payment_status == "Credit" %}
+                    <span class="text-success fw-bold">+₹{{ txn.amount }}</span>
+                {% else %}
+                    <span class="text-danger">-₹{{ txn.amount }}</span>
+                {% endif %}
+            </td>
+
             <td>{{ txn.description|default:"-" }}</td>
             <td>
                 {% if txn.order %}
@@ -31,7 +46,7 @@
                     -
                 {% endif %}
             </td>
-            <td>{{ txn.timestamp|date:"Y-m-d H:i:s" }}</td>
+            <td>{{ txn.timestamp|date:"d/m/Y" }}</td>
         </tr>
         {% empty %}
         <tr><td colspan="7">No transactions found.</td></tr>
@@ -40,20 +55,55 @@
 </table>
 
 {% if is_paginated %}
-  <div class="pagination">
-    <span class="step-links">
-      {% if page_obj.has_previous %}
-        <a href="?page=1">&laquo; first</a>
-        <a href="?page={{ page_obj.previous_page_number }}">previous</a>
-      {% endif %}
-      <span class="current">
-        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+<nav aria-label="Transaction pagination">
+  <ul class="pagination justify-content-center">
+    {% if page_obj.has_previous %}
+      <li class="page-item">
+        <a class="page-link" href="?page=1" aria-label="First">
+          <span aria-hidden="true">&laquo;&laquo;</span><span class="visually-hidden">First</span>
+        </a>
+      </li>
+      <li class="page-item">
+        <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Previous">
+          <span aria-hidden="true">&laquo;</span><span class="visually-hidden">Previous</span>
+        </a>
+      </li>
+    {% else %}
+      <li class="page-item disabled" aria-disabled="true">
+        <span class="page-link" aria-hidden="true">&laquo;&laquo;</span>
+      </li>
+      <li class="page-item disabled" aria-disabled="true">
+        <span class="page-link" aria-hidden="true">&laquo;</span>
+      </li>
+    {% endif %}
+
+    <li class="page-item active" aria-current="page">
+      <span class="page-link">
+        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
       </span>
-      {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}">next</a>
-        <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
-      {% endif %}
-    </span>
-  </div>
+    </li>
+
+    {% if page_obj.has_next %}
+      <li class="page-item">
+        <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Next">
+          <span aria-hidden="true">&raquo;</span><span class="visually-hidden">Next</span>
+        </a>
+      </li>
+      <li class="page-item">
+        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}" aria-label="Last">
+          <span aria-hidden="true">&raquo;&raquo;</span><span class="visually-hidden">Last</span>
+        </a>
+      </li>
+    {% else %}
+      <li class="page-item disabled" aria-disabled="true">
+        <span class="page-link" aria-hidden="true">&raquo;</span>
+      </li>
+      <li class="page-item disabled" aria-disabled="true">
+        <span class="page-link" aria-hidden="true">&raquo;&raquo;</span>
+      </li>
+    {% endif %}
+  </ul>
+</nav>
 {% endif %}
+
 {% endblock %}
