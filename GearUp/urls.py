@@ -22,7 +22,8 @@ urlpatterns = [
     path('transactions/', include('transaction.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
-def custom_404_view(request, exception):
-    return render(request, '404.html', status=404)
+def custom_404(request, exception):
+    return render(request, "404.html", status=404)
 
-handler404 = custom_404_view
+
+handler404 = custom_404

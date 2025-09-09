@@ -6,7 +6,7 @@ from .models import Transaction
 @staff_member_required
 def admin_transaction_list(request):
     transaction_list = Transaction.objects.select_related('user', 'order').order_by('-timestamp')
-    paginator = Paginator(transaction_list, 10)  # 25 per page
+    paginator = Paginator(transaction_list, 10)  
 
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
