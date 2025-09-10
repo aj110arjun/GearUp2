@@ -308,7 +308,7 @@ def admin_update_order_item_status(request, item_id):
                     amount = item_original_price - item_coupon_discount
                     if amount < 0:
                         amount = Decimal('0.00')
-
+                    amount += Decimal('50.00')
                     Transaction.objects.create(
                         user=order_item.order.user,
                         transaction_type="COD",
@@ -546,6 +546,7 @@ def admin_approve_reject_return(request, item_id, action):
                         refund_amount,
                         f"Refund for returned product {item.variant.product.name} (x{item.quantity}) including coupon discount"
                     )
+                    refund_amount += Decimal('50.00')
                     # Create refund transaction for admin tracking
                     Transaction.objects.create(
                         user=item.order.user,
@@ -561,6 +562,7 @@ def admin_approve_reject_return(request, item_id, action):
                     errors['wallet'] = "Refund already processed for this item."
             
             elif item.order.payment_method in ["ONLINE", "RAZORPAY", "WALLET"]:
+                refund_amount += Decimal('50.00')
                 if not getattr(item, "refund_done", False):
                     wallet.balance += refund_amount
                     wallet.save()
@@ -578,6 +580,11 @@ def admin_approve_reject_return(request, item_id, action):
                         description=f"Refund for returned product '{item.variant.product.name}' (Order #{item.order.order_code})",
                         order=item.order,
                     )
+                    WalletTransaction.objects.create(
+                        transaction_type="DEBIT",
+                        amount=refund_amount,
+                        description=f"Refund for returned product '{item.variant.product.name}' (x{item.quantity})"
+                        )
                     item.refund_done = True
                     errors['wallet'] = f"Refund of ₹{refund_amount:.2f} credited to {item.order.user.username}'s wallet."
                 else:
