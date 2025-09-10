@@ -97,7 +97,7 @@
 <div class="transaction-container" role="region" aria-label="Transaction Details">
     <h2>Transaction Details</h2>
     <p><span class="transaction-label">Transaction ID:</span><span class="transaction-value">{{ transaction.transaction_id }}</span></p>
-    <p><span class="transaction-label">User:</span><span class="transaction-value">{{ transaction.user.username }}</span></p>
+    <p><span class="transaction-label">User:</span><span class="transaction-value">{{ transaction.user.email }}</span></p>
     <p><span class="transaction-label">Type:</span><span class="transaction-value">{{ transaction.get_transaction_type_display }}</span></p>
     <p><span class="transaction-label">Payment Status:</span>
         {% if transaction.payment_status == 'Credit' %}

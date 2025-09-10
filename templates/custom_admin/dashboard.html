@@ -133,11 +133,6 @@ Admin Dashboard
         <div class="card">
           <div class="card-header d-flex justify-content-between align-items-center">
             <span>Sales Chart</span>
-            <select id="chart-filter" class="form-select w-auto ms-2">
-              <option value="daily">Last 7 Days</option>
-              <option value="monthly">This Year (Monthly)</option>
-              <option value="yearly">Yearly</option>
-            </select>
           </div>
           <div class="card-body h-50 hello">
             <div id="sales-chart" class="ct-chart ct-perfect-fourth"></div>
@@ -177,8 +172,8 @@ function drawChart(labels, series) {
 document.addEventListener('DOMContentLoaded', function () {
   drawChart(initialLabels, initialSeries);
 
-  document.getElementById('chart-filter').addEventListener('change', function (e) {
-    const filter = e.target.value;
+  document.getElementById('chart-update-btn').addEventListener('click', function () {
+    const filter = document.getElementById('chart-filter').value;
     fetch(`/admin/sales-chart-data/?filter=${filter}`)
       .then(response => {
         if (!response.ok) {
@@ -189,9 +184,11 @@ document.addEventListener('DOMContentLoaded', function () {
       .then(data => drawChart(data.labels, data.sales))
       .catch(error => {
         console.error('Error fetching or rendering chart data:', error);
+        // Optionally, show a user-friendly message here
       });
   });
 });
+
 </script>
 
 {% endblock content %}

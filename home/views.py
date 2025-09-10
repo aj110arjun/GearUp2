@@ -11,8 +11,9 @@ from django.http import HttpResponse
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.lib import colors
-from reportlab.platypus import Table, TableStyle
+from reportlab.platypus import Table, TableStyle, Paragraph
 from django.utils import timezone
+from reportlab.lib.styles import getSampleStyleSheet
 
 
 
@@ -83,20 +84,11 @@ def month_label(month_number):
 def dashboard(request):
     if not request.user.is_staff or not request.user.is_authenticated:
         return redirect('admin_login')
-    # daily_sales = [
-    #     {"date": "Sep 03", "sales": 1500},
-    #     {"date": "Sep 04", "sales": 1700},
-    #     {"date": "Sep 05", "sales": 1800},
-    #     {"date": "Sep 06", "sales": 1200},
-    #     {"date": "Sep 07", "sales": 2200},
-    #     {"date": "Sep 08", "sales": 2000},
-    #     {"date": "Sep 09", "sales": 2500},
-    # ]
 
     # Order Stats
     total_orders = Order.objects.count()
     completed_orders = Order.objects.filter(payment_status="Paid").count()
-    pending_orders = Order.objects.filter(payment_status="Pending").count()
+    pending_orders = OrderItem.objects.filter(status="pending").count()
     total_sales_decimal = Order.objects.filter(payment_status="Paid") \
         .aggregate(total=Sum("total_price"))["total"] or 0
     total_sales = int(total_sales_decimal)
@@ -132,13 +124,6 @@ def dashboard(request):
         ).aggregate(total=Sum("total_price"))["total"] or 0
         daily_sales.append({"date": day.strftime("%b %d"), "sales": float(day_sales)})
 
-    # Recent Activity (customize as needed)
-    recent_activity = [
-        "Order #1022 placed",
-        "Order #1021 marked as completed",
-        "Product 'Rucksack Pro' reached top seller"
-    ]
-
     context = {
         "total_orders": total_orders,
         "completed_orders": completed_orders,
@@ -148,61 +133,91 @@ def dashboard(request):
         "top_categories": top_categories,
         "top_brands": top_brands,
         "daily_sales": daily_sales,
-        "recent_activity": recent_activity
+        # "recent_activity": recent_activity
     }
     return render(request, 'custom_admin/dashboard.html', context)
 
 @staff_member_required(login_url='admin_login')
 def download_sales_report_pdf(request):
-    # Create the HttpResponse object
+    # Create HttpResponse with PDF headers
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="sales_report.pdf"'
 
-    # Create the PDF object, using A4 page size
+    # Setup PDF canvas and page size
     pdf = canvas.Canvas(response, pagesize=A4)
     width, height = A4
+
+    # Title styling and positioning
     pdf.setTitle("Sales Report")
+    pdf.setFont("Helvetica-Bold", 20)
+    pdf.drawCentredString(width / 2, height - 60, "Sales Report (Last 7 Days)")
 
-    # Title
-    pdf.setFont("Helvetica-Bold", 16)
-    pdf.drawCentredString(width / 2, height - 50, "Sales Report (Last 7 Days)")
+    # Description or generated date
+    pdf.setFont("Helvetica", 10)
+    pdf.drawCentredString(width / 2, height - 80, f"Generated on: {date.today().strftime('%Y-%m-%d')}")
 
-    # Prepare table data
-    table_data = [['Date', 'Total Sales (Rs.)', 'Orders Count', 'Top Products']]
+    # Prepare data for table with header
+    table_data = [['Date', 'Total Sales (Rs.)', 'Orders Count', 'Top 3 Products (Quantity)']]
+
+    styles = getSampleStyleSheet()
+    wrap_style = styles["BodyText"]
+    wrap_style.fontSize = 8
+    wrap_style.leading = 10
 
     today = date.today()
-    for i in range(6, -1, -1):
-        day = today - timedelta(days=i)
-        orders = Order.objects.filter(payment_status='Pending', created_at__date=day)
-        total_sales = orders.aggregate(total=Sum('total_price'))['total'] or 0
-        orders_count = orders.count()
 
-        # Top 3 products sold
+    for i in range(6, -1, -1):
+        current_day = today - timedelta(days=i)
+        daily_orders = Order.objects.filter(payment_status='Pending', created_at__date=current_day)
+        total_sales = daily_orders.aggregate(total=Sum('total_price'))['total'] or 0
+        orders_count = daily_orders.count()
+
         top_products_qs = (
-            OrderItem.objects.filter(order__in=orders)
+            OrderItem.objects.filter(order__in=daily_orders)
             .values('variant__product__name')
             .annotate(quantity_sold=Sum('quantity'))
             .order_by('-quantity_sold')[:3]
         )
-        top_products_str = ', '.join([f"{p['variant__product__name']}({p['quantity_sold']})" for p in top_products_qs])
 
-        table_data.append([day.strftime('%Y-%m-%d'), str(total_sales), str(orders_count), top_products_str])
+        # Format top products as a Paragraph for word wrap
+        product_lines = []
+        for p in top_products_qs:
+            product_lines.append(f"{p['variant__product__name']} ({p['quantity_sold']})")
+        top_products_para = Paragraph('<br />'.join(product_lines) if product_lines else 'N/A', wrap_style)
 
-    # Create Table
-    table = Table(table_data, colWidths=[100, 100, 100, 200])
-    style = TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
-        ('TEXTCOLOR', (0,0), (-1,0), colors.black),
-        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-        ('GRID', (0,0), (-1,-1), 0.5, colors.black),
+        # Append each row; for Paragraph cell use later
+        table_data.append([current_day.strftime('%Y-%m-%d'), f"Rs.{total_sales:,}", orders_count, top_products_para])
+
+    # Create table with column widths
+    col_widths = [80, 100, 80, 220]
+    table = Table(table_data, colWidths=col_widths)
+
+    # Define Table Style for headers and rows
+    table_style = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#007bff')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 12),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+        ('TOPPADDING', (0, 0), (-1, 0), 10),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('VALIGN', (0, 1), (-1, -1), 'MIDDLE'),
+        ('FONTSIZE', (0, 1), (-1, -1), 10),
+        ('LEFTPADDING', (3, 1), (3, -1), 6),  # Padding in top products column
     ])
-    table.setStyle(style)
+    table.setStyle(table_style)
 
-    # Calculate table position
-    table_width, table_height = table.wrapOn(pdf, width, height)
-    table.drawOn(pdf, 40, height - 100 - table_height)
+    # Calculate Y position to draw the table (start below title)
+    available_height = height - 120
+    table_width, table_height = table.wrapOn(pdf, width - 80, available_height)
+    x_start = 40
+    y_start = available_height - table_height
 
+    table.drawOn(pdf, x_start, y_start)
+
+    # Finalize PDF
     pdf.showPage()
     pdf.save()
+
     return response
