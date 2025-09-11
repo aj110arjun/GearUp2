@@ -51,9 +51,9 @@ INSTALLED_APPS = [
 ]
 
 cloudinary.config(
-    cloud_name = 'dhpo5iq3m',
-    api_key = '374424946498677',
-    api_secret = '6UxOI2OYRfTcdC4kfAq3AUP_ruM',
+    cloud_name = config("CLOUD_NAME"),
+    api_key = config("API_KEY"),
+    api_secret = config("API_SECRET"),
 )
 
 CLOUDINARY_STORAGE = {
