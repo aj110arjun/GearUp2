@@ -3,6 +3,7 @@ import uuid
 from django.db import models
 from datetime import date
 from django.utils import timezone
+from cloudinary.models import CloudinaryField
 
 
 class Category(models.Model):
@@ -24,7 +25,7 @@ class Product(models.Model):
     )
     description = models.TextField(blank=True)
     brand = models.CharField(max_length=100, blank=True)
-    image = models.ImageField(upload_to='products/', blank=True, null=True)
+    image = CloudinaryField('product')
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
 
@@ -100,7 +101,7 @@ class ProductVariant(models.Model):
     
 class ProductImage(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="images")
-    image = models.ImageField(upload_to="products/additional/")
+    image = CloudinaryField('additional_image')
     alt_text = models.CharField(max_length=255, blank=True)
 
     def __str__(self):

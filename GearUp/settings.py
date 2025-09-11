@@ -1,14 +1,15 @@
 import os
 from pathlib import Path
 from decouple import config, Csv, Config, RepositoryEnv
+import cloudinary
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config("SECRET_KEY")
 
-DEBUG = config("DEBUG", default=False, cast=bool)
-# DEBUG = False
+# DEBUG = config("DEBUG", default=False, cast=bool)
+DEBUG = False
 
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", cast=Csv())
 
@@ -45,7 +46,20 @@ INSTALLED_APPS = [
     'offers',
     'transaction',
     'wallet.apps.WalletConfig',
+    'cloudinary',
+    'cloudinary_storage',
 ]
+
+cloudinary.config(
+    cloud_name = 'dhpo5iq3m',
+    api_key = '374424946498677',
+    api_secret = '6UxOI2OYRfTcdC4kfAq3AUP_ruM',
+)
+
+CLOUDINARY_STORAGE = {
+    
+}
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 RAZORPAY_KEY_ID = config("RAZORPAY_KEY_ID") 
 RAZORPAY_KEY_SECRET = config("RAZORPAY_KEY_SECRET")
@@ -150,7 +164,9 @@ STATICFILES_DIRS = [
     BASE_DIR / 'static'
 ]
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+
+
+MEDIA_URL = 'https://res.cloudinary.com/your_cloud_name/image/upload/'
+# MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

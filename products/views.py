@@ -185,6 +185,9 @@ def admin_product_add(request):
         # --- Validation ---
         if not name:
             errors['name'] = "Product name is required."
+        if not re.match(r'^[A-Za-z\s]+$', name):
+            errors['name'] = "Product name must contain only letters and spaces"
+
         elif len(name) < 3:
             errors['name'] = "Product name must be at least 3 characters."
         elif not re.match(r'^[A-Za-z0-9 ]+$', name):
@@ -194,6 +197,10 @@ def admin_product_add(request):
 
         if not brand:
             errors['brand'] = "Brand is required."
+        if not re.match(r'^[A-Za-z\s]+$', brand):
+            errors['brand'] = "Brand must contain only letters and spaces"
+        if len(brand)<3:
+            errors['brand'] = "Brand must contain 3 characters"
 
         if not description:
             errors['description'] = "Description is required."
@@ -344,6 +351,25 @@ def admin_product_edit(request, product_id):
 
         error_flag = False
 
+        if not product.name:
+            errors['name'] = 'Product name is required.'
+            error_flag = True
+        if not re.match(r'^[A-Za-z\s]+$', product.name):
+            errors['name'] = "Product name must contain only letters and spaces"
+            error_flag = True
+        if len(product.name)<3:
+            errors['name'] = "Product name must atleast 3 characters"
+            error_flag = True
+        if not product.brand:
+            errors['brand'] = 'Brand is required.'
+            error_flag = True
+        if not product.category_id:
+            errors['category'] = 'Category must be selected.'
+            error_flag = True
+        if not product.description:
+            errors['description'] = 'Description is required.'
+            error_flag = True
+
         # --- Update existing variants ---
         for var_id in request.POST.getlist('variant_id'):
             variant = ProductVariant.objects.get(id=var_id)
@@ -370,12 +396,17 @@ def admin_product_edit(request, product_id):
                 price = float(price)
                 stock = int(stock)
             except (ValueError, TypeError):
-                errors[f'variant'] = "Invalid price or stock."
+                errors['price'] = "Invalid price."
+                errors['stock'] = "Invalid stock."
                 error_flag = True
                 continue
 
-            if price < 0 or stock < 0:
-                errors[f'variant'] = "Price and stock must be non-negative."
+            if price < 0:
+                errors['price'] = "Price must be positive value."
+                error_flag = True
+                continue
+            elif stock < 0:
+                errors['stock'] = "Stock must be positive value."
                 error_flag = True
                 continue
 
@@ -408,8 +439,11 @@ def admin_product_edit(request, product_id):
                 errors['new_variant'] = "Invalid price or stock for new variant."
                 error_flag = True
             else:
-                if new_price < 0 or new_stock < 0:
-                    errors['new_variant'] = "Price and stock must be non-negative."
+                if new_price < 0:
+                    errors['new_price'] = "Price must be positive value."
+                    error_flag = True
+                elif new_stock < 0:
+                    errors['new_stock'] = "Stock must be positive value."
                     error_flag = True
 
             if not error_flag:

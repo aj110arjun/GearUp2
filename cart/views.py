@@ -43,6 +43,7 @@ def cart_view(request):
     subtotal = Decimal("0.00")       # after applying offers
     offer_savings = Decimal("0.00")  # how much saved from offers
     discount = Decimal("0.00")       # coupon discount
+    item_qnt_price = Decimal("0.00")
     coupon = None
 
     for item in items:
@@ -55,6 +56,8 @@ def cart_view(request):
         if item.variant.stock == 0:
             item.delete()
             continue
+    for item in items:
+        item_qnt_price += item.variant.price * item.quantity
 
         # Original price
         original_price = item.variant.price
@@ -99,6 +102,7 @@ def cart_view(request):
             "total": total,               # final payable
             "coupon": coupon,
             "error": error,
+            'item_qnt_price':item_qnt_price,
         },
     )
 

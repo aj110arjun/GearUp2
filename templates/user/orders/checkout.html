@@ -87,7 +87,6 @@
                     </div>
                     <div>
                         {% if item.variant.product.get_best_offer > 0 %}
-                            <del class="text-muted">₹{{ item.variant.price }}</del>
                             <span class="text-success fw-bold ms-2">₹{{ item.subtotal }}</span>
                         {% else %}
                             <span>₹{{ item.subtotal }}</span>

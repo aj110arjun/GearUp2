@@ -581,6 +581,7 @@ def admin_approve_reject_return(request, item_id, action):
                         order=item.order,
                     )
                     WalletTransaction.objects.create(
+                        wallet=wallet,
                         transaction_type="DEBIT",
                         amount=refund_amount,
                         description=f"Refund for returned product '{item.variant.product.name}' (x{item.quantity})"
