@@ -27,7 +27,7 @@
                     <td>
                         {% with product_offer=item.variant.product.get_active_product_offer %}
                             {% if product_offer %}
-                                <p class="text-muted text-decoration-line-through mb-0">₹{{ item.variant.price }}</p>
+                                <p class="text-muted text-decoration-line-through mb-0">₹{{ item.variant.price|floatformat:2 }}</p>
                                 <p class="fw-bold text-success mb-0">
                                     ₹{{ item.variant.get_discounted_price|floatformat:2 }}
                                     <span class="badge bg-danger">-{{ product_offer.discount_percent }}%</span>
@@ -40,21 +40,20 @@
                     </td>
                     <td>
                         <a href="{% url 'update_cart' item.id %}?action=decrease"
-                           class="btn btn-sm btn-outline-secondary {% if item.quantity|add:'-1' <= 0 %}disabled{% endif %} decrement-btn">-</a>
+                           class="btn btn-sm btn-outline-secondary decrement-btn {% if item.quantity <= 1 %}disabled{% endif %}">-</a>
                         <span class="quantity-text">{{ item.quantity }}</span>
                         <a href="{% url 'update_cart' item.id %}?action=increase"
-                           class="btn btn-sm btn-outline-secondary {% if item.quantity >= 5 or item.quantity >= item.variant.stock %}disabled{% endif %} increment-btn">+</a>
+                           class="btn btn-sm btn-outline-secondary increment-btn {% if item.quantity >= 5 or item.quantity >= item.variant.stock %}disabled{% endif %}">+</a>
                     </td>
                     <td class="subtotal-text">
                         {% with discount=item.variant.product.get_best_offer %}
                             {% if discount > 0 %}
-                                <p class="text-muted text-decoration-line-through mb-0">₹{{ item.variant.price|floatformat:2 }}</p>
                                 <p class="fw-bold text-success mb-0">
-                                    ₹{{ item.variant.get_discounted_price|floatformat:2 }}
+                                    ₹{{ item.variant.get_discounted_price|mul:item.quantity|floatformat:2 }}
                                     <span class="badge bg-danger">-{{ discount }}%</span>
                                 </p>
                             {% else %}
-                                <p class="fw-bold mb-0">₹{{ item.variant.price|floatformat:2 }}</p>
+                                <p class="fw-bold mb-0">₹{{ item.variant.price|mul:item.quantity|floatformat:2 }}</p>
                             {% endif %}
                         {% endwith %}
                     </td>
@@ -103,4 +102,106 @@
         <p class="text-muted">Your cart is empty.</p>
     {% endif %}
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    function updateCart(itemId, action) {
+        const url = `{% url 'update_cart' 0 %}`.replace('0', itemId) + `?action=${action}`;
+        return fetch(url, {
+            method: 'GET',
+            headers: {'X-Requested-With': 'XMLHttpRequest'},
+            credentials: 'same-origin'
+        }).then(response => response.json());
+    }
+
+    document.querySelectorAll('.increment-btn').forEach(button => {
+        button.addEventListener('click', function (e) {
+            e.preventDefault();
+            if (!button.classList.contains('disabled')) {
+                const row = this.closest('tr');
+                const quantityElem = row.querySelector('.quantity-text');
+                let quantity = parseInt(quantityElem.textContent);
+
+                // Immediately update UI quantity
+                quantity += 1;
+                quantityElem.textContent = quantity;
+
+                // Disable increment if max quantity reached
+                const maxQuantity = 5; // Or pass dynamic from backend
+                if (quantity >= maxQuantity) {
+                    button.classList.add('disabled');
+                }
+
+                // Trigger backend update asynchronously
+                const itemId = row.getAttribute('data-item-id');
+
+                updateCart(itemId, 'increase').then(data => {
+                    if (!data.success) {
+                        alert(data.error || 'Failed to update cart.');
+                        quantityElem.textContent = quantity - 1;  // revert UI
+                        button.classList.remove('disabled');
+                    } else {
+                        if (data.subtotal_html) {
+                            row.querySelector('.subtotal-text').innerHTML = data.subtotal_html;
+                        }
+
+                        const cartTotal = document.getElementById('cart-total');
+                        if (cartTotal) {
+                            cartTotal.textContent = `₹${data.cart_total.toFixed(2)}`;
+                        }
+
+                        row.querySelector('.decrement-btn').classList.toggle('disabled', data.quantity <= 1);
+                        button.classList.toggle('disabled', data.quantity >= data.max_quantity);
+
+                        quantityElem.textContent = data.quantity;  // sync with backend quantity
+                    }
+                });
+            }
+        });
+    });
+
+    document.querySelectorAll('.decrement-btn').forEach(button => {
+        button.addEventListener('click', function (e) {
+            e.preventDefault();
+            if (!button.classList.contains('disabled')) {
+                const row = this.closest('tr');
+                const quantityElem = row.querySelector('.quantity-text');
+                let quantity = parseInt(quantityElem.textContent);
+
+                if (quantity > 1) {
+                    quantity -= 1;
+                    quantityElem.textContent = quantity;
+
+                    // Enable increment button if previously disabled
+                    const incrementBtn = row.querySelector('.increment-btn');
+                    incrementBtn.classList.remove('disabled');
+                }
+
+                const itemId = row.getAttribute('data-item-id');
+                updateCart(itemId, 'decrease').then(data => {
+                    if (!data.success) {
+                        alert(data.error || 'Failed to update cart.');
+                        quantityElem.textContent = quantity + 1;  // revert UI
+                        button.classList.remove('disabled');
+                    } else {
+                        if (data.subtotal_html) {
+                            row.querySelector('.subtotal-text').innerHTML = data.subtotal_html;
+                        }
+
+                        const cartTotal = document.getElementById('cart-total');
+                        if (cartTotal) {
+                            cartTotal.textContent = `₹${data.cart_total.toFixed(2)}`;
+                        }
+
+                        button.classList.toggle('disabled', data.quantity <= 1);
+                        row.querySelector('.increment-btn').classList.toggle('disabled', data.quantity >= data.max_quantity);
+
+                        quantityElem.textContent = data.quantity;
+                    }
+                });
+            }
+        });
+    });
+});
+</script>
 {% endblock %}

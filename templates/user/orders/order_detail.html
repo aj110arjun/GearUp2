@@ -93,7 +93,14 @@
 <!-- Cancellation Section -->
 {% if item.status == "pending" or item.status == "shipped" %}
     {% if not item.cancellation_requested %}
-        <span class="badge bg-danger">{{item.status}}</span>
+        <span class="badge 
+          {% if item.status == 'pending' %}bg-warning
+          {% elif item.status == 'shipped' %}bg-info
+          {% else %}bg-secondary
+          {% endif %}
+        ">
+          {{ item.status | title}}
+        </span>
         <a href="{% url 'cancel_order_item_page' item.item_id %}" 
            class="btn btn-sm btn-danger mt-2">
             Request Cancellation

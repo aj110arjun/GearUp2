@@ -1,10 +1,9 @@
-    {% extends 'custom_admin/base.html' %}
-
-    {% block content %}
+{% extends 'custom_admin/base.html' %}
+{% block title %}
+    Add Product - GearUp
+{% endblock title %}
+{% block content %}
     <h2>Add Product</h2>
-    
-    
-        
 
     <link href="https://unpkg.com/cropperjs@1.5.13/dist/cropper.min.css" rel="stylesheet"/>
     <script src="https://unpkg.com/cropperjs@1.5.13/dist/cropper.min.js"></script>
@@ -119,4 +118,4 @@
         }
     });
     </script>
-    {% endblock %}
+{% endblock %}

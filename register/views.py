@@ -1,5 +1,6 @@
 import pyotp
 import time
+import re
 
 from django.core.mail import send_mail
 from django.shortcuts import render, redirect
@@ -13,6 +14,8 @@ from django.contrib import messages
 
 
 ### User Views
+def custom_404(request, exception):
+    return render(request, "404.html", status=404)
 
 # signup view
 @never_cache
@@ -42,8 +45,8 @@ def user_signup(request):
             except ValidationError:
                 error['email'] = "Invalid Email"
                 
-        if any(char.isdigit() for char in fullname) or "_" in fullname:
-            error['fullname'] = "Invalid Fullname"
+        if not re.match(r'^[A-Za-z\s]+$', fullname):
+            error['fullname'] = "Fullname must contain only letters and spaces"
             
         if len(fullname)<3:
             error['fullname'] = "fullname should contain atleast 3 characters"

@@ -1,10 +1,17 @@
 from django import forms
 from django.contrib.auth.models import User
+from django.core.validators import RegexValidator, MinLengthValidator
 
 from .models import Profile
 
 class ProfileEditForm(forms.ModelForm):
-    name = forms.CharField(max_length=150, required=True)
+    name = forms.CharField(
+        max_length=100,
+        validators=[
+            RegexValidator(regex=r'^[A-Za-z\s]+$', message='Name must contain only letters and spaces.'),
+            MinLengthValidator(3, message='Name must be at least 3 characters long.')
+        ]
+    )
     email = forms.EmailField(required=True)
     current_password = forms.CharField(widget=forms.PasswordInput(), required=False)
     new_password = forms.CharField(widget=forms.PasswordInput(), required=False)
@@ -12,7 +19,7 @@ class ProfileEditForm(forms.ModelForm):
 
     class Meta:
         model = Profile
-        fields = ['profile_image']
+        fields = ['profile_image']  # only profile fields here
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
@@ -20,3 +27,20 @@ class ProfileEditForm(forms.ModelForm):
         if user:
             self.fields['name'].initial = user.get_full_name()
             self.fields['email'].initial = user.email
+        self.user = user
+
+    def save(self, commit=True):
+        profile = super().save(commit=False)
+
+        # Update User fields
+        if self.user:
+            self.user.first_name = self.cleaned_data.get('name', self.user.first_name)
+            self.user.email = self.cleaned_data.get('email', self.user.email)
+            if commit:
+                self.user.save()
+                profile.save()
+        else:
+            if commit:
+                profile.save()
+        return profile
+

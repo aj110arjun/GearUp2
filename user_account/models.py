@@ -3,11 +3,12 @@ import datetime
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+from cloudinary.models import CloudinaryField
 
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    profile_image = models.ImageField(upload_to='profiles/', blank=True, null=True, default='images/default.png')
+    profile_image = CloudinaryField('profile')
     pending_email = models.EmailField(blank=True, null=True)
     email_otp = models.CharField(max_length=6, blank=True, null=True)
     otp_expiry = models.DateTimeField(blank=True, null=True)

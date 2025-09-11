@@ -27,6 +27,13 @@
                 <label class="form-label fw-semibold">Email</label>
                 {{ form.email|add_class:"form-control" }}
             </div>
+            {% if form.name.errors %}
+                <div class="text-danger">
+                    {% for error in form.name.errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
 
             <hr>
 
@@ -53,6 +60,8 @@
                     <p class="text-danger">{{error.cpassword}}</p>
                 {% endif %}
             </div>
+
+
 
             <hr>
 
