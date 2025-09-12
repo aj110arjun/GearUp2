@@ -8,8 +8,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config("SECRET_KEY")
 
-# DEBUG = config("DEBUG", default=False, cast=bool)
-DEBUG = False
+DEBUG = config("DEBUG", default=False, cast=bool)
+# DEBUG = False
 
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", cast=Csv())
 
@@ -51,14 +51,11 @@ INSTALLED_APPS = [
 ]
 
 cloudinary.config(
-    cloud_name = 'dhpo5iq3m',
-    api_key = '374424946498677',
-    api_secret = '6UxOI2OYRfTcdC4kfAq3AUP_ruM',
+    cloud_name = config("CLOUD_NAME"),
+    api_key = config("API_KEY"),
+    api_secret = config("API_SECRET"),
 )
 
-CLOUDINARY_STORAGE = {
-    
-}
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 RAZORPAY_KEY_ID = config("RAZORPAY_KEY_ID") 
@@ -98,8 +95,12 @@ WSGI_APPLICATION = 'GearUp.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': config("NAME"),
+        'USER': 'postgres',
+        'PASSWORD': config("PASSWORD"),
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
 
@@ -163,10 +164,11 @@ STATIC_URL = 'static/'
 STATICFILES_DIRS = [
     BASE_DIR / 'static'
 ]
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 
 
-MEDIA_URL = 'https://res.cloudinary.com/your_cloud_name/image/upload/'
+MEDIA_URL = 'https://res.cloudinary.com/dhpo5iq3m/image/upload/'
 # MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

@@ -339,7 +339,7 @@ def admin_product_edit(request, product_id):
     errors = {}
     
     if request.method == "POST":
-        # --- Update main product ---
+        # --- Update main product only ---
         product.name = request.POST.get('name', '').strip()
         product.brand = request.POST.get('brand', '').strip()
         product.description = request.POST.get('description', '').strip()
@@ -350,14 +350,13 @@ def admin_product_edit(request, product_id):
         product.save()
 
         error_flag = False
-
         if not product.name:
             errors['name'] = 'Product name is required.'
             error_flag = True
         if not re.match(r'^[A-Za-z\s]+$', product.name):
             errors['name'] = "Product name must contain only letters and spaces"
             error_flag = True
-        if len(product.name)<3:
+        if len(product.name) < 3:
             errors['name'] = "Product name must atleast 3 characters"
             error_flag = True
         if not product.brand:
@@ -370,99 +369,8 @@ def admin_product_edit(request, product_id):
             errors['description'] = 'Description is required.'
             error_flag = True
 
-        # --- Update existing variants ---
-        for var_id in request.POST.getlist('variant_id'):
-            variant = ProductVariant.objects.get(id=var_id)
-
-            if f'delete_variant_{variant.id}' in request.POST:
-                variant.delete()
-                continue
-
-            color = request.POST.get(f'color_{variant.id}', '').strip()
-            size = request.POST.get(f'size_{variant.id}', '').strip()
-            price = request.POST.get(f'price_{variant.id}')
-            stock = request.POST.get(f'stock_{variant.id}')
-
-            # Required field validation
-            if not color:
-                errors[f'color'] = "Color is required."
-                error_flag = True
-            if not size:
-                errors[f'size'] = "Size is required."
-                error_flag = True
-
-            # Price & stock validation
-            try:
-                price = float(price)
-                stock = int(stock)
-            except (ValueError, TypeError):
-                errors['price'] = "Invalid price."
-                errors['stock'] = "Invalid stock."
-                error_flag = True
-                continue
-
-            if price < 0:
-                errors['price'] = "Price must be positive value."
-                error_flag = True
-                continue
-            elif stock < 0:
-                errors['stock'] = "Stock must be positive value."
-                error_flag = True
-                continue
-
-            # Only save if no field errors for this variant
-            if not error_flag:
-                variant.color = color
-                variant.size = size
-                variant.price = price
-                variant.stock = stock
-                variant.save()
-
-        # --- Add new variant ---
-        new_color = request.POST.get('new_color', '').strip()
-        new_size = request.POST.get('new_size', '').strip()
-        new_price = request.POST.get('new_price')
-        new_stock = request.POST.get('new_stock')
-
-        if new_color or new_size or new_price or new_stock:  # only if any field entered
-            if not new_color:
-                errors['new_color'] = "Color is required for new variant."
-                error_flag = True
-            if not new_size:
-                errors['new_size'] = "Size is required for new variant."
-                error_flag = True
-
-            try:
-                new_price = float(new_price or 0)
-                new_stock = int(new_stock or 0)
-            except (ValueError, TypeError):
-                errors['new_variant'] = "Invalid price or stock for new variant."
-                error_flag = True
-            else:
-                if new_price < 0:
-                    errors['new_price'] = "Price must be positive value."
-                    error_flag = True
-                elif new_stock < 0:
-                    errors['new_stock'] = "Stock must be positive value."
-                    error_flag = True
-
-            if not error_flag:
-                ProductVariant.objects.create(
-                    product=product,
-                    color=new_color,
-                    size=new_size,
-                    price=new_price,
-                    stock=new_stock
-                )
-
-        # --- Update images ---
-        for img_id in request.POST.getlist('image_id'):
-            if f'delete_image_{img_id}' in request.POST:
-                ProductImage.objects.filter(id=img_id, product=product).delete()
-        for file in request.FILES.getlist('new_images'):
-            ProductImage.objects.create(product=product, image=file)
-
         if error_flag:
+            # Still send existing variants & images for display purposes
             additional_images = product.images.all()
             variants = product.variants.all()
             return render(request, 'custom_admin/products/product_edit.html', {
@@ -472,13 +380,11 @@ def admin_product_edit(request, product_id):
                 'variants': variants,
                 'errors': errors
             })
-
         return redirect('admin_product_detail', product_id=product.product_id)
 
     # --- GET request ---
-    additional_images = product.images.all()
-    variants = product.variants.all()
-
+    additional_images = product.images.all()  # For display only
+    variants = product.variants.all()          # For display only
     return render(request, 'custom_admin/products/product_edit.html', {
         'product': product,
         'additional_images': additional_images,
@@ -486,6 +392,143 @@ def admin_product_edit(request, product_id):
         'variants': variants,
         'errors': {}
     })
+
+
+
+@staff_member_required(login_url='admin_login')
+def admin_variant_add(request, product_id):
+    product = get_object_or_404(Product, pk=product_id)
+    errors = {}
+    if request.method == "POST":
+        color = request.POST.get('color', '').strip()
+        size = request.POST.get('size', '').strip()
+        price = request.POST.get('price')
+        stock = request.POST.get('stock')
+        error_flag = False
+
+        if not color:
+            errors['color'] = "Color is required."
+            error_flag = True
+        if not size:
+            errors['size'] = "Size is required."
+            error_flag = True
+        try:
+            price = float(price)
+            stock = int(stock)
+        except (ValueError, TypeError):
+            errors['price'] = "Invalid price."
+            errors['stock'] = "Invalid stock."
+            error_flag = True
+        else:
+            if price < 0:
+                errors['price'] = "Price must be positive."
+                error_flag = True
+            if stock < 0:
+                errors['stock'] = "Stock must be positive."
+                error_flag = True
+
+        if not error_flag:
+            ProductVariant.objects.create(
+                product=product,
+                color=color,
+                size=size,
+                price=price,
+                stock=stock
+            )
+            return redirect('admin_product_edit', product_id=product.product_id)
+
+    return render(request, 'custom_admin/products/variant_add.html', {
+        'product': product,
+        'errors': errors
+    })
+
+@staff_member_required(login_url='admin_login')
+def admin_variant_edit(request, variant_id):
+    variant = get_object_or_404(ProductVariant, pk=variant_id)
+    errors = {}
+
+    if request.method == "POST":
+        color = request.POST.get('color', '').strip()
+        size = request.POST.get('size', '').strip()
+        price = request.POST.get('price')
+        stock = request.POST.get('stock')
+        error_flag = False
+
+        if not color:
+            errors['color'] = "Color is required."
+            error_flag = True
+        if not size:
+            errors['size'] = "Size is required."
+            error_flag = True
+        try:
+            price = float(price)
+            stock = int(stock)
+        except (ValueError, TypeError):
+            errors['price'] = "Invalid price."
+            errors['stock'] = "Invalid stock."
+            error_flag = True
+        else:
+            if price < 0:
+                errors['price'] = "Price must be positive."
+                error_flag = True
+            if stock < 0:
+                errors['stock'] = "Stock must be positive."
+                error_flag = True
+
+        if not error_flag:
+            variant.color = color
+            variant.size = size
+            variant.price = price
+            variant.stock = stock
+            variant.save()
+            return redirect('admin_product_edit', product_id=variant.product.product_id)
+
+    return render(request, 'custom_admin/products/variant_edit.html', {
+        'variant': variant,
+        'product': variant.product,
+        'errors': errors
+    })
+
+@staff_member_required(login_url='admin_login')
+def admin_variant_delete(request, variant_id):
+    variant = get_object_or_404(ProductVariant, pk=variant_id)
+    product_id = variant.product.product_id
+    if request.method == "POST":
+        variant.delete()
+        return redirect('admin_product_edit', product_id=product_id)
+    return render(request, 'custom_admin/products/variant_confirm_delete.html', {
+        'variant': variant,
+        'product': variant.product
+    })
+
+
+@staff_member_required(login_url='admin_login')
+def admin_image_add(request, product_id):
+    product = get_object_or_404(Product, pk=product_id)
+    errors = {}
+
+    if request.method == "POST":
+        cropped_data = request.POST.get('cropped_image_data')
+        if cropped_data:
+            format, imgstr = cropped_data.split(';base64,')  
+            ext = format.split('/')[-1]  
+            data = ContentFile(base64.b64decode(imgstr), name='cropped.' + ext)
+            ProductImage.objects.create(product=product, image=data)
+            return redirect('admin_product_edit', product_id=product.product_id)
+        images = request.FILES.getlist('images')
+        if not images:
+            errors['images'] = "Please upload at least one image."
+        else:
+            for img in images:
+                ProductImage.objects.create(product=product, image=img)
+            return redirect('admin_product_edit', product_id=product.product_id)
+
+    return render(request, 'custom_admin/products/image_add.html', {
+        'product': product,
+        'errors': errors
+    })
+
+
 
 
 
