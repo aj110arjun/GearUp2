@@ -26,7 +26,7 @@ def home(request):
     if not request.user.is_authenticated:
         return redirect('login')
     subquery = ProductVariant.objects.filter(product=OuterRef('pk')).order_by('id')
-    products = Product.objects.annotate(first_variant_id=Subquery(subquery.values('id')[:1]))[:8]
+    products = Product.objects.filter(is_active = True).annotate(first_variant_id=Subquery(subquery.values('id')[:1]))[:8]
     variants = ProductVariant.objects.filter(id__in=[p.first_variant_id for p in products if p.first_variant_id])
 
     
