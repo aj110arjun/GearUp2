@@ -1,0 +1,18 @@
+{% extends "custom_admin/base.html" %}
+{% block content %}
+<div class="container my-5">
+    <h2>Add Images for {{ product.name }}</h2>
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label>Upload Images</label>
+            <input type="file" name="images" multiple class="form-control {% if errors.images %}is-invalid{% endif %}">
+            {% if errors.images %}
+                <div class="invalid-feedback">{{ errors.images }}</div>
+            {% endif %}
+        </div>
+        <button type="submit" class="btn btn-success">Upload Images</button>
+        <a href="{% url 'admin_product_edit' product.product_id %}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}

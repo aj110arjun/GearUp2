@@ -14,5 +14,11 @@ urlpatterns = [
     path('custom/admin/details/<uuid:product_id>/', views.admin_product_detail, name='admin_product_detail'),
     path('custom/admin/edit/<uuid:product_id>/', views.admin_product_edit, name='admin_product_edit'),
     path('custom/admin/products/<uuid:product_id>/toggle-status/', views.toggle_product_status, name='admin_product_toggle_status'),
+    path('admin/product/<int:product_id>/variant/add/', views.admin_variant_add, name='admin_variant_add'),
+    path('admin/variant/<int:variant_id>/edit/', views.admin_variant_edit, name='admin_variant_edit'),
+    path('admin/variant/<int:variant_id>/delete/', views.admin_variant_delete, name='admin_variant_delete'),
+    path('admin/product/<int:product_id>/images/add/', views.admin_image_add, name='admin_image_add'),
+
+
     
 ]
