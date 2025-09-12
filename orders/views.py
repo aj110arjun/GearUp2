@@ -1,4 +1,5 @@
 import razorpay
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from cart.models import CartItem
@@ -24,7 +25,10 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
-
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+from django.utils.timezone import now
+from django.core.mail import send_mail
 
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.cache import never_cache
@@ -35,34 +39,44 @@ from orders.models import Order, OrderItem, Coupon, Address
 from wallet.models import Wallet, WalletTransaction
 from transaction.models import Transaction  # Import your Transaction model accordingly
 
+
 @login_required(login_url="login")
 @never_cache
 def checkout(request):
     error = {}
     cart_items = CartItem.objects.filter(user=request.user).select_related("variant__product")
+
     if not cart_items.exists():
         return redirect("cart_view")
+
     adjusted = False
     subtotal = Decimal("0.00")
     payment_method = request.POST.get("payment_method", "COD")
     wallet, _ = Wallet.objects.get_or_create(user=request.user)
+
     for item in cart_items:
         max_limit = min(5, item.variant.stock)
+
         if item.variant.stock == 0:
             item.delete()
             adjusted = True
             continue
+
         if item.quantity > max_limit:
             item.quantity = max_limit
             item.save()
             adjusted = True
+
         price = Decimal(item.variant.get_discounted_price())
         subtotal += price * item.quantity
+
     if adjusted:
         messages.warning(request, "Some items were adjusted due to stock limits. Please review your cart again.")
         return redirect("cart_view")
+
     coupon_id = request.session.get("coupon_id")
     discount = Decimal("0.00")
+
     coupon = None
     if coupon_id:
         try:
@@ -81,17 +95,23 @@ def checkout(request):
             coupon = None
             discount = Decimal("0.00")
             request.session.pop("coupon_id", None)
+
     delivery_charge = Decimal("50.00")
     total = subtotal - discount
+
     if total < 0:
         total = Decimal("0.00")
+
     grand_total = total + delivery_charge
+
     if request.method == "POST":
         address_id = request.POST.get("address")
         address = Address.objects.filter(user=request.user, id=address_id).first()
+
         if not address:
             messages.error(request, "Please select an address before placing your order.")
             addresses = Address.objects.filter(user=request.user)
+
             return render(request, "user/orders/checkout.html", {
                 "error": {"address": "Please select an address before placing your order."},
                 "cart_items": cart_items,
@@ -104,8 +124,10 @@ def checkout(request):
                 "grand_total": grand_total,
                 "delivery_charge": delivery_charge,
             })
+
         if payment_method == "WALLET" and wallet.balance < grand_total:
             error['wallet'] = "Insufficient wallet balance."
+
         if error:
             addresses = Address.objects.filter(user=request.user)
             return render(request, "user/orders/checkout.html", {
@@ -120,6 +142,7 @@ def checkout(request):
                 "grand_total": grand_total,
                 "delivery_charge": delivery_charge,
             })
+
         order = Order.objects.create(
             user=request.user,
             address=address,
@@ -129,6 +152,15 @@ def checkout(request):
             payment_method=payment_method,
             payment_status="Paid" if payment_method == "WALLET" else "Pending",
         )
+        if payment_method != "ONLINE":
+            subject = "Your Order Has Been Placed Successfully"
+            html_message = render_to_string('emails/order_confirmation.html', {'order': order, 'user': request.user})
+            plain_message = strip_tags(html_message)
+            from_email = 'pythondjango110@gmail.com'
+            to_email = request.user.email
+
+            send_mail(subject, plain_message, from_email, [to_email], html_message=html_message)
+
         for item in cart_items:
             price = Decimal(item.variant.get_discounted_price())
             OrderItem.objects.create(
@@ -139,9 +171,9 @@ def checkout(request):
             )
             item.variant.stock -= item.quantity
             item.variant.save()
+
         cart_items.delete()
 
-        # Only create Transaction now for WALLET payments
         if payment_method == "WALLET":
             Transaction.objects.create(
                 user=request.user,
@@ -151,22 +183,24 @@ def checkout(request):
                 description=f"Order Payment for Order #{order.order_code} via Wallet",
                 order=order,
             )
+
             wallet.balance -= grand_total
             wallet.save()
+
             WalletTransaction.objects.create(
                 wallet=wallet,
                 amount=grand_total,
                 transaction_type="DEBIT",
                 description=f"Order #{order.order_code} Payment"
             )
+
             return redirect("order_complete", order_id=order.order_id)
 
         if payment_method == "COD":
-            # You may choose to record a transaction for COD after delivery or here
             return redirect("order_complete", order_id=order.order_id)
 
-        # ONLINE: Don't create a transaction yet; handle in payment_success after confirmation
         return redirect("start_payment", order_id=order.order_id)
+
     addresses = Address.objects.filter(user=request.user)
     return render(
         request,
@@ -183,12 +217,6 @@ def checkout(request):
             "delivery_charge": delivery_charge,
         },
     )
-
-
-
-
-
-
 
 
 @login_required(login_url="login")
@@ -796,6 +824,13 @@ def payment_success(request, order_id):
                 description=f"Order Payment for Order #{order.order_code} via Razorpay",
                 order=order,
             )
+            subject = "Your Order Has Been Placed Successfully"
+            html_message = render_to_string('emails/order_confirmation.html', {'order': order, 'user': request.user})
+            plain_message = strip_tags(html_message)
+            from_email = 'pythondjango110@gmail.com'
+            to_email = request.user.email
+
+            send_mail(subject, plain_message, from_email, [to_email], html_message=html_message)
 
             return redirect("order_success", order_id=order.order_id)
         except Exception as e:

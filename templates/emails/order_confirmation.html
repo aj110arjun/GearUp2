@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Order Confirmation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            color: #333333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #eaeaea;
+            background-color: #f9f9f9;
+        }
+        h2 {
+            color: #4CAF50;
+        }
+        .order-details {
+            margin-top: 20px;
+        }
+        .order-details th, .order-details td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #ddd;
+            text-align: left;
+        }
+        .footer {
+            margin-top: 30px;
+            font-size: 0.9em;
+            color: #777777;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Thank you for your order, {{ user.get_full_name|default:user.username }}!</h2>
+        <p>Your order has been successfully placed. Here are the details:</p>
+
+        <table class="order-details" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <th>Order ID:</th>
+                <td>#{{ order.order_code }}</td>
+            </tr>
+            <tr>
+                <th>Shipping Address:</th>
+                <td>
+                    {{ order.address.full_name }}<br>
+                    {{ order.address.address_line_1 }}<br>
+                    {% if order.address.address_line_2 %}
+                        {{ order.address.address_line_2 }}<br>
+                    {% endif %}
+                    {{ order.address.city }}, {{ order.address.state }} - {{ order.address.postal_code }}<br>
+                    {{ order.address.country }}<br>
+                    Phone: {{ order.address.phone }}
+                </td>
+            </tr>
+            <tr>
+                <th>Payment Method:</th>
+                <td>{{ order.payment_method }}</td>
+            </tr>
+            <tr>
+                <th>Payment Status:</th>
+                <td>{{ order.payment_status }}</td>
+            </tr>
+            <tr>
+                <th>Discount:</th>
+                <td>{{ order.discount|default:"N/A" }}</td>
+            </tr>
+            <tr>
+                <th>Total Price:</th>
+                <td>Rs. {{ order.total_price }}</td>
+            </tr>
+            {% if order.coupon %}
+            <tr>
+                <th>Coupon Applied:</th>
+                <td>{{ order.coupon.code }}</td>
+            </tr>
+            {% endif %}
+        </table>
+
+        <p>If you have any questions or concerns regarding your order, please feel free to contact our support team.</p>
+
+        <p>Thank you for shopping with us!</p>
+
+        <div class="footer">
+            &copy; GearUp. All rights reserved.
+        </div>
+    </div>
+</body>
+</html>

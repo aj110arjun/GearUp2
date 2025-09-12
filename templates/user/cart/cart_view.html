@@ -40,10 +40,10 @@
                     </td>
                     <td>
                         <a href="{% url 'update_cart' item.id %}?action=decrease"
-                           class="btn btn-sm btn-outline-secondary decrement-btn {% if item.quantity <= 1 %}disabled{% endif %}">-</a>
+                           class="btn btn-sm btn-outline-secondary decrement-btn">-</a>
                         <span class="quantity-text">{{ item.quantity }}</span>
                         <a href="{% url 'update_cart' item.id %}?action=increase"
-                           class="btn btn-sm btn-outline-secondary increment-btn {% if item.quantity >= 5 or item.quantity >= item.variant.stock %}disabled{% endif %}">+</a>
+                           class="btn btn-sm btn-outline-secondary increment-btn">+</a>
                     </td>
                     <td class="subtotal-text">
                         {% with discount=item.variant.product.get_best_offer %}
