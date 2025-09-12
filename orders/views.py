@@ -345,6 +345,20 @@ def admin_update_order_item_status(request, item_id):
                         description=f"COD Payment recorded for delivered OrderItem #{order_item.item_id} (Order #{order_item.order.order_code})",
                         order=order_item.order,
                     )
+            if new_status.lower() == "delivered":
+                subject = "Your Order Has Been Delivered"
+                context = {
+                    'order': order_item.order,
+                    'user': order_item.order.user,
+                    'now': now(),
+                }
+                html_message = render_to_string('emails/order_delivered.html', context)
+                plain_message = strip_tags(html_message)
+                from_email = 'pythondjango110@gmail.com'
+                to_email = order_item.order.user.email
+
+                send_mail(subject, plain_message, from_email, [to_email], html_message=html_message)
+
 
     return redirect("admin_order_detail", order_id=order_item.order.order_id)
 

@@ -3,13 +3,14 @@ import time
 import re
 
 from django.core.mail import send_mail
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import User
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 from django.contrib.auth import authenticate, login, logout
 from django.views.decorators.cache import never_cache
 from django.contrib import messages
+from allauth.socialaccount.models import SocialAccount
 
 
 
@@ -255,6 +256,23 @@ def admin_login(request):
             
 
     return render(request, "custom_admin/login.html")
+
+def user_list(request):
+    google_user_ids = SocialAccount.objects.filter(provider='google').values_list('user_id', flat=True)
+    users = User.objects.exclude(id__in=google_user_ids).exclude(is_staff=True)
+    context = {
+        "users": users,
+    }
+    return render(request, 'custom_admin/users/user_list.html', context)
+def user_block(request, user_id):
+    user = get_object_or_404(User, id=user_id)
+    if user.is_active:
+        user.is_active = False
+    else:
+        user.is_active = True
+    user.save()
+    return redirect('user_list')
+
 
 def admin_logout_view(request):
     logout(request)
