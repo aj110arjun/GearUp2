@@ -10,17 +10,32 @@
   <link rel="stylesheet" type="text/css" href="{% static 'css/base.css' %}">
   <link  href="https://unpkg.com/cropperjs/dist/cropper.min.css" rel="stylesheet"/>
   <script src="https://unpkg.com/cropperjs"></script>
+  <style>
+    .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh; /* full viewport height */
+    width: 16.6667%; /* equal to Bootstrap col-md-2 */
+    background-color: #343a40; /* or your desired bg color */
+    padding: 20px;
+    overflow-y: auto; /* vertical scroll if content exceeds viewport */
+    z-index: 1030; /* above other content */
+}
+
+  </style>
 
 </head>
 
 <body>
-  <div class="container-fluid">
+  <div class="container-fluid ">
     <div class="row">
       <!-- Sidebar -->
-      <nav class="col-md-2 d-none d-md-block sidebar">
+      <nav class="col-md-2 d-none d-md-block sidebar p-fixed">
         <h4 class="text-white">GearUp</h4>
         <a href="{% url 'dashboard' %}" >Dashboard</a>
          <a href="{% url 'admin_product_list' %}">Products</a>
+         <a href="{% url 'user_list' %}">User List</a>
          <a href="{% url 'category_list' %}">Categories</a>
          <a href="{% url 'admin_order_list' %}">Orders</a>
          <a href="{% url 'admin_transaction_list' %}">Transactions</a>
