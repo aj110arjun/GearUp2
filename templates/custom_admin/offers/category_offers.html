@@ -20,8 +20,8 @@
         <td>
             {% if offer.is_expired %}
                 <span class="badge bg-danger">Expired</span>
-            {% elif offer.active == False %}
-                <span class="badge bg-danger">blocked</span>
+            {% elif not offer.active %}
+                <span class="badge bg-danger">Blocked</span>
             {% else %}
                 <span class="badge bg-success">Active</span>
             {% endif %}

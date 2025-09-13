@@ -26,9 +26,9 @@
           <td>{{ user.date_joined|date:"M d, Y" }}</td>
           <td>
             {% if user.is_active %}
-              <a href="{% url 'user_block' user.id %}" class="btn btn-sm btn-danger">Block</a>
+              <a href="{% url 'toggle_user_status' user.id %}" class="btn btn-sm btn-danger">Block</a>
             {% else %}
-              <a href="{% url 'user_block' user.id %}" class="btn btn-sm btn-success">Unblock</a>
+              <a href="{% url 'toggle_user_status' user.id %}" class="btn btn-sm btn-success">Unblock</a>
             {% endif %}
           </td>
         </tr>

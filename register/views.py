@@ -23,6 +23,7 @@ def custom_404(request, exception):
 def user_signup(request):
     if request.user.is_authenticated:
         return redirect('home')
+
     error={}
     if request.method == 'POST':
         fullname = request.POST['fullname']
@@ -85,6 +86,7 @@ def user_signup(request):
 def user_login(request):
     if request.user.is_authenticated:
         return redirect('home')
+        
     error={}
     if request.method == 'POST':
         email = request.POST.get('email')
@@ -264,7 +266,7 @@ def user_list(request):
         "users": users,
     }
     return render(request, 'custom_admin/users/user_list.html', context)
-def user_block(request, user_id):
+def toggle_user_status(request, user_id):
     user = get_object_or_404(User, id=user_id)
     if user.is_active:
         user.is_active = False
