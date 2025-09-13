@@ -27,22 +27,29 @@
       <label>Discount Percent</label>
       <input type="number" name="discount_percent" class="form-control"
              value="{{ offer.discount_percent }}" min="0" max="90">
-    </div>
-    <div class="mb-3">
-      <label>Active</label>
-      <input type="checkbox" name="active" {% if offer.active %}checked{% endif %}>
+      {% if error.discount %}
+        <span class="text-danger">{{error.discount}}</span>
+      {% endif %}
     </div>
     <div class="mb-3">
       <label>Start Date</label>
       <input type="date" name="start_date" class="form-control"
              value="{{ offer.start_date|date:'Y-m-d' }}">
+      {% if error.start_date %}
+        <span class="text-danger">{{error.start_date}}</span>
+      {% endif %}
     </div>
     <div class="mb-3">
       <label>End Date</label>
-      <input type="date" name="end_date" class="form-control"
-             value="{{ offer.end_date|date:'Y-m-d' }}">
+      <input type="date" name="end_date" class="form-control" value="{{ offer.end_date|date:'Y-m-d' }}">
+      {% if error.end_date %}
+        <span class="text-danger">{{error.end_date}}</span>
+      {% endif %}
     </div>
-
+    <div class="mb-3">
+      <label>Active</label>
+      <input type="checkbox" name="active" {% if offer.active %}checked{% endif %}>
+    </div>
     <button type="submit" class="btn btn-success">Save</button>
     <a href="{% url 'admin_product_offers' %}" class="btn btn-secondary">Cancel</a>
   </form>
