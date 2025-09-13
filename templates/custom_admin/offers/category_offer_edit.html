@@ -21,6 +21,9 @@
     <div class="mb-3">
         <label>Discount %</label>
         <input type="number" name="discount" class="form-control" value="{{ offer.discount_percent }}" required>
+        {% if error.discount %}
+            <span class="text-danger">{{error.discount}}</span>
+        {% endif %}
     </div>
     <div class="mb-3">
         <label>Start Date</label>

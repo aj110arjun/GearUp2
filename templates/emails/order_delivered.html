@@ -45,7 +45,7 @@
         <table class="order-details" width="100%" cellspacing="0" cellpadding="0">
             <tr>
                 <th>Order ID:</th>
-                <td>{{ order.order_code }}</td>
+                <td>#{{ order.order_code }}</td>
             </tr>
             <tr>
                 <th>Shipping Address:</th>
@@ -66,7 +66,7 @@
             </tr>
             <tr>
                 <th>Total Price:</th>
-                <td>${{ order.total_price }}</td>
+                <td>Rs. {{ order.total_price }}</td>
             </tr>
             {% if order.coupon %}
             <tr>

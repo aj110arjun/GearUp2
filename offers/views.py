@@ -30,6 +30,8 @@ def admin_add_product_offer(request):
             error['product'] = "Product field required"
         if not discount:
             error['discount'] = "Discount field is required"
+        elif int(discount) < 10 or int(discount) > 90:
+            error['discount'] = "Discount must be in between 10 and 90"
         if not start_date:
             error['start_date'] = "Start date is required"
         if not end_date:
@@ -84,6 +86,8 @@ def admin_add_category_offer(request):
             error['category'] = "Category is required"
         if not discount:
             error['discount'] = "Discount is required"
+        elif int(discount) < 10 or int(discount) > 90:
+            error['discount'] = "Discount must be in between 10 and 90"
         if not start_date:
             error['start_date'] = "Start date is required"
         if not end_date:
@@ -124,20 +128,34 @@ def admin_product_offer_edit(request, product_id):
 
     if request.method == "POST":
         error={}
-        # re-select product from dropdown (UUID)
         product_uuid = request.POST.get("product")
+
+        discount = request.POST.get("discount_percent")
+        start_date = request.POST.get("start_date")
+        end_date = request.POST.get("end_date")
+
         if product_uuid:
             offer.product = get_object_or_404(Product, product_id=product_uuid)
             
         if ProductOffer.objects.filter(product=offer.product).exclude(id=offer.id).exists():
             error['product'] = "Offer in the product already exist"
 
-        # update offer fields
+        if not discount:
+            error['discount'] = "Discount is required"
+        elif int(discount) < 10 or int(discount) > 90:
+            error['discount'] = "Discount must in between 10 and 90"
+
+        if not start_date:
+            error['start_date'] = "Start date is required"
+            
+        if not end_date:
+            error['end_date'] = "End date is required"
+
         if not error:
-            offer.discount_percent = int(request.POST.get("discount_percent") or 0)
+            offer.discount_percent = int(discount or 0)
             offer.active = request.POST.get("active") == "on"
-            offer.start_date = parse_date(request.POST.get("start_date")) if request.POST.get("start_date") else None
-            offer.end_date = parse_date(request.POST.get("end_date")) if request.POST.get("end_date") else None
+            offer.start_date = parse_date(start_date) if start_date else None
+            offer.end_date = parse_date(end_date) if end_date else None
 
             offer.save()
             return redirect("admin_product_offers")
@@ -160,8 +178,14 @@ def admin_category_offer_edit(request, category_id):
     if request.method == "POST":
         category_id = request.POST.get("category")
         new_category = get_object_or_404(Category, id=category_id)
+        discount = request.POST.get("discount")
+
         if CategoryOffer.objects.filter(category=new_category).exclude(id=offer.id).exists():
             error['category'] = "Offer on this category already exist"
+
+        if int(discount) < 10 or int(discount) > 90:
+            error['discount'] = "Discount must in between 10 and 20"
+
         if not error:
             category_id = request.POST.get("category")
             offer.category = get_object_or_404(Category, id=category_id)
@@ -171,9 +195,9 @@ def admin_category_offer_edit(request, category_id):
             offer.active = request.POST.get("active") == "on"
             offer.save()
             return redirect("admin_category_offers")
+
         return render(request,"custom_admin/offers/category_offer_edit.html",{"offer": offer,"error":error, "categories": Category.objects.all()})
         
-
     categories = Category.objects.all()
     return render(request, "custom_admin/offers/category_offer_edit.html", {"categories": categories, "offer": offer})
 
