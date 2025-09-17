@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from decouple import config, Csv, Config, RepositoryEnv
+from decouple import config
 import cloudinary
 
 
