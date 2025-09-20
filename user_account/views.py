@@ -8,6 +8,9 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.conf import settings
+import cloudinary.uploader
+from django.core.exceptions import ValidationError
+
 
 from .forms import ProfileEditForm
 from .models import Profile
@@ -25,6 +28,8 @@ def account_info(request):
         del request.session['profile_updated']
     return render(request, 'user/account.html', { 'profile': profile, 'success_message': success_message})
 
+
+
 @login_required(login_url='login')
 def edit_profile(request):
     error = {}
@@ -32,14 +37,27 @@ def edit_profile(request):
 
     if request.method == 'POST':
         form = ProfileEditForm(request.POST, request.FILES, user=request.user, instance=profile)
-        
+
         if form.is_valid():
             user = request.user
             new_name = form.cleaned_data['name']
             new_email = form.cleaned_data['email']
 
-            # Update name (safe to apply immediately)
             user.first_name = new_name
+
+            # Handle image upload with Cloudinary and catch potential errors
+            profile_image = form.cleaned_data.get('profile_image')
+            if profile_image:
+                try:
+                    # Example upload call - adjust if using auto-upload in save() or signals
+                    cloudinary.uploader.upload(profile_image)
+                except Exception as e:
+                    form.add_error('profile_image', "Image invalid or upload failed.")
+                    return render(request, 'user/edit_profile.html', {
+                        'form': form,
+                        'profile': profile,
+                        'error': error
+                    })
 
             # Handle email change with OTP
             if new_email and new_email != user.email:
@@ -72,7 +90,6 @@ def edit_profile(request):
                 if len(new_password) < 6:
                     error['password'] = "Password must be at least 6 characters"
 
-            # Save changes if no errors
             if not error:
                 if new_password:
                     user.set_password(new_password)
@@ -81,6 +98,9 @@ def edit_profile(request):
                 form.save()
                 request.session['profile_updated'] = True
                 return redirect('account_info')
+
+        # If form is not valid, fall through to render template with errors
+
     else:
         form = ProfileEditForm(user=request.user, instance=profile)
 
@@ -89,6 +109,7 @@ def edit_profile(request):
         'profile': profile,
         'error': error
     })
+
 
 
 @login_required(login_url='login')

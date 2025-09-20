@@ -8,6 +8,28 @@
 {% endblock %}
 
 {% block content %}
+<style>
+     body{
+        background-color: #BAA991;
+    }
+    .account-container {
+        max-width: 850px;
+        margin: auto;
+    }
+    .account-card {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        padding: 2rem;
+    }
+    .account-avatar {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid #ddd;
+    }
+</style>
 <div class="container account-container my-5">
     {% if success_message %}
         <div id="alert-success" class="alert alert-success mt-2">{{ success_message }}</div>

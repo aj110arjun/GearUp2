@@ -29,9 +29,14 @@
         </form>
 
         <!-- Timer & Resend -->
-        <div class="text-center mt-3">
-            <small id="timer" class="text-muted">Expire OTP in 60s</small>
-            <a href="{% url 'resend_otp' %}" id="resend-link" class="text-decoration-none d-none">Resend OTP</a>
+       <div class="text-center mt-3">
+            {% if otp_expired %}
+                <small class="text-muted d-none" id="timer">Expire OTP in 0s</small>
+                <a href="{% url 'resend_otp' %}" id="resend-link" class="text-decoration-none">Resend OTP</a>
+            {% else %}
+                <small id="timer" class="text-muted">Expire OTP in 60s</small>
+                <a href="{% url 'resend_otp' %}" id="resend-link" class="text-decoration-none d-none">Resend OTP</a>
+            {% endif %}
         </div>
     </div>
 
@@ -43,16 +48,22 @@
         const timerEl = document.getElementById("timer");
         const resendEl = document.getElementById("resend-link");
 
-        const countdown = setInterval(() => {
-            seconds--;
-            timerEl.textContent = "Expire OTP in " + seconds + "s";
+        if (timerEl && !timerEl.classList.contains("d-none")) {
+            const countdown = setInterval(() => {
+                seconds--;
+                timerEl.textContent = "Expire OTP in " + seconds + "s";
 
-            if (seconds <= 0) {
-                clearInterval(countdown);
-                timerEl.classList.add("d-none");
-                resendEl.classList.remove("d-none");
-            }
-        }, 1000);
+                if (seconds <= 0) {
+                    clearInterval(countdown);
+                    timerEl.classList.add("d-none");
+                    resendEl.classList.remove("d-none");
+                }
+            }, 1000);
+        } else {
+            // OTP already expired, show resend immediately
+            if (timerEl) timerEl.classList.add("d-none");
+            if (resendEl) resendEl.classList.remove("d-none");
+        }
     </script>
 </body>
 </html>
