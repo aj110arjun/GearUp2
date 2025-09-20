@@ -7,6 +7,7 @@ from products.models import ProductVariant
 from wishlist.models import Wishlist
 from decimal import Decimal
 from coupons.models import Coupon
+from django.http import JsonResponse
 from django.views.decorators.cache import never_cache
 from django.template.loader import render_to_string
 
