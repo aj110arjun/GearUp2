@@ -233,8 +233,6 @@ def admin_add_category_offer(request):
         "today": localdate().isoformat(),
     })
 
-
-
 @staff_member_required(login_url="admin_login")
 @never_cache
 def admin_delete_category_offer(request, offer_id):
@@ -243,8 +241,6 @@ def admin_delete_category_offer(request, offer_id):
     messages.success(request, "Category offer deleted successfully.")
     return redirect("admin_category_offers")
 
-
-    
 @staff_member_required(login_url="admin_login")
 @never_cache
 def admin_category_offer_edit(request, category_id):
