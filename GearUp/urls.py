@@ -7,7 +7,7 @@ from django.conf.urls import handler404
 
 urlpatterns = [
     path('', include('home.urls')),
-    path('admin/', admin.site.urls),
+    # path('admin/', admin.site.urls),
     path('register/', include('register.urls')),
     path('account/', include('user_account.urls')),
     path('accounts/', include('allauth.urls')),

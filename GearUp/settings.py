@@ -16,7 +16,7 @@ ALLOWED_HOSTS = config("ALLOWED_HOSTS", cast=Csv())
 ENV_FILE = BASE_DIR.parent.parent / ".env"
 config = Config(RepositoryEnv(str(ENV_FILE)))
 
-CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", cast=Csv())
+CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", cast=Csv()) 
 
 
 INSTALLED_APPS = [
