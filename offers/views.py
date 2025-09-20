@@ -18,13 +18,30 @@ def admin_product_offers(request):
 @staff_member_required(login_url="admin_login")
 @never_cache
 def admin_add_product_offer(request):
-    error={}
+    error = {}
+    form_data = {
+        "product": "",
+        "discount": "",
+        "start_date": "",
+        "end_date": "",
+        "active": False,
+    }
+
     if request.method == "POST":
         product_id = request.POST.get("product")
         discount = request.POST.get("discount")
         start_date = request.POST.get("start_date")
         end_date = request.POST.get("end_date")
         active = request.POST.get("active") == "on"
+
+        # Preserve user input
+        form_data = {
+            "product": product_id,
+            "discount": discount,
+            "start_date": start_date,
+            "end_date": end_date,
+            "active": active,
+        }
 
         if not product_id:
             error['product'] = "Product field required"
@@ -38,7 +55,7 @@ def admin_add_product_offer(request):
             error['end_date'] = "End date is required"
         if ProductOffer.objects.filter(product=product_id).exists():
             error['product'] = "Offer on this product already exist"
-            
+
         if not error:
             product = get_object_or_404(Product, id=product_id)
             ProductOffer.objects.create(
@@ -51,7 +68,12 @@ def admin_add_product_offer(request):
             return redirect("admin_product_offers")
 
     products = Product.objects.all()
-    return render(request, "custom_admin/offers/add_product_offer.html", {"products": products, "error": error})
+    return render(
+        request,
+        "custom_admin/offers/add_product_offer.html",
+        {"products": products, "error": error, "form_data": form_data}
+    )
+
 
 
 @staff_member_required(login_url="admin_login")
@@ -74,13 +96,29 @@ def admin_category_offers(request):
 @staff_member_required(login_url="admin_login")
 @never_cache
 def admin_add_category_offer(request):
-    error={}
+    error = {}
+    form_data = {
+        "category": "",
+        "discount": "",
+        "start_date": "",
+        "end_date": "",
+        "active": False,
+    }
+
     if request.method == "POST":
         category_id = request.POST.get("category")
         discount = request.POST.get("discount")
         start_date = request.POST.get("start_date")
         end_date = request.POST.get("end_date")
         active = request.POST.get("active") == "on"
+
+        form_data = {
+            "category": category_id,
+            "discount": discount,
+            "start_date": start_date,
+            "end_date": end_date,
+            "active": active,
+        }
 
         if not category_id:
             error['category'] = "Category is required"
@@ -107,7 +145,12 @@ def admin_add_category_offer(request):
             return redirect("admin_category_offers")
 
     categories = Category.objects.all()
-    return render(request, "custom_admin/offers/add_category_offer.html", {"categories": categories, "error":error})
+    return render(request, "custom_admin/offers/add_category_offer.html", {
+        "categories": categories,
+        "error": error,
+        "form_data": form_data
+    })
+
 
 
 @staff_member_required(login_url="admin_login")

@@ -1,50 +1,51 @@
 {% extends "user/base.html" %}
+{% load humanize %}
 {% block content %}
-<div class="container my-5">
-
-    <div class="card shadow-sm border-0 mb-4">
-    <div class="card-header bg-light"><h5 class="mb-0">➕ Add Money</h5></div>
-    <div class="card-body">
-        <div class="row">
-            <div class="col-md-8">
-                <input type="number" id="amount" min="1" class="form-control" placeholder="Enter amount in ₹">
-            </div>
-            <div class="col-md-4">
-                <button class="btn btn-success w-100" onclick="payNow()">Add Money</button>
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold mb-0">💰 My Wallet</h2>
+        <a href="{% url 'add_money' %}" class="btn btn-success btn-lg px-4 py-2 shadow-sm">
+            <i class="bi bi-plus-circle me-2"></i>Add Money
+        </a>
+    </div>
+    {% if error %}
+        <div class="row mb-3">
+            <div class="col-md-6 col-lg-4 mx-auto">
+                <div class="text-danger text-center py-2 mb-0">
+                    {{ error.amount }}
+                </div>
             </div>
         </div>
-    </div>
-</div>
-
-    <!-- Page Title -->
-    <div class="text-center mb-4">
-        <h2 class="fw-bold">💰 My Wallet</h2>
-        <p class="text-muted">Track your balance and transactions easily</p>
-    </div>
-
+    {% endif %}
     <!-- Wallet Balance Card -->
-    <div class="card shadow-sm border-0 mb-4">
-        <div class="card-body text-center">
-            <h5 class="text-muted">Current Balance</h5>
-            <h2 class="fw-bold text-success">₹{{ wallet.balance }}</h2>
+    <div class="row mb-4">
+        <div class="col-md-6 col-lg-4 mx-auto">
+            <div class="card border-0 shadow text-center">
+                <div class="card-body p-4">
+                    <div class="display-4 mb-2 text-success"><i class="bi bi-wallet2"></i></div>
+                    <h5 class="text-muted mb-1">Current Balance</h5>
+                    <h2 class="fw-bold text-success mb-1">₹{{ wallet.balance|intcomma }}</h2>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- Transactions -->
-    <div class="card shadow-sm border-0">
-        <div class="card-header bg-light">
-            <h5 class="mb-0">📑 Transaction History</h5>
+    <div class="card border-0 shadow-sm mb-5">
+        <div class="card-header bg-light text-primary d-flex align-items-center">
+            <i class="bi bi-clock-history me-2"></i>
+            <h5 class="mb-0">Transaction History</h5>
         </div>
         <div class="card-body">
             {% if page_obj %}
                 <div class="table-responsive">
-                    <table class="table align-middle">
+                    <table class="table align-middle table-bordered mb-0 bg-white">
                         <thead class="table-light">
                             <tr>
-                                <th>Date</th>
-                                <th>Type</th>
-                                <th>Amount (₹)</th>
-                                <th>Description</th>
+                                <th scope="col"><i class="bi bi-calendar-date me-1"></i>Date</th>
+                                <th scope="col"><i class="bi bi-arrows-collapse-vertical me-1"></i>Type</th>
+                                <th scope="col"><i class="bi bi-cash-coin me-1"></i>Amount (₹)</th>
+                                <th scope="col"><i class="bi bi-journal-text me-1"></i>Description</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -53,9 +54,9 @@
                                     <td>{{ txn.created_at|date:"d M Y, H:i" }}</td>
                                     <td>
                                         {% if txn.transaction_type == "CREDIT" %}
-                                            <span class="badge bg-success">{{ txn.transaction_type }}</span>
+                                            <span class="badge bg-success"><i class="bi bi-arrow-down-circle me-1"></i>CREDIT</span>
                                         {% else %}
-                                            <span class="badge bg-danger">{{ txn.transaction_type }}</span>
+                                            <span class="badge bg-danger"><i class="bi bi-arrow-up-circle me-1"></i>DEBIT</span>
                                         {% endif %}
                                     </td>
                                     <td class="fw-bold {% if txn.transaction_type == 'CREDIT' %}text-success{% else %}text-danger{% endif %}">
@@ -69,10 +70,9 @@
                         </tbody>
                     </table>
                 </div>
-
                 <!-- Pagination controls -->
-                <nav aria-label="Transaction pages">
-                    <ul class="pagination justify-content-center mt-3">
+                <nav aria-label="Transaction pages" class="mt-4">
+                    <ul class="pagination justify-content-center mb-0">
                         {% if page_obj.has_previous %}
                             <li class="page-item">
                                 <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
@@ -80,7 +80,6 @@
                         {% else %}
                             <li class="page-item disabled"><span class="page-link">Previous</span></li>
                         {% endif %}
-
                         {% for num in page_obj.paginator.page_range %}
                             {% if page_obj.number == num %}
                                 <li class="page-item active"><span class="page-link">{{ num }}</span></li>
@@ -88,7 +87,6 @@
                                 <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
                             {% endif %}
                         {% endfor %}
-
                         {% if page_obj.has_next %}
                             <li class="page-item">
                                 <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
@@ -99,68 +97,15 @@
                     </ul>
                 </nav>
             {% else %}
-                <div class="text-center text-muted py-4">
-                    <p class="mb-0">No transactions yet.</p>
+                <div class="text-center text-muted py-5">
+                    <i class="bi bi-emoji-frown display-3 mb-3"></i>
+                    <p class="mb-0 fs-5">No transactions yet.</p>
                 </div>
             {% endif %}
         </div>
     </div>
 </div>
 
-<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-<script>
-function payNow() {
-    var amount = document.getElementById("amount").value;
-    if (!amount || amount <= 0) {
-        alert("Enter a valid amount");
-        return;
-    }
-    fetch("{% url 'create_order' %}", {
-        method: "POST",
-        headers: {
-            "X-CSRFToken": "{{ csrf_token }}",
-            "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: "amount=" + amount
-    })
-    .then(response => response.json())
-    .then(data => {
-        var options = {
-            "key": "{{ razorpay_key }}",
-            "amount": data.amount,
-            "currency": "INR",
-            "name": "GearUp Wallet",
-            "description": "Add Money to Wallet",
-            "order_id": data.id,
-            "handler": function (response){
-                // Send all Razorpay payment details to backend for verification
-                fetch("{% url 'payment_success' %}", {
-                    method: "POST",
-                    headers: {
-                        "X-CSRFToken": "{{ csrf_token }}",
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        razorpay_payment_id: response.razorpay_payment_id,
-                        razorpay_order_id: response.razorpay_order_id,
-                        razorpay_signature: response.razorpay_signature
-                    })
-                }).then(() => {
-                    window.location.reload();
-                });
-            },
-            "prefill": {
-                "name": "{{ request.user.first_name }}",
-                "email": "{{ request.user.email }}",
-            },
-            "theme": {
-                "color": "#3399cc"
-            }
-        };
-        var rzp1 = new Razorpay(options);
-        rzp1.open();
-    });
-}
+<!-- Optionally add Razorpay or Add Money Script if needed here -->
 
-</script>
 {% endblock %}

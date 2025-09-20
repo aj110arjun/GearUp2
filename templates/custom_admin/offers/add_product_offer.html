@@ -6,8 +6,14 @@
     <div class="mb-3">
         <label>Product</label>
         <select name="product" class="form-control" required>
+            <option value="">Select Product</option>
             {% for product in products %}
-                <option value="{{ product.id }}">{{ product.name }}</option>
+                <option value="{{ product.id }}"
+                    {% if form_data.product|default_if_none:'' == product.id|stringformat:"s" %}
+                        selected
+                    {% endif %}>
+                    {{ product.name }}
+                </option>
             {% endfor %}
         </select>
         {% if error.product %}
@@ -16,29 +22,31 @@
     </div>
     <div class="mb-3">
         <label>Discount %</label>
-        <input type="number" name="discount" class="form-control" required>
-        
+        <input type="number" name="discount" class="form-control" required
+               value="{{ form_data.discount|default_if_none:'' }}">
         {% if error.discount %}
             <span class="text-danger">{{error.discount}}</span>
         {% endif %}
-            
     </div>
     <div class="mb-3">
         <label>Start Date</label>
-        <input type="date" name="start_date" class="form-control" required>
+        <input type="date" name="start_date" class="form-control" required
+               value="{{ form_data.start_date|default_if_none:'' }}">
         {% if error.start_date %}
             <span class="text-danger">{{error.start_date}}</span>
         {% endif %}
     </div>
     <div class="mb-3">
         <label>End Date</label>
-        <input type="date" name="end_date" class="form-control" required>
+        <input type="date" name="end_date" class="form-control" required
+               value="{{ form_data.end_date|default_if_none:'' }}">
         {% if error.end_date %}
             <span class="text-danger">{{error.end_date}}</span>
         {% endif %}
     </div>
     <div class="form-check">
-        <input type="checkbox" name="active" class="form-check-input">
+        <input type="checkbox" name="active" class="form-check-input"
+               {% if form_data.active %}checked{% endif %}>
         <label class="form-check-label">Active</label>
     </div>
     <button type="submit" class="btn btn-success mt-2">Save</button>

@@ -11,7 +11,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.views.decorators.cache import never_cache
 from django.contrib import messages
 from allauth.socialaccount.models import SocialAccount
-
+from django.contrib.auth.password_validation import validate_password
 
 
 ### User Views
@@ -19,43 +19,50 @@ def custom_404(request, exception):
     return render(request, "404.html", status=404)
 
 # signup view
+
 @never_cache
 def user_signup(request):
     if request.user.is_authenticated:
         return redirect('home')
 
-    error={}
+    error = {}
     if request.method == 'POST':
         fullname = request.POST['fullname']
         email = request.POST['email']
         password1 = request.POST['password1']
         password2 = request.POST['password2']
-        
+
         if not fullname or not email or not password1 or not password2:
             error['common'] = "All fields are required"
-            
+
         if password1 != password2:
             error['password'] = "Both password must match"
-            
+
         if password1:
-            if len(password1)<6:
-                error['password1'] = "Length of password must be above 6"
-                
+            if len(password1) < 8:
+                error['password1'] = "Length of password must be above 8"
+            else:
+                try:
+                    # Django built-in strong password validation
+                    validate_password(password1)
+                except ValidationError as e:
+                    error['password1'] = "\n".join(e.messages)
+
         if email:
             try:
                 validate_email(email)
             except ValidationError:
                 error['email'] = "Invalid Email"
-                
+
         if not re.match(r'^[A-Za-z\s]+$', fullname):
             error['fullname'] = "Fullname must contain only letters and spaces"
-            
-        if len(fullname)<3:
-            error['fullname'] = "fullname should contain atleast 3 characters"
-        
+
+        if len(fullname) < 3:
+            error['fullname'] = "fullname should contain at least 3 characters"
+
         if User.objects.filter(username=email).exists():
             error['email'] = "Email already in use"
-            
+
         if not error:
             secret = pyotp.random_base32()
             totp = pyotp.TOTP(secret, interval=60)  # 1 minute expiry
@@ -68,7 +75,7 @@ def user_signup(request):
                 "secret": secret,
                 "otp_time": time.time()
             }
-            
+
             send_mail(
                 "Your OTP Code",
                 f"Your OTP code is: {otp}\n(It expires in 1 minute)",
@@ -76,10 +83,11 @@ def user_signup(request):
                 [email],
                 fail_silently=False,
             )
-            
+
             return redirect("verify_otp")
-            
-    return render(request, 'user/signup.html', {'error':error})
+
+    return render(request, 'user/signup.html', {'error': error})
+
 
 # login view
 @never_cache
@@ -107,16 +115,17 @@ def user_login(request):
     return render(request, 'user/login.html', {'error': error})
 
 def verify_otp(request):
-    error={}
+    error = {}
     signup_data = request.session.get("signup_data")
-    
     if not signup_data:
         return redirect('signup')
 
-    if request.method == 'POST':
+    # Check if OTP expired (more than 60 seconds past otp_time)
+    otp_expired = time.time() - signup_data.get("otp_time", 0) > 60
+
+    if request.method == 'POST' and not otp_expired:
         entered_otp = request.POST.get("otp")
         totp = pyotp.TOTP(signup_data["secret"], interval=60)
-        
         if totp.verify(entered_otp):
             username = signup_data["email"]
             password = signup_data["password"]
@@ -127,13 +136,16 @@ def verify_otp(request):
                 password=password,
                 first_name=fullname
             )
-            
             login(request, user)
             del request.session["signup_data"]
             return redirect('home')
         else:
             error["otp"] = "Invalid or expired otp"
-    return render(request, "user/otp/verify_otp.html", {'error': error})
+    elif request.method == "POST" and otp_expired:
+        error["otp"] = "OTP has expired, please resend to get a new one."
+
+    return render(request, "user/otp/verify_otp.html", {'error': error, 'otp_expired': otp_expired})
+
 
 def resend_otp(request):
     signup_data = request.session.get("signup_data")
@@ -145,6 +157,10 @@ def resend_otp(request):
     totp = pyotp.TOTP(signup_data["secret"], interval=60)
     new_otp = totp.now()
 
+    # Update otp_time to current time (reset timer)
+    signup_data["otp_time"] = time.time()
+    request.session["signup_data"] = signup_data  # Save session with updated time
+
     # Send OTP via email
     send_mail(
         "Your OTP Code",
@@ -155,6 +171,7 @@ def resend_otp(request):
 
     messages.success(request, "A new OTP has been sent to your email.")
     return redirect("verify_otp")
+
 
 # logout view
 def logout_view(request):

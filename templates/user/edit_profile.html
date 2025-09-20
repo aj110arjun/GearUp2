@@ -12,6 +12,28 @@
     
     
 {% block content %}
+<style>
+     body{
+        background-color: #BAA991;
+    }
+    .account-container {
+        max-width: 850px;
+        margin: auto;
+    }
+    .account-card {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        padding: 2rem;
+    }
+    .account-avatar {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid #ddd;
+    }
+</style>
 <div class="container mt-5">
     <div class="card shadow p-4 rounded-4">
         <h2 class="text-center mb-4">Edit Profile</h2>
@@ -68,6 +90,12 @@
             <div class="mb-3">
                 <label class="form-label fw-semibold">Profile Image</label>
                 {{ form.profile_image|add_class:"form-control" }}
+                {% if form.profile_image.errors %}
+                    <div class="text-danger small mt-1">
+                        {{ form.profile_image.errors.as_text|linebreaksbr }}
+                    </div>
+                {% endif %}
+
             </div>
 
             <div class="text-center">

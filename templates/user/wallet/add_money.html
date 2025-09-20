@@ -1,0 +1,14 @@
+{% extends 'user/base.html' %}
+{% block content %}
+<div class="container mt-5">
+    <form method="post" action="{% url 'wallet_payment' %}">
+        {% csrf_token %}
+        <h2>Add Money to Wallet</h2>
+        <div class="mb-3">
+            <label for="amount" class="form-label">Amount</label>
+            <input type="number" step="0.01" min="1" id="amount" name="amount" class="form-control" required>
+        </div>
+        <button type="submit" id="pay-btn" class="btn btn-primary">Proceed to Pay</button>
+    </form>
+</div>
+{% endblock %}
