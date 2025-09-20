@@ -117,11 +117,6 @@ class ProductOffer(models.Model):
     @property
     def is_expired(self):
         return self.end_date < timezone.localdate()
-    
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=["product"], name="unique_product_offer")
-        ]
 
     def __str__(self):
         return f"{self.discount_percent}% off on {self.product.name}"

@@ -31,7 +31,8 @@
     <div class="mb-3">
         <label>Start Date</label>
         <input type="date" name="start_date" class="form-control" required
-            value="{{ form_data.start_date|default_if_none:'' }}">
+            value="{{ form_data.start_date|default_if_none:'' }}"
+            min="{{today}}">
         {% if error.start_date %}
             <span class="text-danger">{{error.start_date}}</span>
         {% endif %}
@@ -39,7 +40,8 @@
     <div class="mb-3">
         <label>End Date</label>
         <input type="date" name="end_date" class="form-control" required
-            value="{{ form_data.end_date|default_if_none:'' }}">
+            value="{{ form_data.end_date|default_if_none:'' }}"
+            min="{{today}}">
         {% if error.end_date %}
             <span class="text-danger">{{error.end_date}}</span>
         {% endif %}

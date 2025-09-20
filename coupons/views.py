@@ -1,16 +1,19 @@
-
-from decimal import Decimal
 from django.utils.dateparse import parse_datetime
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.shortcuts import redirect, get_object_or_404, render
 from django.utils import timezone
-from .models import Coupon
+from django.utils.timezone import now
 from django.contrib.auth.decorators import login_required
-from decimal import Decimal
-from cart.models import CartItem
 from django.utils.dateparse import parse_date
 from django.views.decorators.cache import never_cache
+
+from decimal import Decimal
+from decimal import Decimal
+from datetime import datetime
+
+from cart.models import CartItem
+from .models import Coupon
 
 
 @login_required(login_url="login")
@@ -80,42 +83,69 @@ def admin_coupon_list(request):
 @staff_member_required(login_url='admin_login')
 @never_cache
 def admin_coupon_add(request):
-    error={}
+    error = {}
+    form_data = {
+        "code": "",
+        "discount": "",
+        "min_purchase": "",
+        "active": False,
+        "valid_from": "",
+        "valid_to": "",
+    }
+
     if request.method == "POST":
         code = request.POST.get("code", "").strip()
-        discount = request.POST.get("discount")
-        min_purchase = request.POST.get("min_purchase") or None
+        discount = request.POST.get("discount", "")
+        min_purchase = request.POST.get("min_purchase", "")
         active = request.POST.get("active") == "on"
+        valid_from_str = request.POST.get("valid_from", "")
+        valid_to_str = request.POST.get("valid_to", "")
 
-        # Parse the datetime fields
-        valid_from_str = request.POST.get("valid_from")
-        valid_to_str = request.POST.get("valid_to")
+        form_data.update({
+            "code": code,
+            "discount": discount,
+            "min_purchase": min_purchase,
+            "active": active,
+            "valid_from": valid_from_str,
+            "valid_to": valid_to_str,
+        })
+
         valid_from = parse_datetime(valid_from_str) if valid_from_str else None
         valid_to = parse_datetime(valid_to_str) if valid_to_str else None
 
         if not code:
             error["code"] = "Coupon code is required"
-        else:
-            if Coupon.objects.filter(code=code).exists():
-                error["code"] = "Coupon code is already exist"
-            
+        elif Coupon.objects.filter(code=code).exists():
+            error["code"] = "Coupon code already exists"
+
         if not discount:
             error["discount"] = "Discount is required"
-        else:   
-            if int(discount) < 10 or int(discount) > 90:
-                error["discount"] = "Discount must be in between 10 and 90"
-                
+        else:
+            try:
+                disc_val = int(discount)
+                if disc_val < 10 or disc_val > 90:
+                    error["discount"] = "Discount must be between 10 and 90"
+            except ValueError:
+                error["discount"] = "Discount must be a valid number"
+
         if not min_purchase:
             error["min_purchase"] = "Minimum purchase amount is required"
         else:
-            if int(min_purchase) < 100:
-                error["min_purchase"] = "Minimum purchase amount must be greater than 100"
-            
+            try:
+                min_pur_val = int(min_purchase)
+                if min_pur_val < 100:
+                    error["min_purchase"] = "Minimum purchase amount must be greater than 100"
+            except ValueError:
+                error["min_purchase"] = "Minimum purchase must be a valid number"
+
         if not valid_from:
-            error["valid_from"] = "Valid from is required"
-            
+            error["valid_from"] = "Valid from date/time is required"
         if not valid_to:
-            error["valid_to"] = "Valid to is required"
+            error["valid_to"] = "Valid to date/time is required"
+
+        if valid_from and valid_to:
+            if valid_from >= valid_to:
+                error["valid_to"] = "'Valid to' must be later than 'Valid from'"
 
         if not error:
             Coupon.objects.create(
@@ -128,7 +158,11 @@ def admin_coupon_add(request):
             )
             return redirect("admin_coupon_list")
 
-    return render(request, "custom_admin/coupons/coupon_form.html", {"action": "Add", "error": error})
+    return render(request, "custom_admin/coupons/coupon_form.html", {
+        "action": "Add",
+        "error": error,
+        "form_data": form_data,
+    })
 
 @staff_member_required(login_url='admin_login')
 @never_cache

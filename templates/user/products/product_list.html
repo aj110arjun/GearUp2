@@ -9,45 +9,37 @@
     <!-- Search & Filters Row -->
     <div class="row mb-4 align-items-center">
         <!-- Search -->
-        <div class="col-md-4 mb-2">
-            <form method="get">
-                <div class="input-group">
-                    <input type="text" name="q" class="form-control" placeholder="Search products..."
-                           value="{{ request.GET.q }}">
-                    <button class="btn btn-primary" type="submit">
-                        <i class="bi bi-search"></i>
-                    </button>
-                </div>
-            </form>
-        </div>
+        <form method="get" class="row g-2 align-items-center mb-4">
 
-        <!-- Category Filter -->
-        <div class="col-md-3 mb-2">
-            <form method="get">
+            <!-- Search (text input) -->
+            <div class="col-md-4">
+                <input type="text" name="q" class="form-control" placeholder="Search products..."
+                    value="{{ filters.search }}">
+            </div>
+
+            <!-- Category filter -->
+            <div class="col-md-3">
                 <select name="category" class="form-select" onchange="this.form.submit()">
-                    <option value="">All Categories</option>
-                    {% for cat in categories %}
-                        <option value="{{ cat.id }}" {% if request.GET.category == cat.id|stringformat:"s" %}selected{% endif %}>
-                            {{ cat.name }}
-                        </option>
-                    {% endfor %}
+                <option value="">All Categories</option>
+                {% for cat in categories %}
+                    <option value="{{ cat.id }}" {% if filters.category == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+                {% endfor %}
                 </select>
-            </form>
-        </div>
+            </div>
 
-        <!-- Sorting -->
-        <div class="col-md-3 mb-2">
-            <form method="get">
+            <!-- Sorting -->
+            <div class="col-md-3">
                 <select name="sort" class="form-select" onchange="this.form.submit()">
-                    <option value="">Sort by</option>
-                    <option value="name" {% if request.GET.sort == "name" %}selected{% endif %}>Name: A-Z</option>
-                    <option value="name2" {% if request.GET.sort == "name2" %}selected{% endif %}>Name: Z-A</option>
-                    <option value="price_asc" {% if request.GET.sort == "price_asc" %}selected{% endif %}>Price: Low to High</option>
-                    <option value="price_desc" {% if request.GET.sort == "price_desc" %}selected{% endif %}>Price: High to Low</option>
+                <option value="">Sort by</option>
+                <option value="name" {% if filters.sort == "name" %}selected{% endif %}>Name: A-Z</option>
+                <option value="name2" {% if filters.sort == "name2" %}selected{% endif %}>Name: Z-A</option>
+                <option value="price_asc" {% if filters.sort == "price_asc" %}selected{% endif %}>Price: Low to High</option>
+                <option value="price_desc" {% if filters.sort == "price_desc" %}selected{% endif %}>Price: High to Low</option>
                 </select>
-            </form>
-        </div>
-    </div>
+            </div>
+
+        </form>
+
 
     <!-- Product Grid -->
     <!-- Product Grid -->

@@ -34,6 +34,7 @@ def account_info(request):
 def edit_profile(request):
     error = {}
     profile, created = Profile.objects.get_or_create(user=request.user)
+    has_password = request.user.has_usable_password()
 
     if request.method == 'POST':
         form = ProfileEditForm(request.POST, request.FILES, user=request.user, instance=profile)
@@ -107,7 +108,8 @@ def edit_profile(request):
     return render(request, 'user/edit_profile.html', {
         'form': form,
         'profile': profile,
-        'error': error
+        'error': error,
+        'has_password': has_password,
     })
 
 

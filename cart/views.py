@@ -8,6 +8,7 @@ from wishlist.models import Wishlist
 from decimal import Decimal
 from coupons.models import Coupon
 from django.views.decorators.cache import never_cache
+from django.template.loader import render_to_string
 
 
 @login_required(login_url="login")
@@ -110,20 +111,64 @@ def cart_view(request):
 @login_required(login_url="login")
 @never_cache
 def update_cart(request, item_id):
+    if request.headers.get('x-requested-with') != 'XMLHttpRequest':
+        return redirect("cart_view")
+
     cart_item = get_object_or_404(CartItem, id=item_id, user=request.user)
     action = request.GET.get("action")
+    error = None
 
-    if action == "increase" and cart_item.quantity < cart_item.variant.stock:
-        cart_item.quantity += 1
-        cart_item.save()
+    if action == "increase":
+        if cart_item.quantity < cart_item.variant.stock:
+            cart_item.quantity += 1
+            cart_item.save()
+        else:
+            error = "Reached maximum stock limit."
     elif action == "decrease":
         if cart_item.quantity > 1:
             cart_item.quantity -= 1
             cart_item.save()
         else:
             cart_item.delete()
+            cart_item = None
+    else:
+        error = "Invalid action."
 
-    return redirect("cart_view")
+    if not cart_item:
+        quantity = 0
+        subtotal_html = "₹0.00"
+        max_quantity = 0
+    else:
+        quantity = cart_item.quantity
+        discounted_price = cart_item.variant.get_discounted_price()
+        subtotal_amount = discounted_price * quantity
+
+        # Render subtotal HTML snippet
+        best_discount = cart_item.variant.product.get_best_offer()
+        subtotal_html = render_to_string("partials/cart_item_subtotal.html", {
+            "subtotal": subtotal_amount,
+            "discount": best_discount,
+        })
+
+        max_quantity = min(5, cart_item.variant.stock)
+
+    # Calculate total cart amount considering discounted prices and quantities
+    cart_items = CartItem.objects.filter(user=request.user)
+    cart_total = Decimal('0.00')
+    for item in cart_items:
+        price = item.variant.get_discounted_price()
+        cart_total += price * item.quantity
+
+    response_data = {
+        "success": error is None,
+        "error": error,
+        "quantity": quantity,
+        "subtotal_html": subtotal_html,
+        "cart_total": float(cart_total),
+        "max_quantity": max_quantity,
+    }
+
+    return JsonResponse(response_data)
 
 @login_required(login_url="login")
 @never_cache
