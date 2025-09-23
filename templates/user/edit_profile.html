@@ -1,111 +1,211 @@
 {% extends 'user/base.html' %}
-{% load widget_tweaks %}
 
-
-{% block title %}
-    Edit Profile
-{% endblock title %}
-
-{% block css %}
-    <link rel="stylesheet" href="css/account.css" type="text/css" />
-{% endblock css %}
-    
-    
 {% block content %}
 <style>
-     body{
-        background-color: #BAA991;
-    }
-    .account-container {
-        max-width: 850px;
-        margin: auto;
-    }
-    .account-card {
-        background: #fff;
-        border-radius: 12px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        padding: 2rem;
-    }
-    .account-avatar {
-        width: 120px;
-        height: 120px;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 3px solid #ddd;
-    }
+  body {
+    background-color: #BAA991;
+  }
+  form input[type="text"],
+  form input[type="email"],
+  form input[type="password"],
+  form input[type="file"],
+  form textarea,
+  form select {
+    width: 100%;
+    padding: 0.375rem 0.75rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: #212529;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1.5px solid #ced4da;
+    border-radius: 0.5rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  }
+
+  form input[type="text"]:focus,
+  form input[type="email"]:focus,
+  form input[type="password"]:focus,
+  form input[type="file"]:focus,
+  form textarea:focus,
+  form select:focus {
+    border-color: #0d6efd;
+    outline: 0;
+    box-shadow: 0 0 8px rgba(13, 110, 253, 0.3);
+  }
+
+  input:invalid {
+    border-color: #dc3545;
+    padding-right: calc(1.5em + 0.75rem);
+    background-image: url('/path-to-error-icon.svg');
+    background-repeat: no-repeat;
+    background-position: right calc(0.375em + 0.1875rem) center;
+    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+  }
+  .account-container {
+    max-width: 850px;
+    margin: auto;
+    padding: 2rem 1rem;
+  }
+  .account-card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    padding: 2.5rem;
+  }
+  .change-password-section {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 1.5rem 2rem;
+    margin-top: 2rem;
+    border: 1px solid #ddd;
+  }
+  .change-password-section h3 {
+    border-bottom: 2px solid #0d6efd;
+    padding-bottom: 0.3rem;
+    margin-bottom: 1.25rem;
+    color: #495057;
+    font-weight: 600;
+  }
+  .form-label {
+    font-weight: 600;
+    color: #555;
+  }
+  .text-danger {
+    font-size: 0.9rem;
+    margin-top: 0.25rem;
+  }
+  button.btn-primary {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+  }
+  button.btn-primary:hover {
+    background-color: #0b5ed7;
+    border-color: #0a58ca;
+  }
 </style>
-<div class="container mt-5">
-    <div class="card shadow p-4 rounded-4">
-        <h2 class="text-center mb-4">Edit Profile</h2>
-        <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
-            {% csrf_token %}
 
-            <div class="mb-3">
-                <label class="form-label fw-semibold">Name</label>
-                {{ form.name|add_class:"form-control" }}
-            </div>
+<div class="container account-container">
+  <div class="card account-card">
+    <h2 class="text-center mb-4">Edit Profile</h2>
+    <form method="post" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
 
-            <div class="mb-3">
-                <label class="form-label fw-semibold">Email</label>
-                {{ form.email|add_class:"form-control" }}
-            </div>
-            {% if form.name.errors %}
-                <div class="text-danger">
-                    {% for error in form.name.errors %}
-                        {{ error }}
-                    {% endfor %}
-                </div>
-            {% endif %}
+      <div class="mb-3">
+        <label for="{{ form.name.id_for_label }}" class="form-label">Name</label>
+        {{ form.name }}
+        {% if form.name.errors %}
+          <div class="text-danger">
+            {% for error in form.name.errors %}
+              {{ error }}
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
 
+      
 
-            {% if has_password %}
-                <hr>
+      {% if has_password %}
+      <div class="mb-3">
+        <label for="{{ form.email.id_for_label }}" class="form-label">Email</label>
+        {{ form.email }}
+      </div>
+      
+      <div class="change-password-section">
+        <h3>Change Password</h3>
 
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Current Password</label>
-                    {{ form.current_password|add_class:"form-control" }}
-                    {% if error.cupassword %}
-                        <p class="text-danger">{{error.cupassword}}</p>
-                    {% endif %}
-                </div>
+        <div class="mb-3">
+          <label for="{{ form.current_password.id_for_label }}" class="form-label">Current Password</label>
+          {{ form.current_password }}
+          {% if error.cupassword %}
+          <p class="text-danger">{{ error.cupassword }}</p>
+          {% endif %}
+        </div>
 
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">New Password</label>
-                    {{ form.new_password|add_class:"form-control" }}
-                    {% if error.password %}
-                        <p class="text-danger">{{error.password}}</p>
-                    {% endif %}
-                </div>
+        <div class="mb-3">
+          <label for="{{ form.new_password.id_for_label }}" class="form-label">New Password</label>
+          {{ form.new_password }}
+          {% if error.password %}
+          <p class="text-danger">{{ error.password }}</p>
+          {% endif %}
+        </div>
 
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Confirm New Password</label>
-                    {{ form.confirm_password|add_class:"form-control" }}
-                    {% if error.cpassword %}
-                        <p class="text-danger">{{error.cpassword}}</p>
-                    {% endif %}
-                </div>
-            {% endif %}
+        <div class="mb-3">
+          <label for="{{ form.confirm_password.id_for_label }}" class="form-label">Confirm New Password</label>
+          {{ form.confirm_password }}
+          {% if error.cpassword %}
+          <p class="text-danger">{{ error.cpassword }}</p>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
 
+      <hr>
 
-
-
-            <hr>
-
-            <div class="mb-3">
-                <label class="form-label fw-semibold">Profile Image</label>
-                {{ form.profile_image|add_class:"form-control" }}
-                {% if form.profile_image.errors %}
-                    <div class="text-danger small mt-1">
-                        {{ form.profile_image.errors.as_text|linebreaksbr }}
-                    </div>
-                {% endif %}
-
-            </div>
-            
-            <div class="text-center">
-                <button type="submit" class="btn btn-primary px-4 py-2 rounded-3">Update Profile</button>
-            </div>
-        </form>
+      <div class="mb-3">
+  <label for="{{ form.profile_image.id_for_label }}" class="form-label">Profile Image</label>
+  {{ form.profile_image }}
+  <img id="image-preview" style="display:none; max-width: 100%; margin-top: 1rem;" />
+  {% if form.profile_image.errors %}
+    <div class="text-danger small mt-1">
+      {{ form.profile_image.errors.as_text|linebreaksbr }}
     </div>
+  {% endif %}
 </div>
+
+
+      <div class="text-center mt-4">
+        <button type="submit" class="btn btn-primary px-4 py-2 rounded">Update Profile</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  const input = document.getElementById('{{ form.profile_image.id_for_label }}');
+  const image = document.getElementById('image-preview');
+  let cropper;
+
+  input.addEventListener('change', (event) => {
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      const url = URL.createObjectURL(file);
+      image.src = url;
+      image.style.display = 'block';
+
+      if (cropper) {
+        cropper.destroy();
+      }
+      cropper = new Cropper(image, {
+        aspectRatio: 1,  // square crop
+        viewMode: 1,
+        autoCropArea: 1,
+      });
+    }
+  });
+
+  // On form submit, replace the file input with the cropped image data
+  document.querySelector('form').addEventListener('submit', function(event) {
+    if (cropper) {
+      event.preventDefault();
+
+      cropper.getCroppedCanvas().toBlob(function(blob) {
+        const fileInput = input;
+        const file = new File([blob], 'cropped_profile_image.png', { type: 'image/png' });
+
+        // Create a DataTransfer to hold the cropped file
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        fileInput.files = dataTransfer.files;
+
+        // Submit form after updating file input
+        event.target.submit();
+      }, 'image/png');
+    }
+  });
+</script>
+
+
 {% endblock content %}

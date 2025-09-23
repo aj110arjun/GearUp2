@@ -12,11 +12,32 @@
         <form method="get" class="row g-2 align-items-center mb-4">
 
             <!-- Search (text input) -->
-            <div class="col-md-4">
-                <input type="text" name="q" class="form-control" placeholder="Search products..."
-                    value="{{ filters.search }}">
-            </div>
+            <div class="col-md-4 position-relative">
+  <div class="input-group">
+    <input type="text" name="q" id="search-input" class="form-control" placeholder="Search products..." value="{{ filters.search }}"
+           style="padding-right: 60px;"> <!-- Add right padding -->
 
+    <!-- Clear button positioned to the left of the search button -->
+    <button type="button" id="clear-btn" aria-label="Clear search"
+            style="
+              position: absolute;
+              right: 75px; /* Move left of search button */
+              top: 50%;
+              transform: translateY(-50%);
+              border: none;
+              background: transparent;
+              font-size: 18px;
+              cursor: pointer;
+              color: #999;
+              display: none;
+              z-index: 1000;
+            ">
+      &times;
+    </button>
+
+    <button type="submit" class="btn btn-primary">Search</button>
+  </div>
+</div>
             <!-- Category filter -->
             <div class="col-md-3">
                 <select name="category" class="form-select" onchange="this.form.submit()">
@@ -131,4 +152,23 @@
     {% endif %}
 
 </div>
+
+<script>
+  const input = document.getElementById('search-input');
+  const clearBtn = document.getElementById('clear-btn');
+
+  function toggleClearBtn() {
+    clearBtn.style.display = input.value ? 'block' : 'none';
+  }
+
+  input.addEventListener('input', toggleClearBtn);
+  clearBtn.addEventListener('click', () => {
+    input.value = '';
+    toggleClearBtn();
+    input.focus();
+  });
+
+  // Initialize on page load
+  toggleClearBtn();
+</script>
 {% endblock %}

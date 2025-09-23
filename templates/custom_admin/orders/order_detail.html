@@ -41,6 +41,13 @@
                                 <button type="submit" class="btn btn-sm btn-primary">Update</button>
                             </div>
                         </form>
+                        {% for message in messages %}
+                            {% if message.error%}
+                                <div>{{message}}</div>
+                            {% endif %}
+                        {% endfor %}
+
+                            
                     </td>
                 </tr>
             {% endfor %}

@@ -295,69 +295,80 @@ def admin_order_detail(request, order_id):
     items = OrderItem.objects.filter(order=order).select_related("variant__product")
     return render(request, "custom_admin/orders/order_detail.html", {"order": order, "items": items})
 
+
 @staff_member_required(login_url="admin_login")
 @never_cache
 def admin_update_order_item_status(request, item_id):
+    errors={}
     order_item = get_object_or_404(OrderItem, item_id=item_id)
+
+    # Define ordered statuses for progression check (lowercase)
+    status_order = ["pending", "shipped", "delivered", "cancelled"]
 
     if request.method == "POST":
         new_status = request.POST.get("status")
-        if new_status in ["Pending", "Shipped", "Delivered", "Cancelled"]:
-            if new_status.lower() in ["pending", "shipped"]:
-                order_item.cancellation_requested = False
-                order_item.cancellation_reason = ""
-                order_item.cancellation_approved = None
+        if new_status and new_status.lower() in status_order:
+            current_index = status_order.index(order_item.status)
+            new_index = status_order.index(new_status.lower())
 
-            order_item.status = new_status.lower()
-            order_item.save()
+            # Avoid reverse progression (allow only same or forward status)
+            if new_index >= current_index:
+                if new_status.lower() in ["pending", "shipped"]:
+                    order_item.cancellation_requested = False
+                    order_item.cancellation_reason = ""
+                    order_item.cancellation_approved = None
 
-            if new_status.lower() == "delivered" and order_item.order.payment_method == "COD":
-                existing_txn = Transaction.objects.filter(
-                    order=order_item.order,
-                    transaction_type="COD",
-                    description__icontains=f"OrderItem #{order_item.item_id}"
-                ).exists()
+                order_item.status = new_status.lower()
+                order_item.save()
 
-                if not existing_txn:
-                    # Calculate item original price and proportional coupon discount
-                    order_items = order_item.order.items.all()
-                    order_total_original = sum([
-                        Decimal(oi.variant.price) * oi.quantity for oi in order_items
-                    ])
-                    item_original_price = Decimal(order_item.variant.price) * order_item.quantity
-                    coupon_discount_total = getattr(order_item.order, "coupon_discount", Decimal("0.00"))
-
-                    # Proportional coupon discount for this item
-                    item_coupon_discount = Decimal("0.00")
-                    if order_total_original > 0 and coupon_discount_total > 0:
-                        item_coupon_discount = (item_original_price / order_total_original) * coupon_discount_total
-
-                    # Calculate final amount considering coupon discount
-                    amount = item_original_price - item_coupon_discount
-                    if amount < 0:
-                        amount = Decimal('0.00')
-                    amount += Decimal('50.00')
-                    Transaction.objects.create(
-                        user=order_item.order.user,
-                        transaction_type="COD",
-                        payment_status="Credit",
-                        amount=amount,
-                        description=f"COD Payment recorded for delivered OrderItem #{order_item.item_id} (Order #{order_item.order.order_code})",
+                if new_status.lower() == "delivered" and order_item.order.payment_method == "COD":
+                    existing_txn = Transaction.objects.filter(
                         order=order_item.order,
-                    )
-            if new_status.lower() == "delivered":
-                subject = "Your Order Has Been Delivered"
-                context = {
-                    'order': order_item.order,
-                    'user': order_item.order.user,
-                    'now': now(),
-                }
-                html_message = render_to_string('emails/order_delivered.html', context)
-                plain_message = strip_tags(html_message)
-                from_email = 'pythondjango110@gmail.com'
-                to_email = order_item.order.user.email
+                        transaction_type="COD",
+                        description__icontains=f"OrderItem #{order_item.item_id}"
+                    ).exists()
 
-                send_mail(subject, plain_message, from_email, [to_email], html_message=html_message)
+                    if not existing_txn:
+                        order_items = order_item.order.items.all()
+                        order_total_original = sum([
+                            Decimal(oi.variant.price) * oi.quantity for oi in order_items
+                        ])
+                        item_original_price = Decimal(order_item.variant.price) * order_item.quantity
+                        coupon_discount_total = getattr(order_item.order, "coupon_discount", Decimal("0.00"))
+
+                        item_coupon_discount = Decimal("0.00")
+                        if order_total_original > 0 and coupon_discount_total > 0:
+                            item_coupon_discount = (item_original_price / order_total_original) * coupon_discount_total
+
+                        amount = item_original_price - item_coupon_discount
+                        if amount < 0:
+                            amount = Decimal('0.00')
+                        amount += Decimal('50.00')
+
+                        Transaction.objects.create(
+                            user=order_item.order.user,
+                            transaction_type="COD",
+                            payment_status="Credit",
+                            amount=amount,
+                            description=f"COD Payment recorded for delivered OrderItem #{order_item.item_id} (Order #{order_item.order.order_code})",
+                            order=order_item.order,
+                        )
+                if new_status.lower() == "delivered":
+                    subject = "Your Order Has Been Delivered"
+                    context = {
+                        'order': order_item.order,
+                        'user': order_item.order.user,
+                        'now': now(),
+                    }
+                    html_message = render_to_string('emails/order_delivered.html', context)
+                    plain_message = strip_tags(html_message)
+                    from_email = 'pythondjango110@gmail.com'
+                    to_email = order_item.order.user.email
+
+                    send_mail(subject, plain_message, from_email, [to_email], html_message=html_message)
+
+            else:
+                messages.error(request, "Cannot reverse order status progression.")
 
 
     return redirect("admin_order_detail", order_id=order_item.order.order_id)
@@ -370,13 +381,11 @@ def request_cancel_order_item(request, item_id):
 
     # Only allow if Pending or Shipped
     if item.status not in ["pending", "shipped"]:
-        messages.error(request, "You cannot cancel this item.")
         return redirect("order_detail", order_id=item.order.order_id)
 
     if request.method == "POST":
         reason = request.POST.get("reason", "").strip()
         if not reason:
-            messages.error(request, "You must provide a reason for cancellation.")
             return redirect("order_detail", order_id=item.order.order_id)
 
         item.cancellation_requested = True

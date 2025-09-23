@@ -11,16 +11,16 @@ Admin Dashboard
     margin: 0 auto;   /* Center align horizontally */
   }
   .hi {
-  min-height: 400px; /* Or any desired fixed height */
-  display: flex;
-  flex-direction: column;
-}
+    min-height: 400px; /* Or any desired fixed height */
+    display: flex;
+    flex-direction: column;
+  }
 
-.card-body {
-  flex-grow: 1;  /* Makes body fill the card height */
-  max-height: 640px; /* Adjust if needed */
-  overflow-y: auto;  /* Enables vertical scroll if content overflows */
-}
+  .card-body {
+    flex-grow: 1;  /* Makes body fill the card height */
+    max-height: 640px; /* Adjust if needed */
+    overflow-y: auto;  /* Enables vertical scroll if content overflows */
+  }
 </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/chartist.js/latest/chartist.min.css">
 
@@ -115,12 +115,11 @@ Admin Dashboard
           <div class="card-body">
             <ul class="list-group">
               {% for brand in top_brands %}
-                  <li class="list-group-item d-flex justify-content-between align-items-center">
-                    {{ brand.variant__product__brand }}
-                    <span class="badge bg-warning rounded-pill">{{ brand.quantity_sold }}</span>
-                  </li>
-                {% endfor %}
-
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                  {{ brand.variant__product__brand }}
+                  <span class="badge bg-warning rounded-pill">{{ brand.quantity_sold }}</span>
+                </li>
+              {% endfor %}
             </ul>
           </div>
         </div>
@@ -129,6 +128,15 @@ Admin Dashboard
 
     <!-- Chart Section -->
     <div class="row mt-5">
+      <form method="get" action="" class="d-flex align-items-center mb-3">
+        <select name="filter" id="chart-filter" class="form-select me-2" style="width:auto;">
+          <option value="daily" {% if selected_filter == "daily" %}selected{% endif %}>Daily</option>
+          <option value="monthly" {% if selected_filter == "monthly" %}selected{% endif %}>Monthly</option>
+          <option value="yearly" {% if selected_filter == "yearly" %}selected{% endif %}>Yearly</option>
+        </select>
+        <button type="submit" class="btn btn-primary btn-sm">Update Chart</button>
+      </form>
+
       <div class="col-md-12">
         <div class="card">
           <div class="card-header d-flex justify-content-between align-items-center">
@@ -144,6 +152,7 @@ Admin Dashboard
 </main>
 
 <script src="https://cdn.jsdelivr.net/chartist.js/latest/chartist.min.js"></script>
+
 <script>
 // Initial data from Django context (daily by default)
 const initialLabels = [{% for day in daily_sales %}'{{ day.date }}',{% endfor %}];
@@ -153,7 +162,7 @@ const initialSeries = [{% for day in daily_sales %}{{ day.sales }},{% endfor %}]
 let chartInstance = null;
 
 function drawChart(labels, series) {
-  // If a chart already exists, detach it before creating a new one
+  // Detach existing chart if present
   if (chartInstance) {
     chartInstance.detach();
   }
@@ -172,9 +181,11 @@ function drawChart(labels, series) {
 document.addEventListener('DOMContentLoaded', function () {
   drawChart(initialLabels, initialSeries);
 
-  document.getElementById('chart-update-btn').addEventListener('click', function () {
-    const filter = document.getElementById('chart-filter').value;
-    fetch(`/admin/sales-chart-data/?filter=${filter}`)
+  document.getElementById('chart-filter-form').addEventListener('submit', function (event) {
+    event.preventDefault();
+    const filter = this.elements['filter'].value;
+
+    fetch(`/custom/admin/sales/chart/data/?filter=${filter}`)
       .then(response => {
         if (!response.ok) {
           throw new Error('Network response was not ok');
@@ -184,11 +195,10 @@ document.addEventListener('DOMContentLoaded', function () {
       .then(data => drawChart(data.labels, data.sales))
       .catch(error => {
         console.error('Error fetching or rendering chart data:', error);
-        // Optionally, show a user-friendly message here
+        // Optionally, display a user-friendly error message here
       });
   });
 });
-
 </script>
 
 {% endblock content %}

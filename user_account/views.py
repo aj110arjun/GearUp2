@@ -1,4 +1,5 @@
 import random
+import re
 
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.cache import never_cache
@@ -88,8 +89,12 @@ def edit_profile(request):
                     error['cupassword'] = "Current password is incorrect."
                 if new_password != confirm_password:
                     error['cpassword'] = "New passwords do not match."
-                if len(new_password) < 6:
-                    error['password'] = "Password must be at least 6 characters"
+
+                # Strong password check
+                strong_password_pattern = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@#$!%*?&])[A-Za-z\d@#$!%*?&]{8,}$'
+                if not re.match(strong_password_pattern, new_password):
+                    error['password'] = ("Password must be at least 8 characters long and include at least one uppercase letter, "
+                                        "one lowercase letter, one digit and one special character.")
 
             if not error:
                 if new_password:

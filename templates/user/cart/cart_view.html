@@ -64,10 +64,35 @@
     </tbody>
   </table>
 
+    <div class="my-4 p-4 border rounded shadow-sm bg-light">
+      <h5 class="mb-3 text-primary">Apply Coupon</h5>
+      <form method="post" action="{% url 'apply_coupon' %}" class="d-flex gap-2 mb-3">
+        {% csrf_token %}
+        <input type="text" name="code" class="form-control" placeholder="Enter coupon code" value="{{ coupon.code|default_if_none:'' }}" aria-label="Coupon code">
+        <button type="submit" class="btn btn-primary">Apply</button>
+      </form>
+      {% if coupon%}
+        <a href="{% url 'remove_coupon' %}" class="text-decoration-none mb-3 d-inline-block btn btn-outline-danger">Remove Coupon</a>
+      {% endif %}
+      {% if error.coupon %}
+        <div class=" text-danger p-1 mt-1" role="alert">{{ error.coupon }}</div>
+      {% endif %}
+      {% if coupon and not error.coupon %}
+        <div class=" text-success p-1 mt-1" role="alert">
+          Coupon "<strong>{{ coupon.code }}</strong>" applied! Discount: ₹{{ discount|floatformat:2 }}
+        </div>
+      {% endif %}
+    </div>
+
+
+  {% if error.cart %}
+    <div class="text-danger">{{error.cart}}</div>
+  {% endif %}
+
   <div class="text-end">
     <h4>
       Order Total: 
-      <span id="cart-total" class="text-success fs-4 fw-bold">₹{{ total|floatformat:2 }}</span>
+      <span id="cart-total" data-discount="{{ discount|floatformat:2 }}" class="text-success fs-4 fw-bold">₹{{ total|floatformat:2 }}</span>
     </h4>
   </div>
 
@@ -82,7 +107,7 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  // Cache price and discount data per cart row
+  // Cache price, discount, and stock data per cart row
   const itemData = {};
   document.querySelectorAll('tbody tr').forEach(row => {
     const id = row.getAttribute('data-item-id');
@@ -97,7 +122,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (discountBadge) {
       discountPercent = parseFloat(discountBadge.textContent.replace(/[^\d]/g, '')) || 0;
     }
-    itemData[id] = {price, discountPercent};
+    // Assume stock is available as data attribute or in a cell, e.g. 4th td with class 'stock'
+    let stock = parseInt(row.querySelector('td.stock')?.textContent) || 5; // default 5 if no stock found
+    itemData[id] = {price, discountPercent, stock};
   });
 
   const discountedPrice = (price, discountPercent) => price * (1 - discountPercent / 100);
@@ -122,27 +149,38 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function updateOrderTotal() {
-    let total = 0;
-    document.querySelectorAll('tbody tr').forEach(row => {
-      const quantity = parseInt(row.querySelector('.quantity-text').textContent);
-      const {price, discountPercent} = itemData[row.getAttribute('data-item-id')];
-      total += discountedPrice(price, discountPercent) * quantity;
-    });
-    const totalElem = document.getElementById('cart-total');
-    if (totalElem) totalElem.textContent = `₹${total.toFixed(2)}`;
-  }
+  let total = 0;
+  document.querySelectorAll('tbody tr').forEach(row => {
+    const quantity = parseInt(row.querySelector('.quantity-text').textContent);
+    const {price, discountPercent} = itemData[row.getAttribute('data-item-id')];
+    total += discountedPrice(price, discountPercent) * quantity;
+  });
+
+  // Get discount from a data attribute or JS variable
+  const discount = parseFloat(document.getElementById('cart-total').dataset.discount) || 0;
+  total = total - discount;
+
+  const totalElem = document.getElementById('cart-total');
+  if (totalElem) totalElem.textContent = `₹${total.toFixed(2)}`;
+}
+
 
   function toggleButtons(row, quantity) {
     const decBtn = row.querySelector('.decrement-btn');
     const incBtn = row.querySelector('.increment-btn');
+    const id = row.getAttribute('data-item-id');
+    const stock = itemData[id].stock;
+
+    // max quantity is stock if stock < 5, else 5
+    const maxQuantity = stock < 5 ? stock : 5;
+
     decBtn.classList.toggle('disabled', quantity <= 1);
-    incBtn.classList.toggle('disabled', quantity >= 5);
+    incBtn.classList.toggle('disabled', quantity >= maxQuantity);
   }
 
   async function updateBackendCartAsync(itemId, action) {
     const url = `{% url 'update_cart' 0 %}`.replace('0', itemId) + `?action=${action}`;
     try {
-      // Fire and forget: send request but do not wait/block UI
       await fetch(url, {
         method: 'GET',
         headers: {'X-Requested-With': 'XMLHttpRequest'},
@@ -161,7 +199,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const itemId = row.getAttribute('data-item-id');
 
     let quantity = parseInt(quantitySpan.textContent);
-    if ((action === 'increase' && quantity >= 5) || (action === 'decrease' && quantity <= 1)) return;
+    const stock = itemData[itemId].stock;
+    const maxQuantity = stock < 5 ? stock : 5;
+
+    if ((action === 'increase' && quantity >= maxQuantity) || (action === 'decrease' && quantity <= 1)) return;
 
     // Update UI immediately
     quantity = action === 'increase' ? quantity + 1 : quantity - 1;
@@ -180,6 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
       handleQuantityChangeUIOnly(button, 'increase');
     });
   });
+
   document.querySelectorAll('.decrement-btn').forEach(button => {
     button.addEventListener('click', e => {
       e.preventDefault();
@@ -195,6 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   updateOrderTotal();
 });
+
 </script>
 
 {% endblock %}
