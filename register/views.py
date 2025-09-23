@@ -40,7 +40,7 @@ def user_signup(request):
 
         if password1:
             if len(password1) < 8:
-                error['password1'] = "Length of password must be above 8"
+                error['password1'] = "Length of password must be atleast 8"
             else:
                 try:
                     # Django built-in strong password validation
@@ -54,18 +54,19 @@ def user_signup(request):
             except ValidationError:
                 error['email'] = "Invalid Email"
 
-        if not re.match(r'^[A-Za-z\s]+$', fullname):
-            error['fullname'] = "Fullname must contain only letters and spaces"
+            if User.objects.filter(username=email).exists():
+                error['email'] = "Email already in use"
 
-        if len(fullname) < 3:
-            error['fullname'] = "fullname should contain at least 3 characters"
+        if fullname:
+            if not re.match(r'^[A-Za-z\s]+$', fullname):
+                error['fullname'] = "Fullname must contain only letters and spaces"
 
-        if User.objects.filter(username=email).exists():
-            error['email'] = "Email already in use"
+            if len(fullname) < 3:
+                error['fullname'] = "fullname should contain at least 3 characters"
 
         if not error:
             secret = pyotp.random_base32()
-            totp = pyotp.TOTP(secret, interval=60)  # 1 minute expiry
+            totp = pyotp.TOTP(secret, interval=120)  # 1 minute expiry
             otp = totp.now()
 
             request.session["signup_data"] = {
@@ -121,11 +122,11 @@ def verify_otp(request):
         return redirect('signup')
 
     # Check if OTP expired (more than 60 seconds past otp_time)
-    otp_expired = time.time() - signup_data.get("otp_time", 0) > 60
+    otp_expired = time.time() - signup_data.get("otp_time", 0) > 120
 
     if request.method == 'POST' and not otp_expired:
         entered_otp = request.POST.get("otp")
-        totp = pyotp.TOTP(signup_data["secret"], interval=60)
+        totp = pyotp.TOTP(signup_data["secret"], interval=120)
         if totp.verify(entered_otp):
             username = signup_data["email"]
             password = signup_data["password"]
@@ -154,7 +155,7 @@ def resend_otp(request):
         return redirect('signup')
 
     # Use the same secret stored in session
-    totp = pyotp.TOTP(signup_data["secret"], interval=60)
+    totp = pyotp.TOTP(signup_data["secret"], interval=120)
     new_otp = totp.now()
 
     # Update otp_time to current time (reset timer)
@@ -278,7 +279,7 @@ def admin_login(request):
 
 def user_list(request):
     google_user_ids = SocialAccount.objects.filter(provider='google').values_list('user_id', flat=True)
-    users = User.objects.exclude(id__in=google_user_ids).exclude(is_staff=True)
+    users = User.objects.exclude(id__in=google_user_ids).exclude(is_staff=True).order_by("-date_joined")
     context = {
         "users": users,
     }

@@ -22,6 +22,8 @@ class ProfileEditForm(forms.ModelForm):
     current_password = forms.CharField(widget=forms.PasswordInput(), required=False)
     new_password = forms.CharField(widget=forms.PasswordInput(), required=False)
     confirm_password = forms.CharField(widget=forms.PasswordInput(), required=False)
+    profile_image = forms.ImageField(required=False)
+
 
     class Meta:
         model = Profile

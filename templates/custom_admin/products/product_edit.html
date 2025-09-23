@@ -51,9 +51,11 @@
         <div class="mb-3">
             <label class="form-label">Main Image</label><br>
             {% if product.image %}
-                <img src="{{ product.image.url }}" alt="" width="120" class="mb-2"><br>
+                <img id="image-preview" src="{{ product.image.url }}" alt="" width="120" class="mb-2"><br>
+            {% else %}
+                <img id="image-preview" style="display:none;" width="120" class="mb-2"><br>
             {% endif %}
-            <input type="file" name="image" class="form-control {% if errors.image %}is-invalid{% endif %}">
+            <input type="file" id="image-input" name="cropped_image" class="form-control {% if errors.image %}is-invalid{% endif %}">
             {% if errors.image %}
                 <div class="invalid-feedback">{{ errors.image }}</div>
             {% endif %}
@@ -112,4 +114,6 @@
         <button type="submit" class="btn btn-primary">Save Changes</button>
     </form>
 </div>
+
+
 {% endblock %}

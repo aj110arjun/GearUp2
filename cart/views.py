@@ -117,14 +117,14 @@ def update_cart(request, item_id):
 
     cart_item = get_object_or_404(CartItem, id=item_id, user=request.user)
     action = request.GET.get("action")
-    error = None
+    error = {}
 
     if action == "increase":
         if cart_item.quantity < cart_item.variant.stock:
             cart_item.quantity += 1
             cart_item.save()
         else:
-            error = "Reached maximum stock limit."
+            error['cart'] = "Reached maximum stock limit."
     elif action == "decrease":
         if cart_item.quantity > 1:
             cart_item.quantity -= 1
@@ -133,7 +133,7 @@ def update_cart(request, item_id):
             cart_item.delete()
             cart_item = None
     else:
-        error = "Invalid action."
+        error['cart'] = "Invalid action."
 
     if not cart_item:
         quantity = 0
@@ -161,7 +161,7 @@ def update_cart(request, item_id):
         cart_total += price * item.quantity
 
     response_data = {
-        "success": error is None,
+        "success": len(error) == 0,
         "error": error,
         "quantity": quantity,
         "subtotal_html": subtotal_html,

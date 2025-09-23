@@ -85,6 +85,9 @@ def dashboard(request):
     if not request.user.is_staff or not request.user.is_authenticated:
         return redirect('admin_login')
 
+    # Get filter from GET params; default to 'daily'
+    selected_filter = request.GET.get('filter', 'daily')
+
     # Order Stats
     total_orders = Order.objects.count()
     completed_orders = Order.objects.filter(payment_status="Paid").count()
@@ -109,20 +112,62 @@ def dashboard(request):
 
     # Top 10 Brands
     top_brands = (
-    OrderItem.objects.values("variant__product__brand")
-    .annotate(quantity_sold=Sum("quantity"))
-    .order_by("-quantity_sold")[:10]
+        OrderItem.objects.values("variant__product__brand")
+        .annotate(quantity_sold=Sum("quantity"))
+        .order_by("-quantity_sold")[:10]
     )
 
-    # Last 7 Days Sales
     today = date.today()
-    last_7_days = [today - timedelta(days=i) for i in range(6, -1, -1)]
-    daily_sales = []
-    for day in last_7_days:
-        day_sales = Order.objects.filter(
-            payment_status="Paid", created_at__date=day
-        ).aggregate(total=Sum("total_price"))["total"] or 0
-        daily_sales.append({"date": day.strftime("%b %d"), "sales": float(day_sales)})
+
+    if selected_filter == 'monthly':
+        # Aggregate total sales per month for the current year
+        sales_qs = (
+            Order.objects.filter(payment_status="Paid", created_at__year=today.year)
+            .annotate(month=Sum("created_at__month"))
+            .values("month")
+            .annotate(total=Sum("total_price"))
+            .order_by("month")
+        )
+        # prepare monthly sales data with month labels (Jan, Feb, etc.)
+        monthly_sales = []
+        month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        for i in range(1, 13):
+            month_data = next((item for item in sales_qs if item['month'] == i), None)
+            total = float(month_data['total']) if month_data else 0
+            monthly_sales.append({"date": month_names[i-1], "sales": total})
+
+        sales_data = monthly_sales
+
+    elif selected_filter == 'yearly':
+        # Aggregate total sales per year for all available years
+        sales_qs = (
+            Order.objects.filter(payment_status="Paid")
+            .annotate(year=Sum("created_at__year"))
+            .values("year")
+            .annotate(total=Sum("total_price"))
+            .order_by("year")
+        )
+        yearly_sales = []
+        available_years = sorted(set(item['year'] for item in sales_qs))
+        for year in available_years:
+            year_data = next((item for item in sales_qs if item['year'] == year), None)
+            total = float(year_data['total']) if year_data else 0
+            yearly_sales.append({"date": str(year), "sales": total})
+
+        sales_data = yearly_sales
+
+    else:
+        # Daily - last 7 days sales
+        last_7_days = [today - timedelta(days=i) for i in range(6, -1, -1)]
+        daily_sales = []
+        for day in last_7_days:
+            day_sales = (
+                Order.objects.filter(payment_status="Paid", created_at__date=day)
+                .aggregate(total=Sum("total_price"))["total"] or 0
+            )
+            daily_sales.append({"date": day.strftime("%b %d"), "sales": float(day_sales)})
+        sales_data = daily_sales
 
     context = {
         "total_orders": total_orders,
@@ -132,8 +177,8 @@ def dashboard(request):
         "top_products": top_products,
         "top_categories": top_categories,
         "top_brands": top_brands,
-        "daily_sales": daily_sales,
-        # "recent_activity": recent_activity
+        "daily_sales": sales_data,  # dynamic sales data by filter
+        "selected_filter": selected_filter,
     }
     return render(request, 'custom_admin/dashboard.html', context)
 
