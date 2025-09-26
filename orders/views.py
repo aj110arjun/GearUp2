@@ -203,7 +203,7 @@ def checkout(request):
         return redirect("start_payment", order_id=order.order_id)
     tax = Decimal("10")/Decimal("100") * total
 
-    total += tax
+    grand_total += tax
 
     addresses = Address.objects.filter(user=request.user)
     return render(
