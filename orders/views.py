@@ -45,7 +45,6 @@ from transaction.models import Transaction  # Import your Transaction model acco
 def checkout(request):
     error = {}
     cart_items = CartItem.objects.filter(user=request.user).select_related("variant__product")
-    tax = Decimal("0.00")
 
     if not cart_items.exists():
         return redirect("cart_view")
@@ -201,9 +200,6 @@ def checkout(request):
             return redirect("order_complete", order_id=order.order_id)
 
         return redirect("start_payment", order_id=order.order_id)
-    tax = Decimal("10")/Decimal("100") * total
-
-    total += tax
 
     addresses = Address.objects.filter(user=request.user)
     return render(
@@ -219,7 +215,6 @@ def checkout(request):
             "wallet": wallet,
             "grand_total": grand_total,
             "delivery_charge": delivery_charge,
-            "tax": tax
         },
     )
 

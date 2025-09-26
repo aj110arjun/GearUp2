@@ -71,21 +71,14 @@ def remove_coupon(request):
     request.session.pop("coupon_id", None)
     return redirect("cart_view")
 
-
 @staff_member_required(login_url='admin_login')
 @never_cache
 def admin_coupon_list(request):
-    coupons = Coupon.objects.all().order_by('-valid_from')
-    
-    # Annotate each coupon with an 'is_expired' attribute
-    for coupon in coupons:
-        coupon.is_expired = coupon.valid_to and coupon.valid_to < now()
-
+    coupons = Coupon.objects.all().order_by('-valid_from')  # Order by latest
     context = {
         'coupons': coupons,
     }
     return render(request, 'custom_admin/coupons/coupon_list.html', context)
-
 
 @staff_member_required(login_url='admin_login')
 @never_cache
@@ -234,28 +227,11 @@ def admin_coupon_edit(request, id):
             coupon.active = active
             coupon.save()
             return redirect("admin_coupon_list")
-        form_data = {
-            "code": code,
-            "discount": discount,
-            "min_purchase": min_purchase,
-            "valid_from": valid_from,
-            "valid_to": valid_to,
-            "active": active,
-        }
-    else:
-        form_data = {
-            "code": coupon.code,
-            "discount": str(coupon.discount),
-            "min_purchase": str(coupon.min_purchase) if coupon.min_purchase else "",
-            "valid_from": coupon.valid_from.strftime("%Y-%m-%d") if coupon.valid_from else "",
-            "valid_to": coupon.valid_to.strftime("%Y-%m-%d") if coupon.valid_to else "",
-            "active": coupon.active,
-        }
 
     return render(
         request,
         "custom_admin/coupons/coupon_form.html",
-        {"coupon": coupon, "action": "Edit", "error": error, "form_data": form_data},
+        {"coupon": coupon, "action": "Edit", "error": error},
     )
 
 @staff_member_required(login_url='admin_login')
