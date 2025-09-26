@@ -12,6 +12,7 @@ from django.views.decorators.cache import never_cache
 from django.contrib import messages
 from allauth.socialaccount.models import SocialAccount
 from django.contrib.auth.password_validation import validate_password
+from django.core.paginator import Paginator
 
 
 ### User Views
