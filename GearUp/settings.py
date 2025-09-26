@@ -13,7 +13,7 @@ DEBUG = False
 
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", cast=Csv())
 
-ENV_FILE = BASE_DIR.parent.parent / ".env"
+ENV_FILE = BASE_DIR.parent / ".env"
 config = Config(RepositoryEnv(str(ENV_FILE)))
 
 CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", cast=Csv()) 
@@ -97,16 +97,28 @@ TEMPLATES = [
 WSGI_APPLICATION = 'GearUp.wsgi.application'
 
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql_psycopg2',
+#         'NAME': config("NAME"),
+#         'USER': 'postgres',
+#         'PASSWORD': config("PASSWORD"),
+#         'HOST': 'localhost',
+#         'PORT': '5432',
+#     }
+# }
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME': config("NAME"),
-        'USER': 'postgres',
+        'USER': 'arjun',
         'PASSWORD': config("PASSWORD"),
-        'HOST': 'localhost',
+        'HOST': 'gearup.c3as44es22h5.ap-southeast-2.rds.amazonaws.com',
         'PORT': '5432',
     }
 }
+
 
 EMAIL_BACKEND = config("EMAIL_BACKEND")
 EMAIL_HOST = config("EMAIL_HOST")
