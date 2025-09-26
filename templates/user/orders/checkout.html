@@ -29,10 +29,8 @@
                     <div class="mt-2 text-end">
                         <a href="{% url 'edit_address' addr.id %}?next={{ request.path }}" 
                            class="btn btn-sm btn-outline-primary">Edit</a>
-                        {% if not addr.is_default %}
-                            <a href="{% url 'delete_address' addr.id %}?next={{ request.path }}" 
-                            class="btn btn-sm btn-outline-danger">Delete</a>
-                        {% endif %}
+                        <a href="{% url 'delete_address' addr.id %}?next={{ request.path }}" 
+                           class="btn btn-sm btn-outline-danger">Delete</a>
                     </div>
                 </div>
             {% empty %}
@@ -111,12 +109,6 @@
         <div class="d-flex justify-content-between fs-6 mb-1">
             <span>Delivery Charges:</span>
             <span>₹{{ delivery_charge }}</span>
-        </div>
-
-
-         <div class="d-flex justify-content-between fs-6 mb-1">
-            <span>Tax:</span>
-            <span>₹{{ tax }}</span>
         </div>
 
         <!-- Final Total -->

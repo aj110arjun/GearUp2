@@ -1,59 +1,28 @@
 {% extends 'user/base.html' %}
 {% block content %}
 <div class="container my-4">
-    <h2>{% if form_data %}Edit Address{% else %}Add Address{% endif %}</h2>
-    
-    <form method="post" novalidate>
+    <h2>{% if address %}Edit Address{% else %}Add Address{% endif %}</h2>
+    {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+    <form method="post">
         {% csrf_token %}
         <input type="hidden" name="next" value="{{ next }}">
-        
-        <input type="text" name="full_name" placeholder="Full Name" class="form-control mb-2" value="{{ form_data.full_name|default:'' }}" required>
-        {% if error.full_name %}
-            <div class="text-danger">{{ error.full_name }}</div>
-        {% endif %}
-        
-        <input type="text" name="phone" placeholder="Phone Number" class="form-control mb-2" value="{{ form_data.phone|default:'' }}" required>
-        {% if error.phone %}
-            <div class="text-danger">{{ error.phone }}</div>
-        {% endif %}
-        
-        <input type="text" name="address_line_1" placeholder="Address Line 1" class="form-control mb-2" value="{{ form_data.address_line_1|default:'' }}" required>
-        {% if error.address_line_1 %}
-            <div class="text-danger">{{ error.address_line_1 }}</div>
-        {% endif %}
-        
-        <input type="text" name="address_line_2" placeholder="Address Line 2" class="form-control mb-2" value="{{ form_data.address_line_2|default:'' }}">
-        {% if error.address_line_2 %}
-            <div class="text-danger">{{ error.address_line_2 }}</div>
-        {% endif %}
-        
-        <input type="text" name="city" placeholder="City" class="form-control mb-2" value="{{ form_data.city|default:'' }}" required>
-        {% if error.city %}
-            <div class="text-danger">{{ error.city }}</div>
-        {% endif %}
-        
-        <input type="text" name="state" placeholder="State" class="form-control mb-2" value="{{ form_data.state|default:'' }}" required>
-        {% if error.state %}
-            <div class="text-danger">{{ error.state }}</div>
-        {% endif %}
-        
-        <input type="text" name="postal_code" placeholder="Postal Code" class="form-control mb-2" value="{{ form_data.postal_code|default:'' }}" required>
-        {% if error.postal_code %}
-            <div class="text-danger">{{ error.postal_code }}</div>
-        {% endif %}
-        
-        <input type="text" name="country" placeholder="Country" class="form-control mb-2" value="{{ form_data.country|default:'India' }}">
-        {% if error.country %}
-            <div class="text-danger">{{ error.country }}</div>
-        {% endif %}
-        
+        <input type="text" name="full_name" placeholder="Full Name" class="form-control mb-2" value="{{ address.full_name|default:'' }}" required>
+        <input type="text" name="phone" placeholder="Phone Number" class="form-control mb-2" value="{{ address.phone|default:'' }}" required>
+        <input type="text" name="address_line_1" placeholder="Address Line 1" class="form-control mb-2" value="{{ address.address_line_1|default:'' }}" required>
+        <input type="text" name="address_line_2" placeholder="Address Line 2" class="form-control mb-2" value="{{ address.address_line_2|default:'' }}">
+        <input type="text" name="city" placeholder="City" class="form-control mb-2" value="{{ address.city|default:'' }}" required>
+        <input type="text" name="state" placeholder="State" class="form-control mb-2" value="{{ address.state|default:'' }}" required>
+        <input type="text" name="postal_code" placeholder="Postal Code" class="form-control mb-2" value="{{ address.postal_code|default:'' }}" required>
+        <input type="text" name="country" placeholder="Country" class="form-control mb-2" value="{{ address.country|default:'India' }}">
         <div class="form-check form-switch mt-2">
-            <input class="form-check-input" type="checkbox" name="is_default" id="is_default" {% if form_data.is_default %}checked{% endif %}>
+            <input class="form-check-input" type="checkbox" name="is_default" id="is_default"
+                {% if address.is_default %}checked{% endif %}>
             <label class="form-check-label fw-bold" for="is_default">Set as Default Address</label>
         </div>
         <br>
-        
-        <button type="submit" class="btn btn-success mt-1">Save</button>
+        <button type="submit" class="btn btn-success mt-3">Save</button>
     </form>
 </div>
 {% endblock %}
