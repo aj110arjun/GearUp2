@@ -75,6 +75,8 @@ def remove_coupon(request):
 @never_cache
 def admin_coupon_list(request):
     coupons = Coupon.objects.all().order_by('-valid_from')  # Order by latest
+    for coupon in coupons:
+        coupon.is_expired = coupon.valid_to and coupon.valid_to < now()
     context = {
         'coupons': coupons,
     }
