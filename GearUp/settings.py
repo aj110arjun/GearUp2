@@ -103,7 +103,7 @@ WSGI_APPLICATION = 'GearUp.wsgi.application'
 #         'NAME': config("NAME"),
 #         'USER': 'postgres',
 #         'PASSWORD': config("PASSWORD"),
-#         'HOST': 'localhost',
+#         'HOST': 'localhost',  
 #         'PORT': '5432',
 #     }
 # }
