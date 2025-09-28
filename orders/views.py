@@ -103,7 +103,10 @@ def checkout(request):
     if total < 0:
         total = Decimal("0.00")
 
+    tax = Decimal("10")/Decimal("100") * total
     grand_total = total + delivery_charge
+    grand_total += tax
+    total += tax
 
     if request.method == "POST":
         address_id = request.POST.get("address")
@@ -201,8 +204,7 @@ def checkout(request):
             return redirect("order_complete", order_id=order.order_id)
 
         return redirect("start_payment", order_id=order.order_id)
-    tax = Decimal("10")/Decimal("100") * total
-    grand_total += tax
+    
 
     addresses = Address.objects.filter(user=request.user)
     return render(
