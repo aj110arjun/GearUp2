@@ -68,6 +68,7 @@ class OrderItem(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2)
     refund_done = models.BooleanField(default=False)
     total_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    tax = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     
     cancellation_requested = models.BooleanField(default=False)
     cancellation_reason = models.TextField(blank=True, null=True)
