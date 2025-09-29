@@ -411,6 +411,11 @@ def admin_cancellation_requests(request):
 
 
 
+from decimal import Decimal
+from django.shortcuts import get_object_or_404, redirect
+from django.views.decorators.cache import never_cache
+from django.contrib.admin.views.decorators import staff_member_required
+
 @staff_member_required(login_url="admin_login")
 @never_cache
 def admin_approve_reject_cancellation(request, item_id, action):
@@ -433,40 +438,65 @@ def admin_approve_reject_cancellation(request, item_id, action):
                     description__icontains=f"Cancellation refund for OrderItem #{item.item_id}"
                 ).exists()
                 if not refund_exists:
-                    # Calculate total original price for all order items (for proportional discount)
+                    # --- Refund Calculation ---
                     order_items = item.order.items.all()
-                    order_total_original = sum(Decimal(oi.variant.price) * oi.quantity for oi in order_items)
+                    order_total_original = sum(
+                        Decimal(oi.variant.price) * oi.quantity for oi in order_items
+                    )
                     item_original_price = Decimal(item.variant.price) * item.quantity
+
+                    # Proportional coupon discount
                     coupon_discount_total = getattr(item.order, "coupon_discount", Decimal("0.00"))
-                    # Proportional coupon discount for this item
                     item_coupon_discount = Decimal("0.00")
                     if order_total_original > 0 and coupon_discount_total > 0:
-                        item_coupon_discount = (item_original_price / order_total_original) * coupon_discount_total
-                    # Calculate final refund amount
-                    refund_amount = item_original_price - item_coupon_discount
-                    if refund_amount < 0:
-                        refund_amount = Decimal('0.00')
-                    # Optionally refund shipping fee if your policy requires
-                    refund_amount += Decimal("50.00")
+                        item_coupon_discount = (
+                            (item_original_price / order_total_original) * coupon_discount_total
+                        )
 
-                    # Create refund transaction
+                    # Refund base (after discount)
+                    refund_base = item_original_price - item_coupon_discount
+                    if refund_base < 0:
+                        refund_base = Decimal("0.00")
+
+                    # Proportional tax (assuming 10%)
+                    item_tax = (Decimal("10") / Decimal("100")) * refund_base
+                    print(item_tax)
+
+                    refund_amount = refund_base + item_tax
+
+                    # Refund shipping if all items cancelled (optional policy)
+                    all_items_cancelled = all(
+                        oi.status == "cancelled" or oi.item_id == item.item_id for oi in order_items
+                    )
+                    if all_items_cancelled:
+                        refund_amount += Decimal("50.00")  # flat shipping refund
+
+                    # --- Create Refund Transaction ---
                     Transaction.objects.create(
                         user=item.order.user,
                         transaction_type="WALLET_CREDIT",
                         payment_status="Debit",
                         amount=refund_amount,
-                        description=f"Cancellation refund for OrderItem #{item.item_id} (Order #{item.order.order_code})",
+                        description=(
+                            f"Cancellation refund for OrderItem #{item.item_id} "
+                            f"(Order #{item.order.order_code})"
+                        ),
                         order=item.order,
                     )
-                    # Credit to user's wallet
+
+                    # --- Credit to User's Wallet ---
                     wallet, _ = Wallet.objects.get_or_create(user=item.order.user)
                     wallet.balance += refund_amount
                     wallet.save()
+
                     WalletTransaction.objects.create(
                         wallet=wallet,
                         amount=refund_amount,
                         transaction_type="CREDIT",
-                        description=f"Refund for cancelled product '{item.variant.product.name}' (x{item.quantity})"
+                        description=(
+                            f"Refund for cancelled product '{item.variant.product.name}' "
+                            f"(x{item.quantity})"
+                        )
                     )
 
     elif action == "reject":
@@ -474,6 +504,7 @@ def admin_approve_reject_cancellation(request, item_id, action):
 
     item.save()
     return redirect("admin_cancellation_requests")
+
 
 
 
@@ -502,8 +533,17 @@ def admin_cancellation_request_view(request, item_id):
                 
                 # Refund to wallet for Razorpay/Online Wallet payments
                 if order.payment_method in ["RAZORPAY", "ONLINE", "WALLET"] and order.payment_status == "Paid":
-                    refund_amount = item.price * item.quantity
-                    refund_amount += Decimal("50.00")  # delivery refund or fixed amount
+                    
+                    # --- Refund Calculation ---
+                    base_amount = item.price * item.quantity
+                    
+                    # Add tax (10%)
+                    tax = (Decimal("10") / Decimal("100")) * base_amount
+                    
+                    # Optional: add shipping refund if policy allows
+                    shipping_refund = Decimal("50.00")
+                    
+                    refund_amount = base_amount + tax + shipping_refund
                     
                     if not getattr(item, "refund_done", False):
                         # ✅ Credit wallet
