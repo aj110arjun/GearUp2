@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import messages
 from products.models import Product, Category, ProductOffer, CategoryOffer
-from datetime import date
+from datetime import date, datetime
 from django.utils.dateparse import parse_date
 from django.utils.timezone import localdate
 from django.views.decorators.cache import never_cache
@@ -46,31 +46,32 @@ def admin_add_product_offer(request):
 
         # Basic validation
         if not product_id:
-            error['product'] = "Product field required"
+            error['product'] = "Product field is required"
         if not discount:
             error['discount'] = "Discount field is required"
         elif int(discount) < 10 or int(discount) > 90:
-            error['discount'] = "Discount must be in between 10 and 90"
+            error['discount'] = "Discount must be between 10 and 90"
         if not start_date:
             error['start_date'] = "Start date is required"
         if not end_date:
             error['end_date'] = "End date is required"
 
-        # Only check for offer overlap if no earlier errors and dates are present
-        if not error and product_id and start_date and end_date:
-            overlap_offers = ProductOffer.objects.filter(
-                product=product_id,
-                start_date__lte=end_date,
-                end_date__gte=start_date
-            )
-            if overlap_offers.exists():
-                error['product'] = "Offer on this product overlaps with existing offer periods"
+        # ✅ Ensure start_date <= end_date
+        if start_date and end_date:
+            try:
+                start_date_obj = datetime.strptime(start_date, "%Y-%m-%d").date()
+                end_date_obj = datetime.strptime(end_date, "%Y-%m-%d").date()
+
+                if start_date_obj > end_date_obj:
+                    error['end_date'] = "End date must be greater than or equal to start date"
+            except ValueError:
+                error['date'] = "Invalid date format"
 
         if not error:
             product = get_object_or_404(Product, id=product_id)
             ProductOffer.objects.create(
                 product=product,
-                discount_percent=discount,
+                discount_percent=int(discount),
                 start_date=start_date,
                 end_date=end_date,
                 active=active,
@@ -87,6 +88,7 @@ def admin_add_product_offer(request):
     }
 
     return render(request, "custom_admin/offers/add_product_offer.html", context)
+
 
 @staff_member_required(login_url="admin_login")
 @never_cache
@@ -204,15 +206,16 @@ def admin_add_category_offer(request):
         if not end_date:
             error['end_date'] = "End date is required"
 
-        # Date overlap validation on category offers
-        if not error and category_id and start_date and end_date:
-            overlap_offers = CategoryOffer.objects.filter(
-                category=category_id,
-                start_date__lte=end_date,
-                end_date__gte=start_date
-            )
-            if overlap_offers.exists():
-                error['category'] = "Offer on this category overlaps with existing offer periods"
+        # ✅ Valid From must be <= Valid To
+        if start_date and end_date:
+            try:
+                start_date_obj = datetime.strptime(start_date, "%Y-%m-%d").date()
+                end_date_obj = datetime.strptime(end_date, "%Y-%m-%d").date()
+
+                if start_date_obj > end_date_obj:
+                    error['end_date'] = "End date must be greater than or equal to start date"
+            except ValueError:
+                error['date'] = "Invalid date format"
 
         if not error:
             category = get_object_or_404(Category, id=category_id)
