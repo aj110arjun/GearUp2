@@ -28,10 +28,16 @@
     <div class="mb-3">
         <label>Start Date</label>
         <input type="date" name="start_date" class="form-control" value="{{ offer.start_date|date:'Y-m-d' }}" min="{{today}}" required>
+        {% if error.start_date %}
+            <span class="text-danger">{{error.start_date}}</span>
+        {% endif %}
     </div>
     <div class="mb-3">
         <label>End Date</label>
         <input type="date" name="end_date" class="form-control" value="{{ offer.end_date|date:'Y-m-d' }}" min="{{today}}" required>
+        {% if error.end_date %}
+            <span class="text-danger">{{error.end_date}}</span>
+        {% endif %}
     </div>
     <div class="form-check">
         <input type="checkbox" name="active" class="form-check-input" {% if offer.active %}checked{% endif %}>
