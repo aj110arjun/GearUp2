@@ -28,7 +28,8 @@
         </td>
         <td>
             <a onclick="return confirm('Are you sure want to delete the offer');" href="{% url 'admin_delete_category_offer' offer.id %}" class="btn btn-danger btn-sm">Delete</a>
-            <a href="{% url 'admin_category_offer_edit' offer.category.id %}" class="btn btn-warning btn-sm">Edit</a>
+            <a href="{% url 'admin_category_offer_edit' offer.category.id offer.start_date|date:'Y-m-d' %}" class="btn btn-warning btn-sm">Edit</a>
+
             
         </td>
     </tr>
