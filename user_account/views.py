@@ -62,7 +62,12 @@ def edit_profile(request):
         new_name = request.POST.get('name', '').strip()
         new_email = request.POST.get('email', '').strip()
         if new_name:
-            user.first_name = new_name
+            if len(new_name) < 3:
+                error['name'] = "Name Should contain atleast 3 characters"
+            elif not re.match(r'^[A-Za-z\s]+$', new_name):
+                error['name'] = "Name should only contain letters and spaces"
+            else:
+                user.first_name = new_name
         else:
             error['name'] = "Name cannot be empty."
 
