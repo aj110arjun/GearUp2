@@ -7,54 +7,76 @@
 
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h4>All Products</h4>
-    <a href="{% url 'product_add' %}" class="btn btn-primary">+ Add Product</a> 
+    <a href="{% url 'product_add' %}" class="btn btn-primary">+ Add Product</a>
   </div>
 
   <!-- Filters -->
-  <form method="get" class="row g-2 mb-4">
-    <div class="col-md-3">
-        <select name="category" class="form-select">
-            <option value="">All Categories</option>
-            {% for cat in categories %}
-                <option value="{{ cat.id }}" {% if filters.category == cat.id|stringformat:"s" %}selected{% endif %}>
-                    {{ cat.name }}
-                </option>
-            {% endfor %}
-        </select>
-    </div>
-
-    <div class="col-md-2">
-        <select name="in_stock" class="form-select">
-            <option value="">Stock Status</option>
-            <option value="true" {% if filters.in_stock == 'true' %}selected{% endif %}>In Stock</option>
-            <option value="false" {% if filters.in_stock == 'false' %}selected{% endif %}>Out of Stock</option>
-        </select>
-    </div>
-
-    <div class="col-md-2">
-        <select name="is_active" class="form-select">
-            <option value="">Active Status</option>
-            <option value="true" {% if filters.is_active == 'true' %}selected{% endif %}>Active</option>
-            <option value="false" {% if filters.is_active == 'false' %}selected{% endif %}>Inactive</option>
-        </select>
-    </div>
-
-    <div class="col-md-2">
-        <select name="sort" class="form-select">
-            <option value="">Sort By</option>
-            <option value="name" {% if filters.sort == 'name' %}selected{% endif %}>Name (A-Z)</option>
-            <option value="price_asc" {% if filters.sort == 'price_asc' %}selected{% endif %}>Price Low to High</option>
-            <option value="price_desc" {% if filters.sort == 'price_desc' %}selected{% endif %}>Price High to Low</option>
-            <option value="stock_asc" {% if filters.sort == 'stock_asc' %}selected{% endif %}>Stock Low to High</option>
-            <option value="stock_desc" {% if filters.sort == 'stock_desc' %}selected{% endif %}>Stock High to Low</option>
-        </select>
-    </div>
+  <form method="get" class="row g-2 mb-4 align-items-center">
 
     <div class="col-md-3">
-        <div class="input-group">
-            <input type="text" name="q" value="{{ filters.search }}" class="form-control" placeholder="Search products...">
-            <button class="btn btn-primary">Search</button>
-        </div>
+      <select name="category" class="form-select" onchange="this.form.submit()">
+        <option value="">All Categories</option>
+        {% for cat in categories %}
+          <option value="{{ cat.id }}" {% if filters.category == cat.id|stringformat:"s" %}selected{% endif %}>
+            {{ cat.name }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-md-2">
+      <select name="in_stock" class="form-select" onchange="this.form.submit()">
+        <option value="">Stock Status</option>
+        <option value="true" {% if filters.in_stock == 'true' %}selected{% endif %}>In Stock</option>
+        <option value="false" {% if filters.in_stock == 'false' %}selected{% endif %}>Out of Stock</option>
+      </select>
+    </div>
+
+    <div class="col-md-2">
+      <select name="is_active" class="form-select" onchange="this.form.submit()">
+        <option value="">Active Status</option>
+        <option value="true" {% if filters.is_active == 'true' %}selected{% endif %}>Active</option>
+        <option value="false" {% if filters.is_active == 'false' %}selected{% endif %}>Inactive</option>
+      </select>
+    </div>
+
+    <div class="col-md-2">
+      <select name="sort" class="form-select" onchange="this.form.submit()">
+        <option value="">Sort By</option>
+        <option value="name" {% if filters.sort == 'name' %}selected{% endif %}>Name (A-Z)</option>
+        <option value="price_asc" {% if filters.sort == 'price_asc' %}selected{% endif %}>Price Low to High</option>
+        <option value="price_desc" {% if filters.sort == 'price_desc' %}selected{% endif %}>Price High to Low</option>
+        <option value="stock_asc" {% if filters.sort == 'stock_asc' %}selected{% endif %}>Stock Low to High</option>
+        <option value="stock_desc" {% if filters.sort == 'stock_desc' %}selected{% endif %}>Stock High to Low</option>
+      </select>
+    </div>
+
+    <!-- Search with Clear Button -->
+    <div class="col-md-3 position-relative">
+      <div class="input-group">
+        <input type="text" name="q" id="search-input" value="{{ filters.search }}" class="form-control"
+               placeholder="Search products..." style="padding-right: 60px;">
+
+        <!-- Clear button (×) -->
+        <button type="button" id="clear-btn" aria-label="Clear search"
+                style="
+                  position: absolute;
+                  right: 75px;
+                  top: 50%;
+                  transform: translateY(-50%);
+                  border: none;
+                  background: transparent;
+                  font-size: 18px;
+                  cursor: pointer;
+                  color: #999;
+                  display: none;
+                  z-index: 1000;
+                ">
+          &times;
+        </button>
+
+        <button class="btn btn-primary" type="submit">Search</button>
+      </div>
     </div>
   </form>
 
@@ -63,20 +85,20 @@
     <table class="table table-hover align-middle shadow-sm">
       <thead class="table-dark">
         <tr>
-          <th scope="col">#</th>
-          <th scope="col">Image</th>
-          <th scope="col">Name</th>
-          <th scope="col">Category</th>
-          <th scope="col">Status</th>
-          <th scope="col">Price</th>
-          <th scope="col">Stock</th>
-          <th scope="col" class="text-center">Actions</th>
+          <th>#</th>
+          <th>Image</th>
+          <th>Name</th>
+          <th>Category</th>
+          <th>Status</th>
+          <th>Price</th>
+          <th>Stock</th>
+          <th class="text-center">Actions</th>
         </tr>
       </thead>
       <tbody>
         {% for product in products %}
         <tr>
-          <th scope="row">{{ forloop.counter0|add:products.start_index }}</th>
+          <th>{{ forloop.counter0|add:products.start_index }}</th>
           <td>
             <img src="{{ product.image.url }}" alt="{{ product.name }}" width="60" class="rounded shadow-sm">
           </td>
@@ -102,14 +124,13 @@
     </table>
   </div>
 
-  <!-- Pagination Info -->
+  <!-- Pagination -->
   {% if products.paginator.count > 0 %}
   <div class="d-flex justify-content-between align-items-center mt-3">
     <p class="text-muted small mb-0">
       Showing {{ products.start_index }}–{{ products.end_index }} of {{ products.paginator.count }} products
     </p>
 
-    <!-- Pagination Controls -->
     <nav>
       <ul class="pagination mb-0">
         {% if products.has_previous %}
@@ -141,4 +162,25 @@
   {% endif %}
 
 </div>
+
+<!-- ✅ Clear Search Button Script -->
+<script>
+  const input = document.getElementById('search-input');
+  const clearBtn = document.getElementById('clear-btn');
+
+  function toggleClearBtn() {
+    clearBtn.style.display = input.value ? 'block' : 'none';
+  }
+
+  input.addEventListener('input', toggleClearBtn);
+
+  clearBtn.addEventListener('click', () => {
+    input.value = '';
+    toggleClearBtn();
+    input.focus();
+  });
+
+  // Initialize on load
+  toggleClearBtn();
+</script>
 {% endblock content %}
