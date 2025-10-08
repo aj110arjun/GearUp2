@@ -279,8 +279,10 @@ def admin_login(request):
 
 def user_list(request):
     users = User.objects.exclude(is_staff=True).order_by("-date_joined")
+    google_users = SocialAccount.objects.filter(provider='google').values_list('user_id', flat=True)
     context = {
         "users": users,
+        'google_users': google_users,
     }
     return render(request, 'custom_admin/users/user_list.html', context)
 
