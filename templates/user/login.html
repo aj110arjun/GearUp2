@@ -34,6 +34,12 @@
       {% if error.common %}
         <div class="text-danger small mb-3">{{ error.common }}</div>
       {% endif %}
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-danger">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+
       <a href="{% url 'forgot_password' %}">Forgot Password</a>
       <button type="submit" class="btn btn-dark w-100 my-3">Login</button>
     </form>
