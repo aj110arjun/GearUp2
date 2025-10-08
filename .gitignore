@@ -6,6 +6,7 @@ db.sqlite3
 /media/
 /staticfiles/
 
+
 # IDE and OS files
 .vscode/
 .DS_Store

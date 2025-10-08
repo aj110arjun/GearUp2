@@ -12,7 +12,6 @@ from django.views.decorators.cache import never_cache
 from django.contrib import messages
 from allauth.socialaccount.models import SocialAccount
 from django.contrib.auth.password_validation import validate_password
-from django.core.paginator import Paginator
 
 
 ### User Views
@@ -280,8 +279,10 @@ def admin_login(request):
 
 def user_list(request):
     users = User.objects.exclude(is_staff=True).order_by("-date_joined")
+    google_users = SocialAccount.objects.filter(provider='google').values_list('user_id', flat=True)
     context = {
         "users": users,
+        'google_users': google_users,
     }
     return render(request, 'custom_admin/users/user_list.html', context)
 
