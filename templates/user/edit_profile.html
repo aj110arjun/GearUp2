@@ -82,6 +82,8 @@ button.btn-primary:hover { background-color:#0b5ed7; border-color:#0a58ca; }
         <img id="image-preview" style="display:none; max-width:100%; margin-top:1rem;">
         {% if error.profile_image %}<div class="text-danger">{{ error.profile_image }}</div>{% endif %}
       </div>
+      <span id="image-error" style="color:red;"></span>
+
 
       <!-- Submit -->
       <div class="text-center mt-4">
@@ -99,10 +101,19 @@ const input = document.getElementById('profile_image');
 const image = document.getElementById('image-preview');
 let cropper;
 
+const errorMsg = document.getElementById('image-error'); // Assume this is an element for error messages
+
 if(input){
   input.addEventListener('change', (e)=>{
     const file = e.target.files[0];
     if(file){
+      if(!file.type.startsWith('image/')){
+        errorMsg.textContent = 'Please select a valid image file.';
+        image.style.display = 'none';
+        if(cropper) cropper.destroy();
+        return;
+      }
+      errorMsg.textContent = '';
       const url = URL.createObjectURL(file);
       image.src = url;
       image.style.display = 'block';
@@ -124,5 +135,6 @@ if(input){
     }
   });
 }
+
 </script>
 {% endblock content %}
