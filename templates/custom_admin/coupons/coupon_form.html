@@ -9,41 +9,43 @@
     {% csrf_token %}
     <div class="mb-3">
         <label class="form-label">Coupon Code</label>
-        <input type="text" name="code" class="form-control" value="{{ form_data.code|default:'' }}" required>
+        <input type="text" name="code" class="form-control" value="{{ coupon.code|default:'' }}" required>
         {% if error.code %}
-            <span class="text-danger">{{ error.code }}</span>
+            <span class="text-danger">{{error.code}}</span>
         {% endif %}
     </div>
     <div class="mb-3">
         <label class="form-label">Discount (%)</label>
-        <input type="number" name="discount" class="form-control" value="{{ form_data.discount|default:'' }}" step="0.01" required>
+        <input type="number" name="discount" class="form-control" value="{{ coupon.discount|default:'' }}" step="0.01" required>
         {% if error.discount %}
-            <span class="text-danger">{{ error.discount }}</span>
+            <span class="text-danger">{{error.discount}}</span>
         {% endif %}
     </div>
     <div class="mb-3">
         <label class="form-label">Minimum Purchase</label>
-        <input type="number" name="min_purchase" class="form-control" value="{{ form_data.min_purchase|default:'' }}" step="0.01">
+        <input type="number" name="min_purchase" class="form-control" value="{{ coupon.min_purchase|default:'' }}" step="0.01">
         {% if error.min_purchase %}
-            <span class="text-danger">{{ error.min_purchase }}</span>
+            <span class="text-danger">{{error.min_purchase}}</span>
         {% endif %}
     </div>
     <div class="mb-3">
         <label class="form-label">Valid From</label>
-        <input type="date" name="valid_from" class="form-control" value="{{ form_data.valid_from|default:'' }}">
+        <input type="date" name="valid_from" class="form-control" 
+            value="{{ coupon.valid_from|date:'Y-m-d'|default:'' }}">
         {% if error.valid_from %}
-            <span class="text-danger">{{ error.valid_from }}</span>
+            <span class="text-danger">{{error.valid_from}}</span>
         {% endif %}
     </div>
     <div class="mb-3">
         <label class="form-label">Valid To</label>
-        <input type="date" name="valid_to" class="form-control" value="{{ form_data.valid_to|default:'' }}">
+        <input type="date" name="valid_to" class="form-control" 
+            value="{{ coupon.valid_to|date:'Y-m-d'|default:'' }}">
         {% if error.valid_to %}
-            <span class="text-danger">{{ error.valid_to }}</span>
+            <span class="text-danger">{{error.valid_to}}</span>
         {% endif %}
     </div>
     <div class="form-check mb-3">
-        <input type="checkbox" name="active" class="form-check-input" {% if form_data.active %}checked{% endif %}>
+        <input type="checkbox" name="active" class="form-check-input" {% if coupon.active or coupon is not defined %}checked{% endif %}>
         <label class="form-check-label">Active</label>
     </div>
     <button type="submit" class="btn btn-primary">{{ action }} Coupon</button>

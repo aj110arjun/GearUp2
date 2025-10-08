@@ -13,7 +13,6 @@
         <th>Variant</th>
         <th>Price</th>
         <th>Quantity</th>
-        <th>Subtotal</th>
         <th></th>
       </tr>
     </thead>
@@ -43,18 +42,6 @@
           <button type="button" class="btn btn-outline-secondary btn-sm decrement-btn" aria-label="Decrease quantity">-</button>
           <span class="quantity-text">{{ item.quantity }}</span>
           <button type="button" class="btn btn-outline-secondary btn-sm increment-btn" aria-label="Increase quantity">+</button>
-        </td>
-        <td class="subtotal-text">
-          {% with best_discount=item.variant.product.get_best_offer %}
-            {% if best_discount > 0 %}
-              <p class="fw-bold text-success mb-0">
-                ₹{{ item.variant.get_discounted_price|mul:item.quantity|floatformat:2 }}
-                <span class="badge bg-danger">-{{ best_discount }}%</span>
-              </p>
-            {% else %}
-              <p class="fw-bold mb-0">₹{{ item.variant.price|mul:item.quantity|floatformat:2 }}</p>
-            {% endif %}
-          {% endwith %}
         </td>
         <td>
           <a href="{% url 'remove_from_cart' item.id %}" class="btn btn-danger btn-sm">Remove</a>

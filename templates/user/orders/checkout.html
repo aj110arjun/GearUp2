@@ -30,10 +30,11 @@
                         <a href="{% url 'edit_address' addr.id %}?next={{ request.path }}" 
                            class="btn btn-sm btn-outline-primary">Edit</a>
                         {% if not addr.is_default %}
-                            <a href="{% url 'delete_address' addr.id %}?next={{ request.path }}" 
-                            class="btn btn-sm btn-outline-danger">Delete</a>
+                            <a href="{% url 'delete_address' addr.pk %}" class="btn btn-sm btn-danger"
+                            onclick="return confirm('Are you sure you want to delete this address?');">
+                                Delete
+                            </a>
                         {% endif %}
-                        
                     </div>
                 </div>
             {% empty %}
@@ -114,8 +115,7 @@
             <span>₹{{ delivery_charge }}</span>
         </div>
 
-
-         <div class="d-flex justify-content-between fs-6 mb-1">
+        <div class="d-flex justify-content-between fs-6 mb-1">
             <span>Tax:</span>
             <span>₹{{ tax }}</span>
         </div>

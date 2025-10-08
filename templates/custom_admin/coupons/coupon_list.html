@@ -37,12 +37,13 @@
             </td>
             <td style="padding:10px;">
                 {% if coupon.is_expired %}
-                    <span class="badge bg-danger">Expired</span>
+                    <span class="badge bg-warning">Expired</span>
                 {% elif not coupon.active %}
                     <span class="badge bg-danger">Blocked</span>
                 {% else %}
                     <span class="badge bg-success">Active</span>
                 {% endif %}
+            </td>
             </td>
             <td style="padding:10px;">{{ coupon.valid_from|date:"d M Y" }}</td>
             <td style="padding:10px;">{{ coupon.valid_to|date:"d M Y" }}</td>
