@@ -4,6 +4,8 @@
     <h2>Order #{{ order.order_code }}</h2>
     <p>User: {{ order.user.email }}</p>
     <p>Total: ₹{{ order.total_price }}</p>
+    <p>Payment Method: <span class="badge bg-secondary">{{ order.payment_method }}</span></p>
+
     <p>Placed On: {{ order.created_at|date:"M d, Y " }}</p>
     {% if order.status == "cancelled" %}
         <p class="text-danger">Cancellation Reason: {{ order.cancellation_reason }}</p>
