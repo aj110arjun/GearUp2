@@ -278,12 +278,15 @@ def admin_login(request):
     return render(request, "custom_admin/login.html")
 
 def user_list(request):
-    google_user_ids = SocialAccount.objects.filter(provider='google').values_list('user_id', flat=True)
-    users = User.objects.exclude(id__in=google_user_ids).exclude(is_staff=True).order_by("-date_joined")
+    users = User.objects.exclude(is_staff=True).order_by("-date_joined")
     context = {
         "users": users,
     }
     return render(request, 'custom_admin/users/user_list.html', context)
+
+def account_inactive_view(request):
+    return render(request, 'accounts/account_inactive.html')
+
 def toggle_user_status(request, user_id):
     user = get_object_or_404(User, id=user_id)
     if user.is_active:
