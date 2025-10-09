@@ -12,6 +12,8 @@ from django.views.decorators.cache import never_cache
 from django.contrib import messages
 from allauth.socialaccount.models import SocialAccount
 from django.contrib.auth.password_validation import validate_password
+from django.contrib.admin.views.decorators import staff_member_required
+
 
 
 ### User Views
@@ -277,6 +279,8 @@ def admin_login(request):
 
     return render(request, "custom_admin/login.html")
 
+@staff_member_required(login_url='admin_login')
+@never_cache
 def user_list(request):
     users = User.objects.exclude(is_staff=True).order_by("-date_joined")
     google_users = SocialAccount.objects.filter(provider='google').values_list('user_id', flat=True)
