@@ -171,6 +171,33 @@ def update_cart(request, item_id):
 
     return JsonResponse(response_data)
 
+@login_required(login_url='login')
+def update_variant(request, item_id):
+    """Update a cart item's variant (via AJAX or form POST)."""
+    cart_item = get_object_or_404(CartItem, id=item_id, user=request.user)
+
+    if request.method == "POST":
+        variant_id = request.POST.get("variant_id")
+        new_variant = get_object_or_404(ProductVariant, id=variant_id, product=cart_item.variant.product)
+
+        # Replace variant
+        cart_item.variant = new_variant
+        cart_item.save()
+
+        # If AJAX, return price & stock for live update
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            data = {
+                'price': float(new_variant.get_discounted_price() if hasattr(new_variant, 'get_discounted_price') else new_variant.price),
+                'stock': new_variant.stock,
+                'variant_text': f"{new_variant.color} / {new_variant.size}"
+            }
+            return JsonResponse(data)
+
+        return redirect('cart_view')
+
+    return redirect('cart_view')
+
+
 @login_required(login_url="login")
 @never_cache
 def remove_from_cart(request, item_id):
