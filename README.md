@@ -40,6 +40,11 @@ It includes a **custom admin panel**, **product variant management**, and **time
 ### 1️⃣ Clone the repository
 ```bash
 git clone https://github.com/aj110arjun/GearUp2.git
-cd gearup
+cd gearup```
 
 
+### 2️⃣ Create a virtual environment
+```bash
+python -m venv venv
+source venv/bin/activate  # For macOS/Linux
+venv\Scripts\activate     # For Windows
