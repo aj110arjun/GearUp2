@@ -23,7 +23,18 @@
           <img src="{{ item.variant.product.image.url }}" alt="{{ item.variant.product.name }}" style="height:60px;">
           {{ item.variant.product.name }}
         </td>
-        <td>{{ item.variant.color }} / {{ item.variant.size }}</td>
+        <td>
+          <form method="post" action="{% url 'update_variant' item.id %}" class="variant-form">
+            {% csrf_token %}
+            <select name="variant_id" class="form-select form-select-sm variant-select" data-item-id="{{ item.id }}">
+              {% for variant in item.variant.product.variants.all %}
+                <option value="{{ variant.id }}" {% if variant.id == item.variant.id %}selected{% endif %}>
+                  {{ variant.color }} / {{ variant.size }}
+                </option>
+              {% endfor %}
+            </select>
+          </form>
+        </td>
         <td>
           {% with offer=item.variant.product.get_active_product_offer %}
             {% if offer %}
@@ -223,6 +234,40 @@ document.addEventListener('DOMContentLoaded', () => {
     updateItemSubtotal(row, quantity);
   });
   updateOrderTotal();
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.variant-select').forEach(select => {
+    select.addEventListener('change', async (e) => {
+      const itemId = e.target.dataset.itemId;
+      const form = e.target.closest('form');
+      const formData = new FormData(form);
+      
+      try {
+        const response = await fetch(form.action, {
+          method: 'POST',
+          body: formData,
+          headers: {'X-Requested-With': 'XMLHttpRequest'}
+        });
+        const data = await response.json();
+
+        // Update price instantly in UI
+        const row = e.target.closest('tr');
+        const priceCell = row.querySelector('td:nth-child(3)');
+        const newPrice = `₹${data.price.toFixed(2)}`;
+        priceCell.innerHTML = `<p class="fw-bold mb-0 text-success">${newPrice}</p>`;
+
+        // Update cached itemData for recalculations
+        itemData[itemId].price = data.price;
+        itemData[itemId].stock = data.stock;
+
+        updateOrderTotal();
+
+      } catch (error) {
+        console.error('Error updating variant:', error);
+      }
+    });
+  });
 });
 
 </script>
