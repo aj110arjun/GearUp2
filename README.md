@@ -19,8 +19,7 @@ It includes a **custom admin panel**, **product variant management**, and **time
   - Refunds processed directly to user wallets on order cancellations
 - 🧮 **Order & Cart System**
   - Add to cart, checkout, and track orders
-- ⚙️ **Optimized Performance**
-  - Implemented modularization for maintainability and scalability
+
 
 ---
 
