@@ -42,6 +42,7 @@ It includes a **custom admin panel**, **product variant management**, and **time
 git clone https://github.com/aj110arjun/GearUp2.git
 cd gearup```
 
+---
 
 ### 2️⃣ Create a virtual environment
 ```bash
