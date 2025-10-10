@@ -1,166 +1,139 @@
-{% extends "user/base.html" %}
+{% extends 'user/base.html' %}
 {% load static %}
+
 {% block content %}
-<div class="container my-5">
+<style>
+body {
+    background-color: #f5f4f0;
+    font-family: 'Poppins', sans-serif;
+}
+.order-container {
+    max-width: 900px;
+    margin: 40px auto;
+    background: #fff;
+    border-radius: 15px;
+    padding: 30px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+.order-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+.order-header h2 {
+    color: #333;
+    font-weight: 600;
+}
+.order-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 30px;
+    margin-bottom: 20px;
+}
+.order-info p {
+    margin: 5px 0;
+}
+.item-card {
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    background: #fafafa;
+}
+.item-card img {
+    width: 90px;
+    height: 90px;
+    object-fit: cover;
+    border-radius: 10px;
+    margin-right: 20px;
+}
+.item-details h5 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #333;
+}
+.item-details p {
+    margin: 2px 0;
+    color: #555;
+}
+.status {
+    font-weight: 600;
+    color: #007bff;
+}
+.total-section {
+    text-align: right;
+    font-size: 1.1rem;
+    margin-top: 20px;
+    border-top: 2px solid #eee;
+    padding-top: 15px;
+}
+.btn-action {
+    display: inline-block;
+    background-color: #d9534f;
+    color: white;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    text-decoration: none;
+}
+.btn-action:hover {
+    background-color: #c9302c;
+}
+</style>
 
-    <!-- Order Header -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2>Order #{{ order.order_code }}</h2>
+<div class="order-container">
+    <div class="order-header">
+        <h2>Order Details</h2>
+        <span>Order ID: {{ order.order_code }}</span>
     </div>
-    <p class="text-muted">Placed on: {{ order.created_at|date:"M d, Y H:i" }}</p>
-    <p><strong>Payment Method:</strong> {{ order.payment_method }} {% if order.payment_status == "Failed" %} (Failed) {% endif %}</p>
-    <a href="{% url 'download_invoice' order.order_code %}" class="btn btn-sm btn-outline-dark">
-        <i class="bi bi-download"></i> Download Invoice
-    </a>
-{% if order.payment_status == "Failed" %}
-<div class="card border-0 shadow-sm rounded-3 my-4 bg-light">
-    <div class="card-body d-flex align-items-center justify-content-between">
-        
-        <!-- Left side -->
-        <div class="d-flex align-items-center">
-            <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
-                <i class="bi bi-x-lg"></i>
-            </div>
-            <div>
-                <h6 class="mb-0 text-danger">Payment Failed</h6>
-                <small class="text-muted">Your transaction could not be completed.</small>
-            </div>
+
+    <div class="order-info">
+        <p><strong>Date:</strong> {{ order.created_at|date:"d M Y - H:i" }}</p>
+        <p><strong>Payment Method:</strong> {{ order.get_payment_method_display }}</p>
+        <p><strong>Payment Status:</strong> {{ order.payment_status }}</p>
+        <p><strong>Total Amount:</strong> ₹{{ order.total_price }}</p>
+        {% if order.discount %}
+        <p><strong>Discount:</strong> ₹{{ order.discount }}</p>
+        {% endif %}
+        {% if order.coupon %}
+        <p><strong>Coupon:</strong> {{ order.coupon.code }}</p>
+        {% endif %}
+    </div>
+
+    <h4>Items</h4>
+    {% for item in order.items.all %}
+    <div class="item-card">
+        <img src="{{ item.variant.image.url }}" alt="{{ item.variant.product.name }}">
+        <div class="item-details">
+            <h5>{{ item.variant.product.name }} ( {{ item.variant.color }} / {{ item.variant.size }} )</h5>
+            <p>Quantity: {{ item.quantity }}</p>
+            <p>Price: ₹{{ item.price }}</p>
+            <p>Status: <span class="status">{{ item.get_status_display }}</span></p>
+
+            {% if item.status == "delivered" and not item.return_requested %}
+                <a href="{% url 'return_order_item_page' item.item_id %}" class="btn-action">Request Return</a>
+            {% elif item.status == "pending" and not item.cancellation_requested %}
+                <a href="{% url 'cancel_order_item_page' item.item_id %}" class="btn-action">Cancel Order</a>
+            {% endif %}
         </div>
-
-        <!-- Right side (Retry Button) -->
-        <a href="{% url 'retry_payment' order.order_id %}" class="btn btn-danger btn-sm">
-            <i class="bi bi-arrow-repeat"></i> Retry Payment
-        </a>
     </div>
-</div>
-{% endif %}
+    {% empty %}
+    <p>No items found for this order.</p>
+    {% endfor %}
 
-
-    <!-- Shipping Address -->
-<h5 class="mt-4">Shipping Address</h5>
-<div class="border rounded p-3 mb-4 shadow-sm">
-    {% if order.address %}
-        <p class="mb-1"><strong>{{ order.address.full_name }}</strong></p>
-        <p class="mb-1">{{ order.address.address_line_1 }}</p>
-        {% if order.address.address_line_2 %}
-            <p class="mb-1">{{ order.address.address_line_2 }}</p>
-        {% endif %}
-        <p class="mb-1">{{ order.address.city }}, {{ order.address.state }} - {{ order.address.postal_code }}</p>
-        <p class="mb-1">{{ order.address.country }}</p>
-        <p class="mb-0"><strong>Phone:</strong> {{ order.address.phone }}</p>
-    {% else %}
-        <p class="text-muted">No address available</p>
-    {% endif %}
-</div>
-    <hr>
-
-    <!-- Order Items -->
-    <h5 class="mt-4 mb-3">Items</h5>
-    <ul class="list-group mb-4 shadow-sm">
+    <div class="total-section">
         {% for item in items %}
-        <li class="list-group-item d-flex justify-content-between align-items-center">
-
-            <!-- Product Info -->
-            <div class="d-flex align-items-center">
-                {% if item.variant.product.image %}
-                    <img src="{{ item.variant.product.image.url }}" 
-                         alt="{{ item.variant.product.name }}" 
-                         class="img-thumbnail me-3" 
-                         style="width: 80px; height: 80px; object-fit: cover;">
-                {% else %}
-                    <img src="{% static 'images/placeholder.png' %}" 
-                         alt="No image" 
-                         class="img-thumbnail me-3" 
-                         style="width: 80px; height: 80px; object-fit: cover;">
-                {% endif %}
-                <div>
-                    <strong>{{ item.variant.product.name }}</strong><br>
-                    <small class="text-muted">
-                        {% if item.variant.color %}Color: {{ item.variant.color }}{% endif %}
-                        {% if item.variant.size %} / Size: {{ item.variant.size }}{% endif %}
-                    </small><br>
-                    <small>Qty: {{ item.quantity }}</small>
-                </div>
-            </div>
-
-            <!-- Subtotal & Status -->
-            <div class="text-end">
-                <div class="fw-bold mb-1">₹{{ item.subtotal }}</div>
-
-                {# --- Cancellation Flow --- #}
-                <!-- Cancellation Button / Status -->
-<!-- Cancellation Section -->
-<!-- Cancellation Section -->
-{% if item.status == "pending" or item.status == "shipped" %}
-    {% if not item.cancellation_requested %}
-        <span class="badge 
-          {% if item.status == 'pending' %}bg-warning
-          {% elif item.status == 'shipped' %}bg-info
-          {% else %}bg-secondary
-          {% endif %}
-        ">
-          {{ item.status | title}}
-        </span>
-        <a href="{% url 'cancel_order_item_page' item.item_id %}" 
-           class="btn btn-sm btn-danger mt-2">
-            Request Cancellation
-        </a>
-
-    {% else %}
-        {% if item.cancellation_approved is none %}
-            <span class="badge bg-warning text-dark">Cancellation Pending</span>
-            <small class="d-block text-muted">Reason: {{ item.cancellation_reason }}</small>
-        {% elif item.cancellation_approved == False %}
-                <span class="badge bg-secondary">Cancellation Rejected</span>
-                <small class="d-block text-muted">Reason: {{ item.cancellation_reason }}</small>
-        {% else%}
-                <h1>Hello</h1>
-        {% endif %}
-    {% endif %}
-{% endif %}
-
-{% if item.status == "cancelled" %}
-            <span class="badge bg-danger">Cancelled</span>
-{% endif %}
-
-
-
-{% if item.status|lower == "delivered" %}
-    {% if not item.return_requested %}
-    <span class="badge bg-success">{{item.status}}</span>
-        <a href="{% url 'return_order_item_page' item.item_id %}" 
-           class="btn btn-sm btn-dark mt-2">
-            Request Return
-        </a>
-
-    {% else %}
-        {% if item.return_approved is none %}
-            <span class="badge bg-info text-dark">Return Pending</span>
-            <small class="d-block text-muted">Reason: {{ item.return_reason }}</small>
-
-        {% elif item.return_approved %}
-            <span class="badge bg-success">Returned</span>
-
-        {% elif item.return_approved == False %}
-            <span class="badge bg-danger">Return Rejected</span>
-            <small class="d-block text-danger">Reason: {{ item.return_reason }}</small>
-        {% endif %}
-    {% endif %}
-{% endif %}
-
-
-            </div>
-
-        </li>
+            <li class="list-group-item">
+                <strong>Tax:</strong> ₹{{ item.tax }}
+            </li>
         {% endfor %}
-    </ul>
-
-    <!-- Order Total -->
-    <div class="text-end">
-        <h4>Total: ₹{{ order.total_price }}</h4>
+        <p><strong>Delivery Charge:</strong> ₹{{ delivery_charge }}</p>
+        <p><strong>Grand Total:</strong> ₹{{ grand_total|floatformat:2 }}</p>
     </div>
-
-    
-
 </div>
 {% endblock %}
