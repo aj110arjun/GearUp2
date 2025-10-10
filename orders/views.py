@@ -263,7 +263,22 @@ def order_detail(request, order_id):
     order = get_object_or_404(Order, order_id=order_id, user=request.user)
     grand_total = order.total_price - order.discount
     items = order.items.select_related('variant__product')  
-    return render(request, 'user/orders/order_detail.html', {'order': order, 'items': items, 'grand_total': grand_total, "delivery_charge": config("DELIVERY_CHARGE")})
+
+    total_tax = sum(item.tax for item in items)
+    subtotal = sum(item.price * item.quantity for item in items)
+    grand_total = subtotal + total_tax + Decimal(config("DELIVERY_CHARGE")) - order.discount
+
+    context = {
+        'order': order,
+        'items': items,
+        'grand_total': grand_total,
+        'delivery_charge': config("DELIVERY_CHARGE"),
+        'subtotal': subtotal,
+        'total_tax': total_tax,
+        'discount': order.discount,
+
+    }
+    return render(request, 'user/orders/order_detail.html', context)
 
 @login_required(login_url="login")
 @never_cache

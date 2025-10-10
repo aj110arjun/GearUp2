@@ -22,15 +22,15 @@ urlpatterns = [
     path('payment/retry/<uuid:order_id>/', views.retry_payment, name='retry_payment'),
 
     # Admin View
-    path('custom/admin/list/', views.admin_order_list, name='admin_order_list'),
-    path('custom/admin/<uuid:order_id>/', views.admin_order_detail, name='admin_order_detail'),
-    path('custom/admin/item/<uuid:item_id>/update-status/', views.admin_update_order_item_status, name='admin_update_order_item_status'),
-    path('custom/admin/cancellation-requests/', views.admin_cancellation_requests, name='admin_cancellation_requests'),
-    path('custom/admin/cancellation/<uuid:item_id>/<str:action>/', views.admin_approve_reject_cancellation, name='admin_approve_reject_cancellation'),
-    path("custom/admin/orders/cancellation/<uuid:item_id>/view/", views.admin_cancellation_request_view, name="admin_cancellation_request_view"),
-    path("custom/admin/orders/returns/", views.admin_return_requests, name="admin_return_requests"),
-    path("custom/admin/orders/returns/<uuid:item_id>/<str:action>/", views.admin_approve_reject_return, name="admin_approve_reject_return"),
-    path('custom/admin/return-reason/<uuid:item_id>/', views.admin_view_return_reason, name='admin_view_return_reason'),
+    path('admin/list/', views.admin_order_list, name='admin_order_list'),
+    path('<uuid:order_id>/', views.admin_order_detail, name='admin_order_detail'),
+    path('item/<uuid:item_id>/update-status/', views.admin_update_order_item_status, name='admin_update_order_item_status'),
+    path('cancellation-requests/', views.admin_cancellation_requests, name='admin_cancellation_requests'),
+    path('cancellation/<uuid:item_id>/<str:action>/', views.admin_approve_reject_cancellation, name='admin_approve_reject_cancellation'),
+    path("orders/cancellation/<uuid:item_id>/view/", views.admin_cancellation_request_view, name="admin_cancellation_request_view"),
+    path("orders/returns/", views.admin_return_requests, name="admin_return_requests"),
+    path("orders/returns/<uuid:item_id>/<str:action>/", views.admin_approve_reject_return, name="admin_approve_reject_return"),
+    path('return-reason/<uuid:item_id>/', views.admin_view_return_reason, name='admin_view_return_reason'),
 
 
 
