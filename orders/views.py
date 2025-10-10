@@ -13,7 +13,6 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 from io import BytesIO
 from wallet.models import Wallet, WalletTransaction
-from decimal import Decimal
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse, HttpResponseBadRequest
@@ -29,16 +28,14 @@ from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.utils.timezone import now
 from django.core.mail import send_mail
-
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.cache import never_cache
 from django.shortcuts import render, redirect
 from django.contrib import messages
-from decimal import Decimal
+from decouple import config
 from orders.models import Order, OrderItem, Coupon, Address
 from wallet.models import Wallet, WalletTransaction
 from transaction.models import Transaction  # Import your Transaction model accordingly
-
 
 @login_required(login_url="login")
 @never_cache
@@ -55,7 +52,7 @@ def checkout(request):
     payment_method = request.POST.get("payment_method", "COD")
     wallet, _ = Wallet.objects.get_or_create(user=request.user)
 
-    tax_rate = Decimal("10") / Decimal("100")  # 10% tax rate
+    tax_rate = Decimal(config("TAX_RATE"))  # 10% tax rate
 
     # --- Loop through cart items ---
     for item in cart_items:
@@ -73,14 +70,7 @@ def checkout(request):
 
         price = Decimal(item.variant.get_discounted_price())
         item_subtotal = price * item.quantity
-
-        # ✅ Calculate per-product tax
         item_tax = item_subtotal * tax_rate
-
-        # Store temporary values (not saved to DB yet)
-        item.calculated_price = price
-        item.calculated_subtotal = item_subtotal
-        item.calculated_tax = item_tax
 
         subtotal += item_subtotal
         total_tax += item_tax
@@ -112,7 +102,7 @@ def checkout(request):
             request.session.pop("coupon_id", None)
 
     # --- Delivery charge ---
-    delivery_charge = Decimal("50.00")
+    delivery_charge = Decimal(config("DELIVERY_CHARGE"))
 
     # --- Totals ---
     total = subtotal - discount
@@ -138,7 +128,7 @@ def checkout(request):
                 "coupon": coupon,
                 "wallet": wallet,
                 "grand_total": grand_total,
-                "delivery_charge": delivery_charge,
+                "delivery_charge": config("DELIVERY_CHARGE", default="50.00"),
                 "tax": total_tax,
             })
 
@@ -182,16 +172,23 @@ def checkout(request):
 
         # --- Create Order Items ---
         for item in cart_items:
+            price = Decimal(item.variant.get_discounted_price())
+            item_subtotal = price * item.quantity
+            item_tax = item_subtotal * tax_rate
+
             OrderItem.objects.create(
                 order=order,
                 variant=item.variant,
                 quantity=item.quantity,
-                price=item.calculated_price,
-                tax=item.calculated_tax,   # ✅ store per-product tax
+                price=price,
+                tax=item_tax,  # ✅ store per-product tax directly
             )
+
+            # Reduce stock
             item.variant.stock -= item.quantity
             item.variant.save()
 
+        # Clear cart
         cart_items.delete()
 
         # --- Wallet payment handling ---
@@ -221,7 +218,6 @@ def checkout(request):
             return redirect("order_complete", order_id=order.order_id)
 
         return redirect("start_payment", order_id=order.order_id)
-    
 
     addresses = Address.objects.filter(user=request.user)
     return render(
@@ -240,6 +236,7 @@ def checkout(request):
             "tax": total_tax,
         },
     )
+
 
 
 @login_required(login_url="login")
@@ -264,8 +261,9 @@ def order_list(request):
 @never_cache
 def order_detail(request, order_id):
     order = get_object_or_404(Order, order_id=order_id, user=request.user)
+    grand_total = order.total_price - order.discount
     items = order.items.select_related('variant__product')  
-    return render(request, 'user/orders/order_detail.html', {'order': order, 'items': items})
+    return render(request, 'user/orders/order_detail.html', {'order': order, 'items': items, 'grand_total': grand_total, "delivery_charge": config("DELIVERY_CHARGE")})
 
 @login_required(login_url="login")
 @never_cache
@@ -428,7 +426,6 @@ def admin_cancellation_requests(request):
 
 
 
-from decimal import Decimal
 from django.shortcuts import get_object_or_404, redirect
 from django.views.decorators.cache import never_cache
 from django.contrib.admin.views.decorators import staff_member_required
@@ -525,7 +522,6 @@ def admin_approve_reject_cancellation(request, item_id, action):
 
 
 
-from decimal import Decimal
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.cache import never_cache
 from django.contrib.admin.views.decorators import staff_member_required
