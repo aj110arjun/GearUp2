@@ -39,7 +39,7 @@ It includes a **custom admin panel**, **product variant management**, and **time
 
 ### 1️⃣ Clone the repository
 ```bash
-git clone https://github.com/<your-username>/gearup.git
+git clone https://github.com/aj110arjun/GearUp2.git
 cd gearup
 
 
