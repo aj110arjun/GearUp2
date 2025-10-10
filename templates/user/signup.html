@@ -16,7 +16,7 @@
       
       <div class="mb-3">
         <label for="fullname" class="form-label">Full Name</label>
-        <input type="text" class="form-control" id="fullname" name="fullname" placeholder="Enter Full Name">
+        <input type="text" class="form-control" id="fullname" name="fullname" placeholder="Enter Full Name" value="{{ data.fullname|default:'' }}">
         {% if error.fullname %}
           <div class="text-danger small">{{ error.fullname }}</div>
         {% endif %}
@@ -24,7 +24,7 @@
 
       <div class="mb-3">
         <label for="email" class="form-label">Email</label>
-        <input type="text" class="form-control" id="email" name="email" placeholder="Enter Email">
+        <input type="text" class="form-control" id="email" name="email" placeholder="Enter Email" value="{{ data.email|default:'' }}">
         {% if error.email %}
           <div class="text-danger small">{{ error.email }}</div>
         {% endif %}
