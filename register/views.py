@@ -28,24 +28,32 @@ def user_signup(request):
         return redirect('home')
 
     error = {}
-    if request.method == 'POST':
-        fullname = request.POST['fullname']
-        email = request.POST['email']
-        password1 = request.POST['password1']
-        password2 = request.POST['password2']
+    data = {}  # store entered values
 
+    if request.method == 'POST':
+        fullname = request.POST.get('fullname', '')
+        email = request.POST.get('email', '')
+        password1 = request.POST.get('password1', '')
+        password2 = request.POST.get('password2', '')
+
+        # Store data so it can be reloaded on error
+        data = {
+            'fullname': fullname,
+            'email': email,
+        }
+
+        # --- Validations ---
         if not fullname or not email or not password1 or not password2:
             error['common'] = "All fields are required"
 
         if password1 != password2:
-            error['password'] = "Both password must match"
+            error['password'] = "Both passwords must match"
 
         if password1:
             if len(password1) < 8:
-                error['password1'] = "Length of password must be atleast 8"
+                error['password1'] = "Password must be at least 8 characters long"
             else:
                 try:
-                    # Django built-in strong password validation
                     validate_password(password1)
                 except ValidationError as e:
                     error['password1'] = "\n".join(e.messages)
@@ -62,13 +70,13 @@ def user_signup(request):
         if fullname:
             if not re.match(r'^[A-Za-z\s]+$', fullname):
                 error['fullname'] = "Fullname must contain only letters and spaces"
+            elif len(fullname) < 3:
+                error['fullname'] = "Fullname must contain at least 3 characters"
 
-            if len(fullname) < 3:
-                error['fullname'] = "fullname should contain at least 3 characters"
-
+        # --- If No Errors ---
         if not error:
             secret = pyotp.random_base32()
-            totp = pyotp.TOTP(secret, interval=120)  # 1 minute expiry
+            totp = pyotp.TOTP(secret, interval=120)  # 2 min expiry
             otp = totp.now()
 
             request.session["signup_data"] = {
@@ -89,7 +97,8 @@ def user_signup(request):
 
             return redirect("verify_otp")
 
-    return render(request, 'user/signup.html', {'error': error})
+    return render(request, 'user/signup.html', {'error': error, 'data': data})
+
 
 
 # login view
@@ -99,9 +108,14 @@ def user_login(request):
         return redirect('home')
         
     error={}
+    data={}
     if request.method == 'POST':
-        email = request.POST.get('email')
-        password = request.POST.get('password')
+        email = request.POST.get('email', '')
+        password = request.POST.get('password', '')
+
+        data = {
+            'email': email,
+        }
         
         if not email or not password:
             error["common"]="All fields are required"
@@ -115,7 +129,7 @@ def user_login(request):
             else:
                 error["common"] = "Invalid email or password."
                 
-    return render(request, 'user/login.html', {'error': error})
+    return render(request, 'user/login.html', {'error': error, "data": data})
 
 def verify_otp(request):
     error = {}
