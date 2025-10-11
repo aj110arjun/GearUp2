@@ -55,11 +55,18 @@ def product_list(request):
     for p in products:
         p.best_offer = p.get_best_offer_obj()
 
-    return render(request, 'user/products/product_list.html', {
+    wishlist_ids = Wishlist.objects.filter(user=request.user).values_list('product_id', flat=True)
+    cart_variant_ids = list(CartItem.objects.filter(user=request.user).values_list('variant_id', flat=True)) if request.user.is_authenticated else []
+
+    context = {
         'products': products,
         'categories': categories,
-        'filters': filters
-    })
+        'filters': filters,
+        'wishlist_ids': wishlist_ids,
+        'cart_variant_ids': cart_variant_ids,
+    }
+
+    return render(request, 'user/products/product_list.html', context)
 
 
 

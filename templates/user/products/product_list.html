@@ -105,6 +105,32 @@
                                 View Details
                             </a>
                         </div>
+                        <div class="d-flex gap-2 mt-3 justify-content-center text-center">
+                            <!-- Add to Cart -->
+                            <form acion="{% url 'add_to_cart' product.id %}" method="POST" class="flex-fill toggle-cart-form" data-variant-id="{{ product.variants.first.id }}">
+                                {% csrf_token %}
+                                {% if product.id in cart_variant_ids %}
+                                    <!-- Already in cart -->
+                                    <button type="submit" class="btn btn-success btn-circle toggle-cart-btn" title="Remove from Cart">
+                                        <i class="bi bi-check2 fs-5"></i>
+                                    </button>
+                                {% else %}
+                                    <!-- Not in cart -->
+                                    <button type="submit" class="btn btn-dark btn-circle toggle-cart-btn" title="Add to Cart">
+                                        <i class="bi bi-cart3 fs-5"></i>
+                                    </button>
+                                {% endif %}
+                            </form>
+
+                            <!-- Add to Wishlist -->
+                                <form method="POST" action="{% url 'remove_from_wishlist' product.id %}" class="flex-fill">
+                                    <button type="button" class="btn wishlist-btn {% if product.id in wishlist_ids %}btn-danger{% else %}btn-outline-danger{% endif %} btn-circle"
+                                            data-product-id="{{ product.id }}"
+                                            title="{% if product.id in wishlist_ids %}Remove from Wishlist{% else %}Add to Wishlist{% endif %}">
+                                        <i class="bi {% if product.id in wishlist_ids %}bi-heart-fill{% else %}bi-heart{% endif %} fs-5"></i>
+                                    </button>
+                                </form> 
+                        </div>
                     </div>
                 </div>
             </div>
@@ -171,5 +197,45 @@
 
   // Initialize on page load
   toggleClearBtn();
+
+  document.addEventListener('DOMContentLoaded', () => {
+  const wishlistButtons = document.querySelectorAll('.wishlist-btn');
+
+  wishlistButtons.forEach(button => {
+    button.addEventListener('click', async () => {
+      const productId = button.dataset.productId;
+
+      try {
+        const response = await fetch("{% url 'toggle_wishlist' 0 %}".replace('0', productId), {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+        });
+
+        const data = await response.json();
+
+        if (data.status === 'added') {
+          button.classList.remove('btn-outline-danger');
+          button.classList.add('btn-danger');
+          button.querySelector('i').classList.remove('bi-heart');
+          button.querySelector('i').classList.add('bi-heart-fill');
+          button.title = 'Remove from Wishlist';
+        } else if (data.status === 'removed') {
+          button.classList.remove('btn-danger');
+          button.classList.add('btn-outline-danger');
+          button.querySelector('i').classList.remove('bi-heart-fill');
+          button.querySelector('i').classList.add('bi-heart');
+          button.title = 'Add to Wishlist';
+        }
+      } catch (error) {
+        console.error('Error toggling wishlist:', error);
+      }
+    });
+  });
+});
+
+
 </script>
 {% endblock %}
