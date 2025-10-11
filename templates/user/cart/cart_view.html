@@ -105,31 +105,38 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  // Cache price, discount, and stock data per cart row
+  // 🔹 Cache price, discount, and stock data per cart row
   const itemData = {};
   document.querySelectorAll('tbody tr').forEach(row => {
     const id = row.getAttribute('data-item-id');
+
+    // Get price
     let priceText = row.querySelector('td:nth-child(3) p.fw-bold')?.textContent.replace(/[^\d\.]/g, '') || '';
     let price = parseFloat(priceText);
     if (isNaN(price)) {
       priceText = row.querySelector('td:nth-child(3) p.text-muted')?.textContent.replace(/[^\d\.]/g, '');
       price = parseFloat(priceText);
     }
+
+    // Get discount
     const discountBadge = row.querySelector('td:nth-child(5) .badge.bg-danger');
     let discountPercent = 0;
     if (discountBadge) {
       discountPercent = parseFloat(discountBadge.textContent.replace(/[^\d]/g, '')) || 0;
     }
-    // Assume stock is available as data attribute or in a cell, e.g. 4th td with class 'stock'
-    let stock = parseInt(row.querySelector('td.stock')?.textContent) || 5; // default 5 if no stock found
-    itemData[id] = {price, discountPercent, stock};
+
+    // Get stock (default 5 if not found)
+    let stock = parseInt(row.querySelector('td.stock')?.textContent) || 5;
+
+    itemData[id] = { price, discountPercent, stock };
   });
 
   const discountedPrice = (price, discountPercent) => price * (1 - discountPercent / 100);
 
+  // 🔹 Update subtotal for one item
   function updateItemSubtotal(row, quantity) {
     const id = row.getAttribute('data-item-id');
-    const {price, discountPercent} = itemData[id];
+    const { price, discountPercent } = itemData[id];
     const unitPrice = discountedPrice(price, discountPercent);
     const subtotal = unitPrice * quantity;
 
@@ -146,42 +153,43 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // 🔹 Update full order total
   function updateOrderTotal() {
-  let total = 0;
-  document.querySelectorAll('tbody tr').forEach(row => {
-    const quantity = parseInt(row.querySelector('.quantity-text').textContent);
-    const {price, discountPercent} = itemData[row.getAttribute('data-item-id')];
-    total += discountedPrice(price, discountPercent) * quantity;
-  });
+    let total = 0;
 
-  // Get discount from a data attribute or JS variable
-  const discount = parseFloat(document.getElementById('cart-total').dataset.discount) || 0;
-  total = total - discount;
+    document.querySelectorAll('tbody tr').forEach(row => {
+      const quantity = parseInt(row.querySelector('.quantity-text').textContent);
+      const { price, discountPercent } = itemData[row.getAttribute('data-item-id')];
+      total += discountedPrice(price, discountPercent) * quantity;
+    });
 
-  const totalElem = document.getElementById('cart-total');
-  if (totalElem) totalElem.textContent = `₹${total.toFixed(2)}`;
-}
+    const discount = parseFloat(document.getElementById('cart-total')?.dataset.discount) || 0;
+    total = total - discount;
 
+    const totalElem = document.getElementById('cart-total');
+    if (totalElem) totalElem.textContent = `₹${total.toFixed(2)}`;
+  }
 
+  // 🔹 Enable/disable quantity buttons based on stock
   function toggleButtons(row, quantity) {
     const decBtn = row.querySelector('.decrement-btn');
     const incBtn = row.querySelector('.increment-btn');
     const id = row.getAttribute('data-item-id');
     const stock = itemData[id].stock;
 
-    // max quantity is stock if stock < 5, else 5
     const maxQuantity = stock < 5 ? stock : 5;
 
     decBtn.classList.toggle('disabled', quantity <= 1);
     incBtn.classList.toggle('disabled', quantity >= maxQuantity);
   }
 
+  // 🔹 Async backend update
   async function updateBackendCartAsync(itemId, action) {
     const url = `{% url 'update_cart' 0 %}`.replace('0', itemId) + `?action=${action}`;
     try {
       await fetch(url, {
         method: 'GET',
-        headers: {'X-Requested-With': 'XMLHttpRequest'},
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
         credentials: 'same-origin'
       });
     } catch (error) {
@@ -189,6 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // 🔹 Quantity change handler
   function handleQuantityChangeUIOnly(button, action) {
     if (button.classList.contains('disabled')) return;
 
@@ -205,14 +214,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // Update UI immediately
     quantity = action === 'increase' ? quantity + 1 : quantity - 1;
     quantitySpan.textContent = quantity;
+
     toggleButtons(row, quantity);
     updateItemSubtotal(row, quantity);
     updateOrderTotal();
 
-    // Fire async backend sync request without blocking UI
+    // Sync backend asynchronously
     updateBackendCartAsync(itemId, action);
   }
 
+  // 🔹 Attach listeners for increment/decrement
   document.querySelectorAll('.increment-btn').forEach(button => {
     button.addEventListener('click', e => {
       e.preventDefault();
@@ -227,40 +238,44 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Initialize on page load
+  // 🔹 Initialize all rows on load
   document.querySelectorAll('tbody tr').forEach(row => {
     const quantity = parseInt(row.querySelector('.quantity-text').textContent);
     toggleButtons(row, quantity);
     updateItemSubtotal(row, quantity);
   });
   updateOrderTotal();
-});
 
-document.addEventListener('DOMContentLoaded', () => {
+  // 🔹 Handle variant change (price & stock update)
   document.querySelectorAll('.variant-select').forEach(select => {
     select.addEventListener('change', async (e) => {
       const itemId = e.target.dataset.itemId;
       const form = e.target.closest('form');
       const formData = new FormData(form);
-      
+      const row = e.target.closest('tr');
+
       try {
         const response = await fetch(form.action, {
           method: 'POST',
           body: formData,
-          headers: {'X-Requested-With': 'XMLHttpRequest'}
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
         });
+
         const data = await response.json();
 
-        // Update price instantly in UI
-        const row = e.target.closest('tr');
+        // ✅ Update UI instantly
         const priceCell = row.querySelector('td:nth-child(3)');
         const newPrice = `₹${data.price.toFixed(2)}`;
         priceCell.innerHTML = `<p class="fw-bold mb-0 text-success">${newPrice}</p>`;
 
-        // Update cached itemData for recalculations
+        // ✅ Update cached itemData
         itemData[itemId].price = data.price;
         itemData[itemId].stock = data.stock;
+        itemData[itemId].discountPercent = data.discount_percent || 0;
 
+        // ✅ Update subtotal and total
+        const quantity = parseInt(row.querySelector('.quantity-text').textContent);
+        updateItemSubtotal(row, quantity);
         updateOrderTotal();
 
       } catch (error) {
@@ -269,7 +284,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 });
-
 </script>
+
 
 {% endblock %}
