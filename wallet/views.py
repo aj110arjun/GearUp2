@@ -9,6 +9,7 @@ from django.http import JsonResponse
 from django.conf import settings
 from django.views.decorators.cache import never_cache
 from decimal import Decimal
+from django.urls import reverse
 
 from .models import Wallet, WalletTransaction
 from orders.models import OrderItem
@@ -116,11 +117,17 @@ def user_wallet(request):
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
+    breadcrumbs = [
+        ("Home", reverse("home")),
+        ("Wallet", None)
+    ]
+
     context = {
         "wallet": wallet, 
         "page_obj": page_obj, 
         "error": error, 
         "razorpay_key": settings.RAZORPAY_KEY_ID,
+        "breadcrumbs": breadcrumbs,
         }
 
     return render(request, "user/wallet/wallet.html", context)
@@ -170,6 +177,8 @@ def add_money_to_wallet(request):
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
+    
+
     context = {
         "wallet": wallet, 
         "page_obj": page_obj, 
@@ -187,7 +196,18 @@ def add_money(request):
         if amount > 0:
             request.session['add_wallet_amount'] = str(amount)
             return redirect('wallet_payment')
-    return render(request, 'user/wallet/add_money.html')
+    breadcrumbs = [
+        ("Home", reverse("home")),
+        ("Wallet", reverse("user_wallet")),
+        ("Add Money", None),
+    ]
+
+    context = {
+         'error': 'Please enter a valid amount.',
+         'breadcrumbs': breadcrumbs
+         }
+
+    return render(request, 'user/wallet/add_money.html', context)
 
 
 

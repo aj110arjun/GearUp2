@@ -1,4 +1,5 @@
 {% extends 'user/base.html' %}
+{% block title %} {% if address %}Edit Address{% else %}Add Address{% endif %} {% endblock title %}
 {% block content %}
 <div class="container my-4">
     <h2>{% if address %}Edit Address{% else %}Add Address{% endif %}</h2>

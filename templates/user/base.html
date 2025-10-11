@@ -93,6 +93,45 @@
               color: #6a994e !important;
               font-size: 1.5rem;
             }
+            .breadcrumb-container {
+                background: #f4f1e9;
+                border-radius: 10px;
+                padding: 0.6rem 1rem;
+                margin: 20px auto;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+                max-width: 90%;
+            }
+
+            .breadcrumb {
+                background: none;
+                margin-bottom: 0;
+                padding: 0;
+                font-size: 0.95rem;
+            }
+
+            .breadcrumb-item a {
+                color: #4c614e;
+                text-decoration: none;
+                font-weight: 500;
+                transition: color 0.2s ease;
+            }
+
+            .breadcrumb-item a:hover {
+                color: #6a994e;
+                text-decoration: underline;
+            }
+
+            .breadcrumb-item.active {
+                color: #212529;
+                font-weight: 600;
+            }
+
+            .breadcrumb-item + .breadcrumb-item::before {
+                content: "›";
+                color: #6a994e;
+                font-weight: bold;
+            }
+
 
             .nav-link {
               color: #333 !important;
@@ -205,6 +244,22 @@
             </div>
             </div>
         </nav>
+        {% if breadcrumbs %}
+          <div class="breadcrumb-container mt-3">
+            <nav aria-label="breadcrumb">
+              <ol class="breadcrumb mb-0">
+                {% for name, url in breadcrumbs %}
+                  {% if url %}
+                    <li class="breadcrumb-item"><a href="{{ url }}">{{ name }}</a></li>
+                  {% else %}
+                    <li class="breadcrumb-item active" aria-current="page">{{ name }}</li>
+                  {% endif %}
+                {% endfor %}
+              </ol>
+            </nav>
+          </div>
+        {% endif %}
+
         {% block content %}
             
         {% endblock content %}

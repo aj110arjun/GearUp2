@@ -1,7 +1,10 @@
 import razorpay
 
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
+from django.http import JsonResponse
+from django.conf import settings
+from django.urls import reverse
 from cart.models import CartItem
 from .models import Order, OrderItem
 from django.contrib.admin.views.decorators import staff_member_required
@@ -257,7 +260,18 @@ def order_list(request):
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
-    return render(request, "user/orders/orders.html", {"page_obj": page_obj})
+    breadcrumbs = [
+        ("Home", reverse("home")),
+        ("Account", reverse("account_info")),
+        ("My Orders", None),
+    ]
+    context = {
+        'page_obj': page_obj,
+        'breadcrumbs': breadcrumbs,
+    }
+
+
+    return render(request, "user/orders/orders.html", context)
 
 @login_required(login_url='login')
 @never_cache
@@ -270,6 +284,13 @@ def order_detail(request, order_id):
     subtotal = sum(item.price * item.quantity for item in items)
     grand_total = subtotal + total_tax + Decimal(config("DELIVERY_CHARGE")) - order.discount
 
+    breadcrumbs = [
+        ("Home", reverse("home")),
+        ("Account", reverse("account_info")),
+        ("My Orders", reverse("order_list")),
+        (f"#{order.order_code}", None)
+    ]
+
     context = {
         'order': order,
         'items': items,
@@ -278,6 +299,7 @@ def order_detail(request, order_id):
         'subtotal': subtotal,
         'total_tax': total_tax,
         'discount': order.discount,
+        'breadcrumbs': breadcrumbs,
 
     }
     return render(request, 'user/orders/order_detail.html', context)
@@ -442,11 +464,6 @@ def admin_cancellation_requests(request):
     return render(request, "custom_admin/orders/cancellation_request.html", {"items": items})
 
 
-
-from django.shortcuts import get_object_or_404, redirect
-from django.views.decorators.cache import never_cache
-from django.contrib.admin.views.decorators import staff_member_required
-
 @staff_member_required(login_url="admin_login")
 @never_cache
 def admin_approve_reject_cancellation(request, item_id, action):
@@ -535,14 +552,6 @@ def admin_approve_reject_cancellation(request, item_id, action):
 
     item.save()
     return redirect("admin_cancellation_requests")
-
-
-
-
-from django.shortcuts import get_object_or_404, redirect, render
-from django.views.decorators.cache import never_cache
-from django.contrib.admin.views.decorators import staff_member_required
-from django.contrib import messages
 
 @staff_member_required(login_url="admin_login")
 @never_cache
@@ -874,7 +883,18 @@ def track_order_search(request):
         except Order.DoesNotExist:
             order = None
 
-    return render(request, "user/orders/order_track.html", {"order": order})
+    breadcrumbs = [
+        ("Home", reverse("home")),
+        ("Account", reverse("account_info")),
+        ("Track Order", None),
+    ]
+
+    context = {
+        "order": order,
+        "breadcrumbs": breadcrumbs,
+    }
+
+    return render(request, "user/orders/order_track.html", context)
 
 @login_required(login_url='login')
 @never_cache

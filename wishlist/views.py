@@ -5,13 +5,22 @@ from products.models import Product
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse
+from django.urls import reverse
 
 
 @login_required(login_url='login')
 @never_cache
 def wishlist_view(request):
     items = Wishlist.objects.filter(user=request.user).select_related("product")
-    return render(request, "user/wishlist/wishlist_view.html", {"items": items})
+    breadcrumbs = [
+        ("Home", reverse("home")),
+        ("Wishlist", None)
+    ]
+    context = {
+        "items": items,
+        "breadcrumbs": breadcrumbs,
+    }
+    return render(request, "user/wishlist/wishlist_view.html", context)
 
 @login_required(login_url='login')
 @require_POST

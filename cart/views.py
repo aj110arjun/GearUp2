@@ -10,6 +10,7 @@ from coupons.models import Coupon
 from django.http import JsonResponse
 from django.views.decorators.cache import never_cache
 from django.template.loader import render_to_string
+from django.urls import reverse
 
 
 @login_required(login_url="login")
@@ -92,21 +93,24 @@ def cart_view(request):
     total = subtotal - discount
     if total < 0:
         total = Decimal('0.00')
+    breadcrumbs = [
+        ("Home", reverse("home")),
+        ("Cart", None)
+    ]
 
-    return render(
-        request,
-        "user/cart/cart_view.html",
-        {
-            "items": items,
-            "subtotal": subtotal,         # after offers
-            "offer_savings": offer_savings,
-            "discount": discount,         # coupon discount
-            "total": total,               # final payable
-            "coupon": coupon,
-            "error": error,
-            'item_qnt_price':item_qnt_price,
-        },
-    )
+    context = {
+        "items": items,
+        "subtotal": subtotal,         # after offers
+        "offer_savings": offer_savings,
+        "discount": discount,         # coupon discount
+        "total": total,               # final payable
+        "coupon": coupon,
+        "error": error,
+        'item_qnt_price':item_qnt_price,
+        'breadcrumbs': breadcrumbs,
+    }
+
+    return render(request,"user/cart/cart_view.html", context)
 
 
 @login_required(login_url="login")

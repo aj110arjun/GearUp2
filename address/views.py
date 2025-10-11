@@ -3,13 +3,23 @@ from django.contrib.auth.decorators import login_required
 from .models import Address
 from django.contrib import messages
 from django.views.decorators.cache import never_cache
+from django.urls import reverse
 
 
 @login_required(login_url='login')
 @never_cache
 def address_list(request):
     addresses = request.user.addresses.all()
-    return render(request, "user/address/address_list.html", {"addresses": addresses})
+    breadcrumbs = [
+        ("Home", reverse("home")),
+        ("Account", reverse("account_info")),
+        ("My Address", None),
+    ]
+    context = {
+        "breadcrumbs": breadcrumbs,
+        "addresses": addresses
+    }
+    return render(request, "user/address/address_list.html", context)
 
 @login_required(login_url='login')
 @never_cache
@@ -46,8 +56,17 @@ def add_address(request):
         else:
             error = "All required fields must be filled."
             return render(request, "user/address/address_form.html", {"error": error})
+        
+    breadcrumbs = [
+        ("Home", reverse("home")),
+        ("Account", reverse("account_info")),
+        ("My Address", reverse("address_list")),
+        ("Add Address", None),
+    ]
+    
+    context = {"breadcrumbs": breadcrumbs}
 
-    return render(request, "user/address/address_form.html")
+    return render(request, "user/address/address_form.html", context)
 
 @login_required(login_url='login')
 @never_cache
@@ -71,8 +90,19 @@ def edit_address(request, pk):
             return redirect(next_url)
         
         return redirect("address_list")
+    breadcrumbs = [
+        ("Home", reverse("home")),
+        ("Account", reverse("account_info")),
+        ("My Address", reverse("address_list")),
+        ("Edit Address", None),
+    ]
 
-    return render(request, "user/address/address_form.html", {"address": address})
+    context = {
+        "breadcrumbs": breadcrumbs,
+        "address": address
+    }
+
+    return render(request, "user/address/address_form.html", context)
 
 @login_required(login_url='login')
 @never_cache
