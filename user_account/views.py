@@ -1,3 +1,4 @@
+import requests
 import random
 import re
 import cloudinary
@@ -8,7 +9,9 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.cache import never_cache
 from django.contrib.auth import update_session_auth_hash
 from django.core.mail import send_mail
+from django.core.files.base import ContentFile
 from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.conf import settings
@@ -40,23 +43,6 @@ def account_info(request):
         'breadcrumbs': breadcrumbs,
     }
     return render(request, 'user/account.html', context)
-
-
-
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
-from django.views.decorators.cache import never_cache
-from django.contrib.auth import update_session_auth_hash
-from django.core.mail import send_mail
-from django.utils import timezone
-import random
-import re
-import requests
-from django.core.files.base import ContentFile
-from .forms import ProfileEditForm
-from .models import Profile
-import cloudinary.uploader
-from django.conf import settings
 
 
 @login_required(login_url='login')
@@ -150,13 +136,21 @@ def edit_profile(request):
             request.session['profile_updated'] = True
             return redirect('account_info')
 
-    return render(request, 'user/edit_profile.html', {
+    breadcrumbs = [
+        ("Home", reverse("home")),
+        ("Account", reverse("account_info")),
+        ("Edit Profile", None)
+    ]
+    context = {
+        "breadcrumbs": breadcrumbs,
         'profile': profile,
         'has_password': has_password,
         'error': error,
         'name': user.first_name,
         'email': user.email,
-    })
+    }
+
+    return render(request, 'user/edit_profile.html', context)
 
 
 @login_required(login_url='login')
