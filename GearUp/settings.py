@@ -98,28 +98,16 @@ TEMPLATES = [
 WSGI_APPLICATION = 'GearUp.wsgi.application'
 
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-#         'NAME': config("NAME"),
-#         'USER': 'postgres',
-#         'PASSWORD': config("PASSWORD"),
-#         'HOST': 'localhost',  
-#         'PORT': '5432',
-#     }
-# }
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME': config("NAME"),
         'USER': config("USER_DB"),
         'PASSWORD': config("PASSWORD"),
-        'HOST': 'gearup.c3as44es22h5.ap-southeast-2.rds.amazonaws.com',
-        'PORT': '5432',
+        'HOST': config("HOST"),
+        'PORT': config("PORT"),
     }
 }
-
 
 EMAIL_BACKEND = config("EMAIL_BACKEND")
 EMAIL_HOST = config("EMAIL_HOST")
