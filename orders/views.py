@@ -225,22 +225,27 @@ def checkout(request):
         return redirect("start_payment", order_id=order.order_id)
 
     addresses = Address.objects.filter(user=request.user)
-    return render(
-        request,
-        "user/orders/checkout.html",
-        {
-            "cart_items": cart_items,
-            "addresses": addresses,
-            "subtotal": subtotal,
-            "discount": discount,
-            "total": total,
-            "coupon": coupon,
-            "wallet": wallet,
-            "grand_total": grand_total,
-            "delivery_charge": delivery_charge,
-            "tax": total_tax,
-        },
-    )
+    breadcrumbs = [
+        ("Home", reverse("home")),
+        ("Cart", reverse("cart_view")),
+        ("Checkout", None)
+    ]
+    context = {
+        "breadcrumbs": breadcrumbs,
+        "cart_items": cart_items,
+        "addresses": addresses,
+        "subtotal": subtotal,
+        "discount": discount,
+        "total": total,
+        "coupon": coupon,
+        "wallet": wallet,
+        "grand_total": grand_total,
+        "delivery_charge": delivery_charge,
+        "tax": total_tax,
+        "error": error,
+    }
+
+    return render(request, "user/orders/checkout.html", context)
 
 
 
