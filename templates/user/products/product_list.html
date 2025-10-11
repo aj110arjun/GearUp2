@@ -5,40 +5,40 @@
 
 
 {% block content %}
-<div class="container my-4">
+            <div class="container my-4">
 
-    <!-- Search & Filters Row -->
-    <div class="row mb-4 align-items-center">
-        <!-- Search -->
-        <form method="get" class="row g-2 align-items-center mb-4">
+                <!-- Search & Filters Row -->
+                <div class="row mb-4 align-items-center">
+                    <!-- Search -->
+                    <form method="get" class="row g-2 align-items-center mb-4">
 
-            <!-- Search (text input) -->
-            <div class="col-md-4 position-relative">
-  <div class="input-group">
-    <input type="text" name="q" id="search-input" class="form-control" placeholder="Search products..." value="{{ filters.search }}"
-           style="padding-right: 60px;"> <!-- Add right padding -->
+                        <!-- Search (text input) -->
+                        <div class="col-md-4 position-relative">
+            <div class="input-group">
+                <input type="text" name="q" id="search-input" class="form-control" placeholder="Search products..." value="{{ filters.search }}"
+                    style="padding-right: 60px;"> <!-- Add right padding -->
 
-    <!-- Clear button positioned to the left of the search button -->
-    <button type="button" id="clear-btn" aria-label="Clear search"
-            style="
-              position: absolute;
-              right: 75px; /* Move left of search button */
-              top: 50%;
-              transform: translateY(-50%);
-              border: none;
-              background: transparent;
-              font-size: 18px;
-              cursor: pointer;
-              color: #999;
-              display: none;
-              z-index: 1000;
-            ">
-      &times;
-    </button>
+                <!-- Clear button positioned to the left of the search button -->
+                <button type="button" id="clear-btn" aria-label="Clear search"
+                        style="
+                        position: absolute;
+                        right: 75px; /* Move left of search button */
+                        top: 50%;
+                        transform: translateY(-50%);
+                        border: none;
+                        background: transparent;
+                        font-size: 18px;
+                        cursor: pointer;
+                        color: #999;
+                        display: none;
+                        z-index: 1000;
+                        ">
+                &times;
+                </button>
 
-    <button type="submit" class="btn btn-primary">Search</button>
-  </div>
-</div>
+                <button type="submit" class="btn btn-primary">Search</button>
+            </div>
+            </div>
             <!-- Category filter -->
             <div class="col-md-3">
                 <select name="category" class="form-select" onchange="this.form.submit()">
@@ -109,21 +109,18 @@
                             <!-- Add to Cart -->
                             <form acion="{% url 'add_to_cart' product.id %}" method="POST" class="flex-fill toggle-cart-form" data-variant-id="{{ product.variants.first.id }}">
                                 {% csrf_token %}
-                                {% if product.id in cart_variant_ids %}
-                                    <!-- Already in cart -->
-                                    <button type="submit" class="btn btn-success btn-circle toggle-cart-btn" title="Remove from Cart">
-                                        <i class="bi bi-check2 fs-5"></i>
-                                    </button>
-                                {% else %}
-                                    <!-- Not in cart -->
-                                    <button type="submit" class="btn btn-dark btn-circle toggle-cart-btn" title="Add to Cart">
-                                        <i class="bi bi-cart3 fs-5"></i>
-                                    </button>
-                                {% endif %}
+                                <button type="button"
+                                    class="btn cart-btn {% if product.id in cart_variant_ids %}btn-success{% else %}btn-dark{% endif %} btn-circle"
+                                    data-product-id="{{ product.id }}"
+                                    data-variant-id="{{ product.variants.first.id }}"
+                                    title="{% if product.id in cart_variant_ids %}Remove from Cart{% else %}Add to Cart{% endif %}">
+                                <i class="bi {% if product.id in cart_variant_ids %}bi-check2{% else %}bi-cart3{% endif %} fs-5"></i>
+                            </button>
                             </form>
 
                             <!-- Add to Wishlist -->
                                 <form method="POST" action="{% url 'remove_from_wishlist' product.id %}" class="flex-fill">
+                                {% csrf_token %}
                                     <button type="button" class="btn wishlist-btn {% if product.id in wishlist_ids %}btn-danger{% else %}btn-outline-danger{% endif %} btn-circle"
                                             data-product-id="{{ product.id }}"
                                             title="{% if product.id in wishlist_ids %}Remove from Wishlist{% else %}Add to Wishlist{% endif %}">
@@ -234,6 +231,46 @@
       }
     });
   });
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".cart-btn").forEach(button => {
+        button.addEventListener("click", function () {
+            const btn = this;
+            const productId = btn.getAttribute("data-product-id");
+            const variantId = btn.getAttribute("data-variant-id");
+            
+            fetch("{% url 'toggle_cart' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}",
+                },
+                body: JSON.stringify({
+                    product_id: productId,
+                    variant_id: variantId,
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.added) {
+                    // Added to cart
+                    btn.classList.remove("btn-dark");
+                    btn.classList.add("btn-success");
+                    btn.setAttribute("title", "Remove from Cart");
+                    btn.querySelector("i").classList.remove("bi-cart3");
+                    btn.querySelector("i").classList.add("bi-check2");
+                } else if (data.removed) {
+                    // Removed from cart
+                    btn.classList.remove("btn-success");
+                    btn.classList.add("btn-dark");
+                    btn.setAttribute("title", "Add to Cart");
+                    btn.querySelector("i").classList.remove("bi-check2");
+                    btn.querySelector("i").classList.add("bi-cart3");
+                }
+            });
+        });
+    });
 });
 
 

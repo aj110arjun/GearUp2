@@ -1,4 +1,4 @@
-# cart/views.py
+import json
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -11,6 +11,7 @@ from django.http import JsonResponse
 from django.views.decorators.cache import never_cache
 from django.template.loader import render_to_string
 from django.urls import reverse
+from django.views.decorators.http import require_POST
 
 
 @login_required(login_url="login")
@@ -35,6 +36,20 @@ def add_to_cart(request, variant_id=None):
     Wishlist.objects.filter(user=request.user, product=variant.product).delete()
 
     return redirect("cart_view")
+
+@login_required
+@require_POST
+def toggle_cart(request):
+    data = json.loads(request.body)
+    variant_id = data.get("variant_id")
+    variant = ProductVariant.objects.get(id=variant_id)
+    cart_item, created = CartItem.objects.get_or_create(user=request.user, variant=variant)
+
+    if not created:
+        cart_item.delete()
+        return JsonResponse({"removed": True})
+    else:
+        return JsonResponse({"added": True})
 
 
 @login_required(login_url="login")
