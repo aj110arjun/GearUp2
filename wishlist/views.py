@@ -3,6 +3,8 @@ from django.contrib.auth.decorators import login_required
 from .models import Wishlist
 from products.models import Product
 from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_POST
+from django.http import JsonResponse
 
 
 @login_required(login_url='login')
@@ -10,6 +12,21 @@ from django.views.decorators.cache import never_cache
 def wishlist_view(request):
     items = Wishlist.objects.filter(user=request.user).select_related("product")
     return render(request, "user/wishlist/wishlist_view.html", {"items": items})
+
+@login_required(login_url='login')
+@require_POST
+def toggle_wishlist(request, product_id):
+    product = get_object_or_404(Product, id=product_id)
+    wishlist_item = Wishlist.objects.filter(user=request.user, product=product).first()
+
+    if wishlist_item:
+        wishlist_item.delete()
+        status = 'removed'
+    else:
+        Wishlist.objects.create(user=request.user, product=product)
+        status = 'added'
+
+    return JsonResponse({'status': status})
 
 @login_required(login_url='login')
 @never_cache
