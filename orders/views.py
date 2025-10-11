@@ -9,8 +9,10 @@ from address.models import Address
 from django.contrib import messages
 from django.http import HttpResponse
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
 from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
 from io import BytesIO
 from wallet.models import Wallet, WalletTransaction
 from django.conf import settings
@@ -622,7 +624,7 @@ def admin_cancellation_request_view(request, item_id):
                         
                         messages.success(
                             request,
-                            f"Cancellation approved. ₹{refund_amount:.2f} has been refunded to {order.user.username}'s wallet."
+                            f"Cancellation approved. Rs. {refund_amount:.2f} has been refunded to {order.user.username}'s wallet."
                         )
                     else:
                         messages.info(request, "Refund already processed for this item.")
@@ -727,7 +729,7 @@ def admin_cancellation_request_view(request, item_id):
                         
                         messages.success(
                             request,
-                            f"Cancellation approved. ₹{refund_amount:.2f} (including tax) has been refunded to {order.user.username}'s wallet."
+                            f"Cancellation approved. Rs. {refund_amount:.2f} (including tax) has been refunded to {order.user.username}'s wallet."
                         )
                     else:
                         messages.info(request, "Refund already processed for this item.")
@@ -811,7 +813,7 @@ def admin_approve_reject_return(request, item_id, action):
                         order=item.order,
                     )
                     item.refund_done = True
-                    errors['wallet'] = f"Refund of ₹{refund_amount:.2f} credited to {item.order.user.username}'s wallet."
+                    errors['wallet'] = f"Refund of Rs. {refund_amount:.2f} credited to {item.order.user.username}'s wallet."
                 else:
                     errors['wallet'] = "Refund already processed for this item."
             
@@ -841,7 +843,7 @@ def admin_approve_reject_return(request, item_id, action):
                         description=f"Refund for returned product '{item.variant.product.name}' (x{item.quantity})"
                         )
                     item.refund_done = True
-                    errors['wallet'] = f"Refund of ₹{refund_amount:.2f} credited to {item.order.user.username}'s wallet."
+                    errors['wallet'] = f"Refund of Rs. {refund_amount:.2f} credited to {item.order.user.username}'s wallet."
                 else:
                     errors['wallet'] = "Refund already processed for this item."
         else:
@@ -879,28 +881,25 @@ def track_order_search(request):
 def download_invoice(request, order_code):
     order = get_object_or_404(Order, order_code=order_code, user=request.user)
 
-    # Create a file-like buffer
     buffer = BytesIO()
-
-    # Create PDF document
-    doc = SimpleDocTemplate(buffer)
+    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=40, leftMargin=40, rightMargin=40, bottomMargin=40)
     elements = []
 
     styles = getSampleStyleSheet()
     title_style = styles["Heading1"]
     normal_style = styles["Normal"]
 
-    # Title
-    elements.append(Paragraph("Order Invoice", title_style))
+    # --- Title ---
+    elements.append(Paragraph("<b>Order Invoice</b>", title_style))
     elements.append(Spacer(1, 12))
 
-    # Order Info
+    # --- Order Info ---
     elements.append(Paragraph(f"Order ID: #{order.order_code}", normal_style))
     elements.append(Paragraph(f"Date: {order.created_at.strftime('%d-%m-%Y')}", normal_style))
     elements.append(Paragraph(f"Payment Method: {order.payment_method}", normal_style))
-    # elements.append(Paragraph(f"Order Status: {order.payment_method}", normal_style))
     elements.append(Spacer(1, 12))
 
+    # --- Shipping Address ---
     elements.append(Paragraph("<b>Shipping Address:</b>", styles["Heading3"]))
     if order.address:
         shipping_address = f"""
@@ -910,46 +909,86 @@ def download_invoice(request, order_code):
         {order.address.city}, {order.address.state} - {order.address.postal_code}<br/>
         {order.address.country}<br/>
         Phone: {order.address.phone}
-     """
-        elements.append(Paragraph(shipping_address, styles["Normal"]))
+        """
+        elements.append(Paragraph(shipping_address, normal_style))
     else:
-        elements.append(Paragraph("No shipping address available", styles["Normal"]))
-    elements.append(Spacer(1, 12))
+        elements.append(Paragraph("No shipping address available", normal_style))
+    elements.append(Spacer(1, 15))
 
-    # Order Items Table
-    data = [["Product", "Quantity", "Price", "Subtotal", "Status"]]
+    # --- Order Items Table ---
+    data = [["Product", "Qty", "Unit Price", "Tax", "Subtotal", "Status"]]
+
+    subtotal = Decimal("0.00")
+    total_tax = Decimal("0.00")
+
     for item in order.items.all():
+        item_subtotal = item.price * item.quantity
+        subtotal += item_subtotal
+        total_tax += item.tax or Decimal("0.00")
+
         data.append([
             item.variant.product.name,
             str(item.quantity),
-            f"Rs. {item.price}",
-            f"Rs. {item.quantity * item.price}",
-            f"{item.get_status_display()}",
+            f"Rs. {item.price:.2f}",
+            f"Rs. {item.tax:.2f}",
+            f"Rs. {item_subtotal:.2f}",
+            item.get_status_display(),
         ])
 
-    data.append(["", "", "Total:", f"Rs. {order.total_price}"])
-
-    table = Table(data, hAlign="LEFT")
+    table = Table(data, hAlign="LEFT", colWidths=[140, 40, 70, 70, 80, 80])
     table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#4a4a4a")),
         ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
-        ("ALIGN", (1, 1), (-1, -1), "CENTER"),
-        ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
+        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("GRID", (0, 0), (-1, -1), 0.4, colors.grey),
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("BOTTOMPADDING", (0, 0), (-1, 0), 6),
+        ("TOPPADDING", (0, 0), (-1, 0), 6),
     ]))
     elements.append(table)
+    elements.append(Spacer(1, 15))
 
-    # Build PDF
+    # --- Summary Section ---
+    delivery_charge = Decimal(str(config("DELIVERY_CHARGE") or 0))
+    discount = Decimal(str(order.discount or 0))
+    grand_total = subtotal + total_tax + delivery_charge - discount
+
+    summary_data = [
+    ["Subtotal:", f"Rs. {subtotal:.2f}"],
+    ["Tax:", f"Rs. {total_tax:.2f}"],
+    ["Delivery Charge:", f"Rs. {delivery_charge:.2f}"],
+]
+
+    # Add discount row only if discount exists and is greater than 0
+    if discount > 0:
+        summary_data.append(["Discount:", f"- Rs. {discount:.2f}"])
+
+    summary_data.append(["Grand Total:", f"Rs. {grand_total:.2f}"])
+
+    summary_table = Table(summary_data, hAlign="RIGHT", colWidths=[150, 100])
+    summary_table.setStyle(TableStyle([
+        ("FONTNAME", (0, 0), (-1, -2), "Helvetica"),
+        ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
+        ("ALIGN", (0, 0), (-1, -1), "RIGHT"),
+        ("FONTSIZE", (0, 0), (-1, -1), 10),
+        ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+    ]))
+    elements.append(summary_table)
+
+    elements.append(Spacer(1, 15))
+    elements.append(Paragraph("<i>Thank you for shopping with GearUp!</i>", normal_style))
+
+    # --- Build PDF ---
     doc.build(elements)
-
-    # Get PDF value
     pdf = buffer.getvalue()
     buffer.close()
 
-    # Response as PDF download
     response = HttpResponse(pdf, content_type="application/pdf")
-    response["Content-Disposition"] = f'attachment; filename="invoice_#{order.order_code}.pdf"'
+    response["Content-Disposition"] = f'attachment; filename="invoice_{order.order_code}.pdf"'
     return response
+
 
 @login_required(login_url="login")
 @never_cache

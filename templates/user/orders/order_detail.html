@@ -13,6 +13,12 @@
         <!-- Items Table -->
         <div class="col-lg-8 mb-4">
             <div class="card shadow-sm">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>Order Details - #{{ order.order_code }}</h2>
+                    <a href="{% url 'download_invoice' order.order_code %}" class="btn btn-outline-success">
+                        <i class="bi bi-file-earmark-arrow-down"></i> Download Invoice
+                    </a>
+                </div>
                 <div class="card-header bg-light">
                     <h5 class="mb-0">Items in Your Order</h5>
                 </div>
@@ -25,7 +31,6 @@
                                 <th>Price</th>
                                 <th>Qty</th>
                                 <th>Tax</th>
-                                <th>Subtotal</th>
                                 <th>Status</th>
                                 <th>Action</th>
                             </tr>
@@ -43,7 +48,6 @@
                                 <td>₹{{ item.price }}</td>
                                 <td>{{ item.quantity }}</td>
                                 <td>₹{{ item.tax }}</td>
-                                <td>₹{{ item.price|mul:item.quantity|add:item.tax }}</td>
                                 <td>
                                     <span class="badge 
                                         {% if item.status == 'delivered' %}bg-success
