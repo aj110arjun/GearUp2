@@ -13,7 +13,8 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from django.conf import settings
 from django.core.exceptions import ValidationError
-
+from django.core.validators import validate_email
+from django.urls import reverse
 
 from .forms import ProfileEditForm
 from .models import Profile
@@ -29,7 +30,16 @@ def account_info(request):
     if request.session.get('profile_updated'):
         success_message = "✅ Profile updated successfully!"
         del request.session['profile_updated']
-    return render(request, 'user/account.html', { 'profile': profile, 'success_message': success_message})
+    breadcrumbs = [
+        ("Home", reverse("home")),
+        ("Account", None)
+    ]
+    context = {
+        'profile': profile,
+        'success_message': success_message,
+        'breadcrumbs': breadcrumbs,
+    }
+    return render(request, 'user/account.html', context)
 
 
 

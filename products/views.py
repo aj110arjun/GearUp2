@@ -7,8 +7,12 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.cache import never_cache
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.paginator import Paginator
-
 from django.db.models import Q, Min, Max, Sum
+from django.urls import reverse
+from django.http import JsonResponse
+from django.core.files.base import ContentFile
+import base64
+
 from .models import Product, ProductVariant, Category, ProductImage
 from wishlist.models import Wishlist
 from cart.models import CartItem
@@ -54,6 +58,11 @@ def product_list(request):
     # ✅ Attach best offer objects
     for p in products:
         p.best_offer = p.get_best_offer_obj()
+    
+    breadcrumbs = [
+        ("Home", reverse("home")),
+        ("Products", None),
+    ]
 
     wishlist_ids = Wishlist.objects.filter(user=request.user).values_list('product_id', flat=True)
     cart_variant_ids = list(CartItem.objects.filter(user=request.user).values_list('variant_id', flat=True)) if request.user.is_authenticated else []
@@ -64,6 +73,7 @@ def product_list(request):
         'filters': filters,
         'wishlist_ids': wishlist_ids,
         'cart_variant_ids': cart_variant_ids,
+        'breadcrumbs': breadcrumbs,
     }
 
     return render(request, 'user/products/product_list.html', context)
@@ -81,6 +91,12 @@ def product_detail(request, product_id):
     in_wishlist = False
     if request.user.is_authenticated:
         in_wishlist = Wishlist.objects.filter(user=request.user, product=product).exists()
+    
+    breadcrumbs = [
+        ("Home", reverse("home")),
+        ("Products", reverse("product_list")),
+        (product.name, None),
+    ]
         
     cart_items = CartItem.objects.filter(user=request.user).values_list("variant_id", flat=True)
     return render(request, "user/products/product_detail.html", {
@@ -89,6 +105,7 @@ def product_detail(request, product_id):
         "in_wishlist": in_wishlist,
         "cart_items": cart_items,
         "additional_images": additional_images,
+        "breadcrumbs": breadcrumbs,
     })
 
 

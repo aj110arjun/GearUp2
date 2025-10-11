@@ -29,8 +29,16 @@ def home(request):
     products = Product.objects.filter(is_active = True).annotate(first_variant_id=Subquery(subquery.values('id')[:1]))[:8]
     variants = ProductVariant.objects.filter(id__in=[p.first_variant_id for p in products if p.first_variant_id])
 
+    breadcrumbs = [
+        ("Home", None)
+    ]
+    context = {
+        'products': variants,
+        'breadcrumbs': breadcrumbs,
+    }
+
     
-    return render(request, 'user/index.html', {'products': variants})
+    return render(request, 'user/index.html', context)
 
 @staff_member_required(login_url='admin_login')
 @never_cache
