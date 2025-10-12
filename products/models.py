@@ -3,6 +3,8 @@ import uuid
 from django.db import models
 from datetime import date
 from django.utils import timezone
+from django.contrib.auth.models import User
+
 from cloudinary.models import CloudinaryField
 
 
@@ -27,6 +29,8 @@ class Product(models.Model):
     brand = models.CharField(max_length=100, blank=True)
     image = CloudinaryField('product')
     created_at = models.DateTimeField(auto_now_add=True)
+    avg_rating = models.DecimalField(max_digits=3, decimal_places=2, default=0.0)
+    rating_count = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
 
     def get_active_product_offer(self):
@@ -81,6 +85,27 @@ class Product(models.Model):
 
     def __str__(self):
         return self.name
+
+class Review(models.Model):
+    RATING_CHOICES = [(i, str(i)) for i in range(1, 6)]  # 1..5
+
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="reviews")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="reviews")
+    rating = models.PositiveSmallIntegerField(choices=RATING_CHOICES)
+    title = models.CharField(max_length=120, blank=True)
+    comment = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_approved = models.BooleanField(default=False)  # moderation flag
+    # keep IP or order reference if needed
+    # ip_address = models.GenericIPAddressField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ("product", "user")  # one review per user per product
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.product} — {self.user} ({self.rating})"
 
 class ProductVariant(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="variants")

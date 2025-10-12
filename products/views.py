@@ -1,4 +1,5 @@
 import re
+import base64
 
 from django.contrib import messages
 from django.shortcuts import render
@@ -10,10 +11,10 @@ from django.core.paginator import Paginator
 from django.db.models import Q, Min, Max, Sum
 from django.urls import reverse
 from django.http import JsonResponse
+from django.db import IntegrityError
 from django.core.files.base import ContentFile
-import base64
 
-from .models import Product, ProductVariant, Category, ProductImage
+from .models import Product, ProductVariant, Category, ProductImage, Review
 from wishlist.models import Wishlist
 from cart.models import CartItem
 
@@ -78,37 +79,87 @@ def product_list(request):
 
     return render(request, 'user/products/product_list.html', context)
 
+@login_required(login_url='login')
+@never_cache
+def submit_review(request, product_id):
+    if request.method == "POST":
+        product = get_object_or_404(Product, id=product_id)
+        rating = int(request.POST.get("rating"))
+        comment = request.POST.get("comment", "")
 
-
-
+        review, created = Review.objects.update_or_create(
+            product=product,
+            user=request.user,
+            defaults={"rating": rating, "comment": comment}
+        )
+        messages.success(request, "Your review has been submitted.")
+        return redirect("product_detail", product_id=product.id)
 
 @login_required(login_url='login')
 @never_cache
 def product_detail(request, product_id):
+    messages = {}
+    
     product = get_object_or_404(Product, product_id=product_id, is_active=True)
     variants = product.variants.all()
     additional_images = product.images.all()
+    reviews = product.reviews.filter(is_approved=True).select_related("user")
+
     in_wishlist = False
     if request.user.is_authenticated:
         in_wishlist = Wishlist.objects.filter(user=request.user, product=product).exists()
-    
+
+    # Handle Review Submission
+    if request.method == "POST":
+        rating = request.POST.get("rating")
+        comment = request.POST.get("comment", "").strip()
+
+        if rating:
+            try:
+                review, created = Review.objects.update_or_create(
+                    user=request.user,
+                    product=product,
+                    defaults={"rating": int(rating), "comment": comment, "is_approved": True}
+                )
+                if created:
+                    messages['success'] = "Your review has been added successfully."
+                else:
+                    messages['success'] = "Your review has been updated successfully."
+
+            except IntegrityError:
+                messages['error'] = "You have already reviewed this product."
+            except Exception as e:
+                messages['error'] = f"Something went wrong: {e}"
+        else:
+            messages['error'] = "Please provide a rating."
+
+        # ✅ Always redirect after handling POST (prevents resubmission & reloads new data)
+        return redirect("product_detail", product_id=product.product_id)
+
+    # Breadcrumbs
     breadcrumbs = [
         ("Home", reverse("home")),
         ("Products", reverse("product_list")),
         (product.name, None),
     ]
-        
-    cart_items = CartItem.objects.filter(user=request.user).values_list("variant_id", flat=True)
-    return render(request, "user/products/product_detail.html", {
+
+    # Cart items
+    cart_items = []
+    if request.user.is_authenticated:
+        cart_items = CartItem.objects.filter(user=request.user).values_list("variant_id", flat=True)
+
+    context = {
         "product": product,
         "variants": variants,
         "in_wishlist": in_wishlist,
         "cart_items": cart_items,
         "additional_images": additional_images,
         "breadcrumbs": breadcrumbs,
-    })
+        "reviews": reviews,
+        "messages": messages,
+    }
 
-
+    return render(request, "user/products/product_detail.html", context)
 
 
 # Admin View
@@ -267,7 +318,6 @@ def admin_product_add(request):
         'errors': errors,
         'form_data': form_data
     })
-
 
 
 @staff_member_required(login_url='admin_login')
@@ -526,6 +576,7 @@ def admin_variant_delete(request, variant_id):
     })
 
 
+
 @staff_member_required(login_url='admin_login')
 def admin_image_add(request, product_id):
     product = get_object_or_404(Product, pk=product_id)
@@ -552,10 +603,6 @@ def admin_image_add(request, product_id):
         'errors': errors
     })
 
-
-
-
-
 @staff_member_required(login_url='admin_login')
 @never_cache 
 def toggle_product_status(request, product_id):
@@ -565,6 +612,27 @@ def toggle_product_status(request, product_id):
     product.is_active = not product.is_active
     product.save()
     return redirect('admin_product_detail', product_id=product_id)
+
+@staff_member_required(login_url='admin_login')
+@never_cache
+def reviews_list(request):
+    reviews = Review.objects.select_related("product", "user").order_by("-created_at")
+    return render(request, "admin_panel/reviews_list.html", {"reviews": reviews})
+
+@staff_member_required(login_url='admin_login')
+@never_cache
+def approve_review(request, review_id):
+    review = get_object_or_404(Review, id=review_id)
+    review.is_approved = True
+    review.save()
+    return redirect("admin_reviews_list")
+
+@staff_member_required(login_url='admin_login')
+@never_cache
+def delete_review(request, review_id):
+    review = get_object_or_404(Review, id=review_id)
+    review.delete()
+    return redirect("admin_reviews_list")
 
 
 
