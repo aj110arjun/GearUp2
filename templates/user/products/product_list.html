@@ -110,11 +110,11 @@
                             <form acion="{% url 'add_to_cart' product.id %}" method="POST" class="flex-fill toggle-cart-form" data-variant-id="{{ product.variants.first.id }}">
                                 {% csrf_token %}
                                 <button type="button"
-                                    class="btn cart-btn {% if product.id in cart_variant_ids %}btn-success{% else %}btn-dark{% endif %} btn-circle"
+                                    class="btn cart-btn {% if product.variants.first.id in cart_variant_ids %}btn-success{% else %}btn-dark{% endif %} btn-circle"
                                     data-product-id="{{ product.id }}"
                                     data-variant-id="{{ product.variants.first.id }}"
-                                    title="{% if product.id in cart_variant_ids %}Remove from Cart{% else %}Add to Cart{% endif %}">
-                                <i class="bi {% if product.id in cart_variant_ids %}bi-check2{% else %}bi-cart3{% endif %} fs-5"></i>
+                                    title="{% if product.variants.first.id in cart_variant_ids %}Remove from Cart{% else %}Add to Cart{% endif %}">
+                                <i class="bi {% if product.variants.first.id in cart_variant_ids %}bi-check2{% else %}bi-cart3{% endif %} fs-5"></i>
                             </button>
                             </form>
 
