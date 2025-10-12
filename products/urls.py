@@ -5,6 +5,7 @@ from . import views
 urlpatterns = [
     path('list/', views.product_list, name='product_list'),
     path("<uuid:product_id>/", views.product_detail, name="product_detail"),
+    path("product/<int:product_id>/review/", views.submit_review, name="submit_review"),
     
     path('custom/admin/add/', views.admin_product_add, name='product_add'),
     path('custom/admin/list/', views.admin_product_list, name='admin_product_list'),
@@ -18,6 +19,10 @@ urlpatterns = [
     path('admin/variant/<int:variant_id>/edit/', views.admin_variant_edit, name='admin_variant_edit'),
     path('admin/variant/<int:variant_id>/delete/', views.admin_variant_delete, name='admin_variant_delete'),
     path('admin/product/<int:product_id>/images/add/', views.admin_image_add, name='admin_image_add'),
+    path("reviews/", views.reviews_list, name="admin_reviews_list"),
+    path("reviews/<int:review_id>/approve/", views.approve_review, name="admin_approve_review"),
+    path("reviews/<int:review_id>/delete/", views.delete_review, name="admin_delete_review"),
+
 
 
     
