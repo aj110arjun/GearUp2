@@ -486,7 +486,6 @@ def admin_approve_reject_cancellation(request, item_id, action):
 
         # --- Step 2: Refund for online payments ---
         if order.payment_method in ["ONLINE", "RAZORPAY", "WALLET"]:
-            # Check if refund already exists
             refund_exists = Transaction.objects.filter(
                 order=order,
                 transaction_type="WALLET_CREDIT",
@@ -499,35 +498,15 @@ def admin_approve_reject_cancellation(request, item_id, action):
                 item_tax = getattr(item, "tax", Decimal("0.00"))
                 refund_amount = (item_price_total + item_tax).quantize(Decimal("0.01"))
 
-                # --- Step 3: Handle delivery charges ---
                 remaining_items = order.items.exclude(status="cancelled").exclude(item_id=item.item_id)
 
-                if remaining_items.exists():
-                    # Partial cancellation → prorated delivery refund (optional)
-                    try:
-                        total_qty = sum([i.quantity for i in order.items.all()])
-                        delivery_refund = (item.quantity / total_qty) * getattr(order, "delivery_charge", Decimal("0.00"))
-                        refund_amount += Decimal(delivery_refund)
-                        refund_amount = refund_amount.quantize(Decimal("0.01"))
-                    except Exception:
-                        pass
-                else:
-                    # Last item → refund remaining balance including delivery
-                    total_refunded = Transaction.objects.filter(
-                        order=order,
-                        transaction_type="WALLET_CREDIT"
-                    ).aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
+                if not remaining_items.exists():
+                    # 🧾 Last item cancelled → include delivery charge in refund
+                    delivery_charge = Decimal(int(config("DELIVERY_CHARGE")))
+                    refund_amount += delivery_charge
+                    refund_amount = refund_amount.quantize(Decimal("0.01"))
 
-                    total_order_paid = getattr(order, "grand_total", Decimal("0.00"))
-                    # Add delivery charge if not included in grand_total
-                    delivery_charge = getattr(order, "delivery_charge", Decimal("0.00"))
-                    total_order_paid += delivery_charge
-
-                    remaining_balance = (total_order_paid - total_refunded).quantize(Decimal("0.01"))
-                    if remaining_balance > 0:
-                        refund_amount = remaining_balance
-
-                # --- Step 4: Create refund transaction ---
+                # --- Step 3: Create refund transaction ---
                 Transaction.objects.create(
                     user=order.user,
                     transaction_type="WALLET_CREDIT",
@@ -537,7 +516,7 @@ def admin_approve_reject_cancellation(request, item_id, action):
                     order=order,
                 )
 
-                # --- Step 5: Credit to user's wallet ---
+                # --- Step 4: Credit to user's wallet ---
                 wallet, _ = Wallet.objects.get_or_create(user=order.user)
                 wallet.balance += refund_amount
                 wallet.save()
@@ -548,7 +527,7 @@ def admin_approve_reject_cancellation(request, item_id, action):
                     transaction_type="CREDIT",
                     description=f"Refund for cancelled product '{item.variant.product.name}' (x{item.quantity})"
                 )
-
+                
     elif action == "reject":
         item.cancellation_approved = False
 
