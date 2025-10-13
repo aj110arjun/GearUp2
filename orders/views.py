@@ -494,24 +494,36 @@ def admin_approve_reject_cancellation(request, item_id, action):
             ).exists()
 
             if not refund_exists:
-                # --- Base refund: item price + item tax ---
+                # Base refund: item price + item tax
                 item_price_total = Decimal(item.variant.price) * item.quantity
                 item_tax = getattr(item, "tax", Decimal("0.00"))
-
                 refund_amount = (item_price_total + item_tax).quantize(Decimal("0.01"))
 
-                # --- Step 3: Last active item logic (refund remaining balance including delivery) ---
+                # --- Step 3: Handle delivery charges ---
                 remaining_items = order.items.exclude(status="cancelled").exclude(item_id=item.item_id)
-                if not remaining_items.exists():
-                    # Last item → refund remaining order balance
+
+                if remaining_items.exists():
+                    # Partial cancellation → prorated delivery refund (optional)
+                    try:
+                        total_qty = sum([i.quantity for i in order.items.all()])
+                        delivery_refund = (item.quantity / total_qty) * getattr(order, "delivery_charge", Decimal("0.00"))
+                        refund_amount += Decimal(delivery_refund)
+                        refund_amount = refund_amount.quantize(Decimal("0.01"))
+                    except Exception:
+                        pass
+                else:
+                    # Last item → refund remaining balance including delivery
                     total_refunded = Transaction.objects.filter(
                         order=order,
                         transaction_type="WALLET_CREDIT"
                     ).aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
 
                     total_order_paid = getattr(order, "grand_total", Decimal("0.00"))
-                    remaining_balance = (total_order_paid - total_refunded).quantize(Decimal("0.01"))
+                    # Add delivery charge if not included in grand_total
+                    delivery_charge = getattr(order, "delivery_charge", Decimal("0.00"))
+                    total_order_paid += delivery_charge
 
+                    remaining_balance = (total_order_paid - total_refunded).quantize(Decimal("0.01"))
                     if remaining_balance > 0:
                         refund_amount = remaining_balance
 
