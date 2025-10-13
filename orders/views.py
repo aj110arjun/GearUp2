@@ -527,7 +527,7 @@ def admin_approve_reject_cancellation(request, item_id, action):
                     transaction_type="CREDIT",
                     description=f"Refund for cancelled product '{item.variant.product.name}' (x{item.quantity})"
                 )
-                
+
     elif action == "reject":
         item.cancellation_approved = False
 
@@ -568,102 +568,89 @@ def admin_return_requests(request):
 def admin_approve_reject_return(request, item_id, action):
     errors = {}
     item = get_object_or_404(OrderItem, item_id=item_id)
-    
-    if not hasattr(item.order.user, "wallet"):
-        Wallet.objects.create(user=item.order.user)
-    wallet = item.order.user.wallet
-    
-    # Calculate original total price for all items (before discount)
+    order = item.order
+
+    # Ensure wallet exists
+    if not hasattr(order.user, "wallet"):
+        Wallet.objects.create(user=order.user)
+    wallet = order.user.wallet
+
+    # --- Step 1: Calculate base order details ---
     order_total_original = sum([
-        Decimal(oi.variant.price) * oi.quantity for oi in item.order.items.all()
+        Decimal(oi.variant.price) * oi.quantity for oi in order.items.all()
     ])
     item_original_price = Decimal(item.variant.price) * item.quantity
-    coupon_discount = getattr(item.order, "coupon_discount", Decimal("0.00"))
+
+    # --- Step 2: Proportional coupon discount for this item ---
+    coupon_discount = getattr(order, "coupon_discount", Decimal("0.00"))
     item_discount = Decimal("0.00")
     if order_total_original > 0 and coupon_discount > 0:
         item_discount = (item_original_price / order_total_original) * coupon_discount
-    
-    refund_amount = getattr(item, "total_price", None)
-    if refund_amount is None:
-        refund_amount = item_original_price
-    refund_amount = Decimal(refund_amount) - item_discount
-    if refund_amount < 0:
-        refund_amount = Decimal("0.00")
-    
+
+    # --- Step 3: Calculate refund amount (price * qty - discount) ---
+    refund_amount = item_original_price - item_discount
+
+    # --- Step 4: Add tax if present ---
+    if hasattr(item, "tax"):
+        refund_amount += Decimal(item.tax)
+
+    # --- Step 5: Check if this is the final (last) returned item ---
+    total_items = order.items.count()
+    returned_items = order.items.filter(return_approved=True).count()
+    delivery_charge = int(config("DELIVERY_CHARGE"))
+
+    # If this item is the last to be returned, include delivery charge
+    if returned_items + 1 == total_items:
+        refund_amount += delivery_charge
+
+    # --- Step 6: Round to 2 decimal places ---
+    refund_amount = refund_amount.quantize(Decimal("0.01"))
+
+    # --- Step 7: Handle admin action ---
     if action == "approve":
         if item.status == "delivered" and not item.return_approved:
-            item.status = "delivered"
+            item.status = "returned"  # keeps status consistent
             item.return_approved = True
-            
-            # Restock product
+
+            # Restock returned items
             item.variant.stock += item.quantity
             item.variant.save()
-            
-            if item.order.payment_method == "COD":
-                if not getattr(item, "refund_done", False):
-                    wallet.credit(
-                        refund_amount,
-                        f"Refund for returned product {item.variant.product.name} (x{item.quantity}) including coupon discount"
-                    )
-                    refund_amount += Decimal('50.00')
-                    # Create refund transaction for admin tracking
-                    Transaction.objects.create(
-                        user=item.order.user,
-                        transaction_type="WALLET_CREDIT",
-                        payment_status="Debit",
-                        amount=refund_amount,
-                        description=f"Refund for returned product '{item.variant.product.name}' (Order #{item.order.order_code})",
-                        order=item.order,
-                    )
-                    item.refund_done = True
-                    errors['wallet'] = f"Refund of Rs. {refund_amount:.2f} credited to {item.order.user.username}'s wallet."
-                else:
-                    errors['wallet'] = "Refund already processed for this item."
-            
-            elif item.order.payment_method in ["ONLINE", "RAZORPAY", "WALLET"]:
-                refund_amount += Decimal('50.00')
-                if not getattr(item, "refund_done", False):
-                    wallet.balance += refund_amount
-                    wallet.save()
-                    wallet.transactions.create(
-                        transaction_type="CREDIT",
-                        amount=refund_amount,
-                        description=f"Refund for returned product '{item.variant.product.name}' (x{item.quantity}) including coupon discount"
-                    )
-                    # Create refund transaction for admin tracking
-                    Transaction.objects.create(
-                        user=item.order.user,
-                        transaction_type="WALLET_CREDIT",
-                        payment_status="Debit",
-                        amount=refund_amount,
-                        description=f"Refund for returned product '{item.variant.product.name}' (Order #{item.order.order_code})",
-                        order=item.order,
-                    )
-                    WalletTransaction.objects.create(
-                        wallet=wallet,
-                        transaction_type="DEBIT",
-                        amount=refund_amount,
-                        description=f"Refund for returned product '{item.variant.product.name}' (x{item.quantity})"
-                        )
-                    item.refund_done = True
-                    errors['wallet'] = f"Refund of Rs. {refund_amount:.2f} credited to {item.order.user.username}'s wallet."
-                else:
-                    errors['wallet'] = "Refund already processed for this item."
+
+            if not getattr(item, "refund_done", False):
+                # Credit refund to wallet
+                wallet.credit(
+                    refund_amount,
+                    f"Refund for returned product '{item.variant.product.name}' (x{item.quantity})"
+                )
+
+                # Record transaction for tracking
+                Transaction.objects.create(
+                    user=order.user,
+                    transaction_type="WALLET_CREDIT",
+                    payment_status="Debit",
+                    amount=refund_amount,
+                    description=f"Refund for returned product '{item.variant.product.name}' (Order #{order.order_code})",
+                    order=order,
+                )
+
+                item.refund_done = True
+                errors["wallet"] = f"Refund of Rs. {refund_amount:.2f} credited to {order.user.username}'s wallet."
+            else:
+                errors["wallet"] = "Refund already processed for this item."
         else:
-            errors['return'] = "Return cannot be approved. Either already processed or not delivered."
-    
+            errors["return"] = "Return cannot be approved. Either already processed or not delivered."
+
     elif action == "reject":
         item.return_approved = False
-        errors['return'] = "Return request rejected."
-    
+        errors["return"] = "Return request rejected."
+
+    # --- Step 8: Save changes ---
     save_fields = ["status", "return_approved"]
     if hasattr(item, "refund_done"):
         save_fields.append("refund_done")
     item.save(update_fields=save_fields)
-    
-    return render(request, "custom_admin/wallet/wallet.html", {"item": item, "errors": errors})
 
-
+    return render(request, "custom_admin/orders/return_request.html", {"item": item, "errors": errors})
 
 
 @login_required(login_url="login")

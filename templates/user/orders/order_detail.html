@@ -53,6 +53,7 @@
                                         {% if item.status == 'delivered' %}bg-success
                                         {% elif item.status == 'shipped' %}bg-primary
                                         {% elif item.status == 'pending' %}bg-warning text-light
+                                        {% elif item.status == 'cancelled' %}bg-danger
                                         {% else %}bg-secondary{% endif %}">
                                         {{ item.status|title }}
                                     </span>
@@ -60,14 +61,19 @@
                                 <td>
                                     {% if item.status == "delivered" and not item.return_requested %}
                                         <a href="{% url 'return_order_item_page' item.item_id %}" 
-                                           class="btn btn-dark btn-sm text-white d-flex align-items-center gap-1">
-                                           <i class="bi bi-arrow-counterclockwise"></i> Return
+                                           class="btn btn-dark btn-sm text-white py-1 px-2 gap-1">
+                                            Return
                                         </a>
                                     {% elif item.status == "pending" or item.status == "shipped" and not item.cancellation_requested %}
-                                        <a href="{% url 'cancel_order_item_page' item.item_id %}" 
-                                           class="btn btn-danger btn-sm d-flex align-items-center gap-1">
-                                           <i class="bi bi-x-circle"></i> Cancel
-                                        </a>
+                                        {% if item.cancellation_requested %}
+                                            <span class="text-muted">Cancel Requested</span>
+                                        {% else %}
+                                            <a href="{% url 'cancel_order_item_page' item.item_id %}" 
+                                            class="btn btn-danger btn-sm text-align py-1 px-2 gap-1">
+                                             Cancel
+                                            </a>
+                                        {% endif %}
+
                                     {% else %}
                                         <span class="text-muted">N/A</span>
                                     {% endif %}

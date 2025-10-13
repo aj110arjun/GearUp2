@@ -39,6 +39,7 @@
                                     <option value="Shipped" {% if item.status == "shipped" %}selected{% endif %}>Shipped</option>
                                     <option value="Delivered" {% if item.status == "delivered" %}selected{% endif %}>Delivered</option>
                                     <option value="Cancelled" {% if item.status == "cancelled" %}selected{% endif %}>Cancelled</option>
+                                    <option value="Returned" {% if item.status == "returned" %}selected{% endif %}>Returned</option>
                                 </select>
                                 <button type="submit" class="btn btn-sm btn-primary">Update</button>
                             </div>

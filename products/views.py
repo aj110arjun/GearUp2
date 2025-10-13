@@ -62,7 +62,7 @@ def product_list(request):
     
     breadcrumbs = [
         ("Home", reverse("home")),
-        ("Products", None),
+        ("Shop", None),
     ]
 
     wishlist_ids = Wishlist.objects.filter(user=request.user).values_list('product_id', flat=True)
@@ -139,7 +139,7 @@ def product_detail(request, product_id):
     # Breadcrumbs
     breadcrumbs = [
         ("Home", reverse("home")),
-        ("Products", reverse("product_list")),
+        ("Shop", reverse("product_list")),
         (product.name, None),
     ]
 
