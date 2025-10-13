@@ -473,84 +473,68 @@ def admin_cancellation_requests(request):
 @never_cache
 def admin_approve_reject_cancellation(request, item_id, action):
     item = get_object_or_404(OrderItem, item_id=item_id)
+    order = item.order
 
-    if action == "approve":
-        if item.status != "cancelled":  # prevent double restock and duplicate refunds
-            item.status = "cancelled"
-            item.cancellation_approved = True
+    if action == "approve" and item.status != "cancelled":
+        item.status = "cancelled"
+        item.cancellation_approved = True
 
-            # Restock product
-            item.variant.stock += item.quantity
-            item.variant.save()
+        # --- Step 1: Restock the product ---
+        item.variant.stock += item.quantity
+        item.variant.save()
 
-            # Refund logic for online payments
-            if item.order.payment_method in ["ONLINE", "RAZORPAY", "WALLET"]:
-                refund_exists = Transaction.objects.filter(
-                    order=item.order,
+        # --- Step 2: Refund for online payments ---
+        if order.payment_method in ["ONLINE", "RAZORPAY", "WALLET"]:
+            # Check if refund already exists
+            refund_exists = Transaction.objects.filter(
+                order=order,
+                transaction_type="WALLET_CREDIT",
+                description__icontains=f"Refund for OrderItem #{item.item_id}"
+            ).exists()
+
+            if not refund_exists:
+                # --- Base refund: item price + item tax ---
+                item_price_total = Decimal(item.variant.price) * item.quantity
+                item_tax = getattr(item, "tax", Decimal("0.00"))
+
+                refund_amount = (item_price_total + item_tax).quantize(Decimal("0.01"))
+
+                # --- Step 3: Last active item logic (refund remaining balance including delivery) ---
+                remaining_items = order.items.exclude(status="cancelled").exclude(item_id=item.item_id)
+                if not remaining_items.exists():
+                    # Last item → refund remaining order balance
+                    total_refunded = Transaction.objects.filter(
+                        order=order,
+                        transaction_type="WALLET_CREDIT"
+                    ).aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
+
+                    total_order_paid = getattr(order, "grand_total", Decimal("0.00"))
+                    remaining_balance = (total_order_paid - total_refunded).quantize(Decimal("0.01"))
+
+                    if remaining_balance > 0:
+                        refund_amount = remaining_balance
+
+                # --- Step 4: Create refund transaction ---
+                Transaction.objects.create(
+                    user=order.user,
                     transaction_type="WALLET_CREDIT",
-                    description__icontains=f"Cancellation refund for OrderItem #{item.item_id}"
-                ).exists()
-                if not refund_exists:
-                    # --- Refund Calculation ---
-                    order_items = item.order.items.all()
-                    order_total_original = sum(
-                        Decimal(oi.variant.price) * oi.quantity for oi in order_items
-                    )
-                    item_original_price = Decimal(item.variant.price) * item.quantity
+                    payment_status="Debit",
+                    amount=refund_amount,
+                    description=f"Refund for OrderItem #{item.item_id} (Order #{order.order_code})",
+                    order=order,
+                )
 
-                    # Proportional coupon discount
-                    coupon_discount_total = getattr(item.order, "coupon_discount", Decimal("0.00"))
-                    item_coupon_discount = Decimal("0.00")
-                    if order_total_original > 0 and coupon_discount_total > 0:
-                        item_coupon_discount = (
-                            (item_original_price / order_total_original) * coupon_discount_total
-                        )
+                # --- Step 5: Credit to user's wallet ---
+                wallet, _ = Wallet.objects.get_or_create(user=order.user)
+                wallet.balance += refund_amount
+                wallet.save()
 
-                    # Refund base (after discount)
-                    refund_base = item_original_price - item_coupon_discount
-                    if refund_base < 0:
-                        refund_base = Decimal("0.00")
-
-                    # Proportional tax (assuming 10%)
-                    item_tax = (Decimal("10") / Decimal("100")) * refund_base
-                    print(item_tax)
-
-                    refund_amount = refund_base + item_tax
-
-                    # Refund shipping if all items cancelled (optional policy)
-                    all_items_cancelled = all(
-                        oi.status == "cancelled" or oi.item_id == item.item_id for oi in order_items
-                    )
-                    if all_items_cancelled:
-                        refund_amount += Decimal("50.00")  # flat shipping refund
-
-                    # --- Create Refund Transaction ---
-                    Transaction.objects.create(
-                        user=item.order.user,
-                        transaction_type="WALLET_CREDIT",
-                        payment_status="Debit",
-                        amount=refund_amount,
-                        description=(
-                            f"Cancellation refund for OrderItem #{item.item_id} "
-                            f"(Order #{item.order.order_code})"
-                        ),
-                        order=item.order,
-                    )
-
-                    # --- Credit to User's Wallet ---
-                    wallet, _ = Wallet.objects.get_or_create(user=item.order.user)
-                    wallet.balance += refund_amount
-                    wallet.save()
-
-                    WalletTransaction.objects.create(
-                        wallet=wallet,
-                        amount=refund_amount,
-                        transaction_type="CREDIT",
-                        description=(
-                            f"Refund for cancelled product '{item.variant.product.name}' "
-                            f"(x{item.quantity})"
-                        )
-                    )
+                WalletTransaction.objects.create(
+                    wallet=wallet,
+                    amount=refund_amount,
+                    transaction_type="CREDIT",
+                    description=f"Refund for cancelled product '{item.variant.product.name}' (x{item.quantity})"
+                )
 
     elif action == "reject":
         item.cancellation_approved = False
