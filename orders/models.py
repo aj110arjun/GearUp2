@@ -58,6 +58,7 @@ class OrderItem(models.Model):
         ("shipped", "Shipped"),
         ("delivered", "Delivered"),
         ("cancelled", "Cancelled"),
+        ("returned", "Returned"),
     ]
     id = models.BigAutoField(primary_key=True)
     item_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
