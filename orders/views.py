@@ -24,6 +24,7 @@ from django.http import JsonResponse, HttpResponseBadRequest
 from coupons.models import Coupon
 from django.core.paginator import Paginator
 from decimal import Decimal
+from django.db.models import Sum
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from django.contrib import messages
@@ -542,210 +543,23 @@ def admin_approve_reject_cancellation(request, item_id, action):
     item.save()
     return redirect("admin_cancellation_requests")
 
-@staff_member_required(login_url="admin_login")
-@never_cache
-def admin_cancellation_request_view(request, item_id):
-    item = get_object_or_404(
-        OrderItem,
-        item_id=item_id,
-        cancellation_requested=True
-    )
-    order = item.order
-    wallet, _ = Wallet.objects.get_or_create(user=order.user)
-    
-    if request.method == "POST":
-        action = request.POST.get("action")
-        
-        if action == "approve":
-            if item.status != "cancelled":  # prevent double cancellation
-                item.status = "cancelled"
-                item.cancellation_approved = True
-                
-                # Restock the variant
-                item.variant.stock += item.quantity
-                item.variant.save()
-                
-                # Refund only for online / prepaid
-                if order.payment_method in ["RAZORPAY", "ONLINE", "WALLET"] and order.payment_status == "Paid":
-                    
-                    # --- Get all items in the order ---
-                    order_items = order.items.all()
-                    order_total_base = sum(Decimal(oi.price) * oi.quantity for oi in order_items)
-                    item_base = Decimal(item.price) * item.quantity
-                    
-                    # --- Proportional coupon discount ---
-                    coupon_discount_total = getattr(order, "coupon_discount", Decimal("0.00"))
-                    item_coupon_discount = Decimal("0.00")
-                    if order_total_base > 0 and coupon_discount_total > 0:
-                        item_coupon_discount = (item_base / order_total_base) * coupon_discount_total
-                    
-                    # --- Shipping distribution ---
-                    shipping_total = Decimal("50.00")  # flat shipping for order
-                    active_items = [oi for oi in order_items if oi.status != "cancelled" or oi.item_id == item.item_id]
-                    if len(active_items) == 1:
-                        item_shipping = shipping_total
-                    else:
-                        item_shipping = (item_base / order_total_base) * shipping_total
-                    
-                    # --- Total price fallback if None ---
-                    item_total = item.total_price if item.total_price is not None else (Decimal(item.price) * item.quantity)
-                    
-                    # --- Final Refund ---
-                    refund_amount = (item_total - item_coupon_discount) + item_shipping
-                    if refund_amount < 0:
-                        refund_amount = Decimal("0.00")
-                    
-                    if not getattr(item, "refund_done", False):
-                        # ✅ Credit wallet
-                        wallet.balance += refund_amount
-                        wallet.save()
-                        
-                        # ✅ Wallet transaction log
-                        WalletTransaction.objects.create(
-                            wallet=wallet,
-                            transaction_type="CREDIT",
-                            amount=refund_amount,
-                            description=f"Refund for cancelled product '{item.variant.product.name}' (x{item.quantity})"
-                        )
-
-                        # ✅ Global Transaction log
-                        Transaction.objects.create(
-                            user=order.user,
-                            order=order,
-                            transaction_type="WALLET_CREDIT",
-                            amount=refund_amount,
-                            payment_status="Debit",
-                            description=f"Refund for cancelled product '{item.variant.product.name}' (x{item.quantity})"
-                        )
-                        
-                        item.refund_done = True
-                        
-                        messages.success(
-                            request,
-                            f"Cancellation approved. Rs. {refund_amount:.2f} has been refunded to {order.user.username}'s wallet."
-                        )
-                    else:
-                        messages.info(request, "Refund already processed for this item.")
-                else:
-                    messages.info(request, "Cancellation approved without refund (non-online payment).")
-        
-        elif action == "reject":
-            item.cancellation_approved = False
-            messages.warning(request, "Cancellation request rejected.")
-        
-        item.save()
-        return redirect("admin_cancellation_requests")
-    
-    return render(
-        request,
-        "custom_admin/orders/cancellation_request_view.html",
-        {"item": item}
-    )@staff_member_required(login_url="admin_login")
-
 
 @staff_member_required(login_url="admin_login")
 @never_cache
 def admin_cancellation_request_view(request, item_id):
-    item = get_object_or_404(
-        OrderItem,
-        item_id=item_id,
-        cancellation_requested=True
-    )
-    order = item.order
-    wallet, _ = Wallet.objects.get_or_create(user=order.user)
-    
+    item = get_object_or_404(OrderItem, item_id=item_id, cancellation_requested=True)
+
     if request.method == "POST":
         action = request.POST.get("action")
-        
-        if action == "approve":
-            if item.status != "cancelled":  # prevent double cancellation
-                item.status = "cancelled"
-                item.cancellation_approved = True
-                
-                # Restock the variant
-                item.variant.stock += item.quantity
-                item.variant.save()
-                
-                # Refund only for online / prepaid payments
-                if order.payment_method in ["RAZORPAY", "ONLINE", "WALLET"] and order.payment_status == "Paid":
-                    
-                    # --- Order details ---
-                    order_items = order.items.all()
-                    order_total_base = sum(Decimal(oi.price) * oi.quantity for oi in order_items)
-                    item_base = Decimal(item.price) * item.quantity
-                    
-                    # --- Proportional coupon discount ---
-                    coupon_discount_total = getattr(order, "coupon_discount", Decimal("0.00"))
-                    item_coupon_discount = Decimal("0.00")
-                    if order_total_base > 0 and coupon_discount_total > 0:
-                        item_coupon_discount = (item_base / order_total_base) * coupon_discount_total
-                    
-                    # --- Shipping distribution ---
-                    shipping_total = Decimal("50.00")
-                    active_items = [oi for oi in order_items if oi.status != "cancelled" or oi.item_id == item.item_id]
-                    if len(active_items) == 1:
-                        item_shipping = shipping_total
-                    else:
-                        item_shipping = (item_base / order_total_base) * shipping_total
-                    
-                    # --- Tax refund ---
-                    item_tax = Decimal(item.tax) if item.tax else Decimal("0.00")
-                    
-                    # --- Total price fallback if None ---
-                    item_total = item.total_price if item.total_price is not None else (Decimal(item.price) * item.quantity)
-                    
-                    # --- Final refund: base + tax + shipping - coupon ---
-                    refund_amount = (item_total - item_coupon_discount) + item_shipping
-                    refund_amount += item_tax  # ✅ include tax in refund
-                    if refund_amount < 0:
-                        refund_amount = Decimal("0.00")
-                    
-                    if not getattr(item, "refund_done", False):
-                        # Credit wallet
-                        wallet.balance += refund_amount
-                        wallet.save()
-                        
-                        # Wallet transaction log
-                        WalletTransaction.objects.create(
-                            wallet=wallet,
-                            transaction_type="CREDIT",
-                            amount=refund_amount,
-                            description=f"Refund (including tax) for cancelled product '{item.variant.product.name}' (x{item.quantity})"
-                        )
+        # Redirect to the approval function
+        return redirect("admin_approve_reject_cancellation", item_id=item.item_id, action=action)
 
-                        # Global transaction log
-                        Transaction.objects.create(
-                            user=order.user,
-                            order=order,
-                            transaction_type="WALLET_CREDIT",
-                            amount=refund_amount,
-                            payment_status="Debit",
-                            description=f"Refund (including tax) for cancelled product '{item.variant.product.name}' (x{item.quantity})"
-                        )
-                        
-                        item.refund_done = True
-                        
-                        messages.success(
-                            request,
-                            f"Cancellation approved. Rs. {refund_amount:.2f} (including tax) has been refunded to {order.user.username}'s wallet."
-                        )
-                    else:
-                        messages.info(request, "Refund already processed for this item.")
-                else:
-                    messages.info(request, "Cancellation approved without refund (non-online payment).")
-        
-        elif action == "reject":
-            item.cancellation_approved = False
-            messages.warning(request, "Cancellation request rejected.")
-        
-        item.save()
-        return redirect("admin_cancellation_requests")
-    
     return render(
         request,
         "custom_admin/orders/cancellation_request_view.html",
         {"item": item}
     )
+
 
 
 
