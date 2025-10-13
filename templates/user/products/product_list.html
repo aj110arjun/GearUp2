@@ -11,56 +11,67 @@
                 <div class="row mb-4 align-items-center">
                     <!-- Search -->
                     <form method="get" class="row g-2 align-items-center mb-4">
-
-                        <!-- Search (text input) -->
+                        <!-- Search -->
                         <div class="col-md-4 position-relative">
-            <div class="input-group">
-                <input type="text" name="q" id="search-input" class="form-control" placeholder="Search products..." value="{{ filters.search }}"
-                    style="padding-right: 60px;"> <!-- Add right padding -->
+                            <div class="input-group">
+                                <input type="text" name="q" id="search-input" class="form-control"
+                                    placeholder="Search products..." value="{{ filters.search }}"
+                                    style="padding-right: 60px;">
 
-                <!-- Clear button positioned to the left of the search button -->
-                <button type="button" id="clear-btn" aria-label="Clear search"
-                        style="
-                        position: absolute;
-                        right: 75px; /* Move left of search button */
-                        top: 50%;
-                        transform: translateY(-50%);
-                        border: none;
-                        background: transparent;
-                        font-size: 18px;
-                        cursor: pointer;
-                        color: #999;
-                        display: none;
-                        z-index: 1000;
-                        ">
-                &times;
-                </button>
+                                <!-- Clear button for search -->
+                                <button type="button" id="clear-btn" aria-label="Clear search"
+                                        style="
+                                            position: absolute;
+                                            right: 75px;
+                                            top: 50%;
+                                            transform: translateY(-50%);
+                                            border: none;
+                                            background: transparent;
+                                            font-size: 18px;
+                                            cursor: pointer;
+                                            color: #999;
+                                            display: none;
+                                            z-index: 1000;
+                                        ">
+                                    &times;
+                                </button>
 
-                <button type="submit" class="btn btn-primary">Search</button>
-            </div>
-            </div>
-            <!-- Category filter -->
-            <div class="col-md-3">
-                <select name="category" class="form-select" onchange="this.form.submit()">
-                <option value="">All Categories</option>
-                {% for cat in categories %}
-                    <option value="{{ cat.id }}" {% if filters.category == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
-                {% endfor %}
-                </select>
-            </div>
+                                <button type="submit" class="btn btn-primary">Search</button>
+                            </div>
+                        </div>
 
-            <!-- Sorting -->
-            <div class="col-md-3">
-                <select name="sort" class="form-select" onchange="this.form.submit()">
-                <option value="">Sort by</option>
-                <option value="name" {% if filters.sort == "name" %}selected{% endif %}>Name: A-Z</option>
-                <option value="name2" {% if filters.sort == "name2" %}selected{% endif %}>Name: Z-A</option>
-                <option value="price_asc" {% if filters.sort == "price_asc" %}selected{% endif %}>Price: Low to High</option>
-                <option value="price_desc" {% if filters.sort == "price_desc" %}selected{% endif %}>Price: High to Low</option>
-                </select>
-            </div>
+                        <!-- Category filter -->
+                        <div class="col-md-3">
+                            <select name="category" class="form-select" onchange="this.form.submit()">
+                                <option value="">All Categories</option>
+                                {% for cat in categories %}
+                                    <option value="{{ cat.id }}" {% if filters.category == cat.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ cat.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
 
-        </form>
+                        <!-- Sorting -->
+                        <div class="col-md-3">
+                            <select name="sort" class="form-select" onchange="this.form.submit()">
+                                <option value="">Sort by</option>
+                                <option value="name" {% if filters.sort == "name" %}selected{% endif %}>Name: A-Z</option>
+                                <option value="name2" {% if filters.sort == "name2" %}selected{% endif %}>Name: Z-A</option>
+                                <option value="price_asc" {% if filters.sort == "price_asc" %}selected{% endif %}>Price: Low to High</option>
+                                <option value="price_desc" {% if filters.sort == "price_desc" %}selected{% endif %}>Price: High to Low</option>
+                            </select>
+                        </div>
+
+                        <!-- ✅ Clear Filters Button -->
+                        <div class="col-md-2 text-end">
+                            {% if filters.search or filters.category or filters.sort %}
+                                <a href="{% url 'product_list' %}" class="btn btn-outline-secondary w-100">
+                                    Clear Filters
+                                </a>
+                            {% endif %}
+                        </div>
+                    </form>
 
 
     <!-- Product Grid -->
