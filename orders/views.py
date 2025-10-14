@@ -494,7 +494,7 @@ def admin_approve_reject_cancellation(request, item_id, action):
 
             if not refund_exists:
                 # Base refund: item price + item tax
-                item_price_total = Decimal(item.variant.price) * item.quantity
+                item_price_total = Decimal(item.price) * item.quantity  # Use OrderItem price (could contain offer discount)
                 item_tax = getattr(item, "tax", Decimal("0.00"))
                 refund_amount = (item_price_total + item_tax).quantize(Decimal("0.01"))
 
