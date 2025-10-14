@@ -1,34 +1,42 @@
 {% extends "user/base.html" %}
 {% load cart_extras %}
 {% block title %} My Cart {% endblock title %}
-
 {% block content %}
+
 <style>
-  /* Skeleton loading styles for cart table */
+  /* Skeleton Loading Styles */
   .skeleton-bg {
     background-color: #e2e2e2;
     border-radius: 6px;
     animation: skeleton-loading 1.2s infinite linear;
   }
   .skeleton-line {
-    height: 40px;
-    margin-bottom: 10px;
-    width: 100%;
+    height: 20px;
+    margin: 12px 0;
+    border-radius: 6px;
+  }
+  .skeleton-btn {
+    height: 36px;
+    width: 120px;
+    margin: 10px 0;
+    border-radius: 6px;
+  }
+  .skeleton-img {
+    height: 60px;
+    width: 60px;
+    border-radius: 6px;
+  }
+  .skeleton-table-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 12px 0;
+    gap: 10px;
   }
   @keyframes skeleton-loading {
-    0% { opacity: 1; }
-    50% { opacity: 0.4; }
-    100% { opacity: 1; }
-  }
-  .cart-img-skeleton {
-    width: 60px;
-    height: 60px;
-    border-radius: 8px;
-  }
-  .cart-btn-skeleton {
-    width: 80px;
-    height: 30px;
-    border-radius: 6px;
+    0% {opacity: 1;}
+    50% {opacity: 0.4;}
+    100% {opacity: 1;}
   }
 </style>
 
@@ -36,41 +44,28 @@
   <h2>🛒 My Cart</h2>
   <hr>
 
-  <!-- Skeleton loading table (initially visible) -->
+  <!-- 🔸 Skeleton Loader -->
   <div id="cart-skeleton">
-    <table class="table table-bordered align-middle">
-      <thead class="table-light">
-        <tr>
-          <th><div class="skeleton-bg skeleton-line"></div></th>
-          <th><div class="skeleton-bg skeleton-line"></div></th>
-          <th><div class="skeleton-bg skeleton-line"></div></th>
-          <th><div class="skeleton-bg skeleton-line"></div></th>
-          <th><div class="skeleton-bg skeleton-line"></div></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for _ in "12345" %}
-        <tr>
-          <td><div class="cart-img-skeleton skeleton-bg"></div></td>
-          <td><div class="skeleton-bg skeleton-line"></div></td>
-          <td><div class="skeleton-bg skeleton-line" style="width:60px;"></div></td>
-          <td><div class="skeleton-bg skeleton-line" style="width:80px;"></div></td>
-          <td><div class="cart-btn-skeleton skeleton-bg"></div></td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    <div class="my-4 p-4 border rounded shadow-sm bg-light">
-      <div class="skeleton-bg skeleton-line" style="width: 150px; height: 28px;"></div>
-      <div class="skeleton-bg skeleton-line" style="width: 200px; height: 28px; margin-top: 10px;"></div>
+    <div class="skeleton-table-row">
+      <div class="skeleton-bg skeleton-img"></div>
+      <div class="flex-grow-1">
+        <div class="skeleton-bg skeleton-line" style="width: 60%;"></div>
+        <div class="skeleton-bg skeleton-line" style="width: 40%;"></div>
+      </div>
     </div>
-    <div class="text-end mt-4">
-      <div class="cart-btn-skeleton skeleton-bg m-auto" style="width: 200px; height: 40px;"></div>
+    <div class="skeleton-table-row">
+      <div class="skeleton-bg skeleton-img"></div>
+      <div class="flex-grow-1">
+        <div class="skeleton-bg skeleton-line" style="width: 70%;"></div>
+        <div class="skeleton-bg skeleton-line" style="width: 50%;"></div>
+      </div>
     </div>
+    <div class="skeleton-bg skeleton-btn" style="width: 180px;"></div>
+    <div class="skeleton-bg skeleton-line" style="width: 60%; height: 30px;"></div>
   </div>
 
-  <!-- Real cart content (hidden initially) -->
-  <div id="cart-content" style="display:none;">
+  <!-- 🔹 Actual Cart Content -->
+  <div id="cart-content" style="display: none;">
     {% if items %}
     <table class="table table-bordered align-middle">
       <thead class="table-light">
@@ -164,27 +159,211 @@
     </div>
 
     {% else %}
-      <p class="text-muted">Your cart is empty.</p>
+    <p class="text-muted">Your cart is empty.</p>
     {% endif %}
   </div>
 </div>
 
+<!-- 🔸 Script for Skeleton -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const skeleton = document.getElementById('cart-skeleton');
+    const content = document.getElementById('cart-content');
+
+    skeleton.style.display = 'block';
+    content.style.display = 'none';
+
+    setTimeout(() => {
+      skeleton.style.display = 'none';
+      content.style.display = 'block';
+    }, 1000);
+  });
+</script>
+
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  // Show skeleton loading, hide real cart initially
-  const cartSkeleton = document.getElementById('cart-skeleton');
-  const cartContent = document.getElementById('cart-content');
-  cartSkeleton.style.display = 'block';
-  cartContent.style.display = 'none';
+  // 🔹 Cache price, discount, and stock data per cart row
+  const itemData = {};
+  document.querySelectorAll('tbody tr').forEach(row => {
+    const id = row.getAttribute('data-item-id');
 
-  // After 1 second, hide skeleton and show content
-  setTimeout(() => {
-    cartSkeleton.style.display = 'none';
-    cartContent.style.display = 'block';
-  }, 1000);
+    // Get price
+    let priceText = row.querySelector('td:nth-child(3) p.fw-bold')?.textContent.replace(/[^\d\.]/g, '') || '';
+    let price = parseFloat(priceText);
+    if (isNaN(price)) {
+      priceText = row.querySelector('td:nth-child(3) p.text-muted')?.textContent.replace(/[^\d\.]/g, '');
+      price = parseFloat(priceText);
+    }
 
-  // Your existing JS code for cart item update, quantity buttons etc...
-  // Keep your existing JS event listeners and logic unchanged here
+    // Get discount
+    const discountBadge = row.querySelector('td:nth-child(5) .badge.bg-danger');
+    let discountPercent = 0;
+    if (discountBadge) {
+      discountPercent = parseFloat(discountBadge.textContent.replace(/[^\d]/g, '')) || 0;
+    }
+
+    // Get stock (default 5 if not found)
+    let stock = parseInt(row.querySelector('td.stock')?.textContent) || 5;
+
+    itemData[id] = { price, discountPercent, stock };
+  });
+
+  const discountedPrice = (price, discountPercent) => price * (1 - discountPercent / 100);
+
+  // 🔹 Update subtotal for one item
+  function updateItemSubtotal(row, quantity) {
+    const id = row.getAttribute('data-item-id');
+    const { price, discountPercent } = itemData[id];
+    const unitPrice = discountedPrice(price, discountPercent);
+    const subtotal = unitPrice * quantity;
+
+    const subtotalCell = row.querySelector('.subtotal-text');
+    if (!subtotalCell) return;
+
+    if (discountPercent > 0) {
+      subtotalCell.innerHTML = `
+        <p class="fw-bold text-success mb-0">
+          ₹${subtotal.toFixed(2)} <span class="badge bg-danger">-${discountPercent}%</span>
+        </p>`;
+    } else {
+      subtotalCell.innerHTML = `<p class="fw-bold mb-0">₹${subtotal.toFixed(2)}</p>`;
+    }
+  }
+
+  // 🔹 Update full order total
+  function updateOrderTotal() {
+    let total = 0;
+
+    document.querySelectorAll('tbody tr').forEach(row => {
+      const quantity = parseInt(row.querySelector('.quantity-text').textContent);
+      const { price, discountPercent } = itemData[row.getAttribute('data-item-id')];
+      total += discountedPrice(price, discountPercent) * quantity;
+    });
+
+    const discount = parseFloat(document.getElementById('cart-total')?.dataset.discount) || 0;
+    total = total - discount;
+
+    const totalElem = document.getElementById('cart-total');
+    if (totalElem) totalElem.textContent = `₹${total.toFixed(2)}`;
+  }
+
+  // 🔹 Enable/disable quantity buttons based on stock
+  function toggleButtons(row, quantity) {
+    const decBtn = row.querySelector('.decrement-btn');
+    const incBtn = row.querySelector('.increment-btn');
+    const id = row.getAttribute('data-item-id');
+    const stock = itemData[id].stock;
+
+    const maxQuantity = stock < 5 ? stock : 5;
+
+    decBtn.classList.toggle('disabled', quantity <= 1);
+    incBtn.classList.toggle('disabled', quantity >= maxQuantity);
+  }
+
+  // 🔹 Async backend update
+  async function updateBackendCartAsync(itemId, action) {
+    const url = `{% url 'update_cart' 0 %}`.replace('0', itemId) + `?action=${action}`;
+    try {
+      await fetch(url, {
+        method: 'GET',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        credentials: 'same-origin'
+      });
+    } catch (error) {
+      console.error('Backend update failed silently', error);
+    }
+  }
+
+  // 🔹 Quantity change handler
+  function handleQuantityChangeUIOnly(button, action) {
+    if (button.classList.contains('disabled')) return;
+
+    const row = button.closest('tr');
+    const quantitySpan = row.querySelector('.quantity-text');
+    const itemId = row.getAttribute('data-item-id');
+
+    let quantity = parseInt(quantitySpan.textContent);
+    const stock = itemData[itemId].stock;
+    const maxQuantity = stock < 5 ? stock : 5;
+
+    if ((action === 'increase' && quantity >= maxQuantity) || (action === 'decrease' && quantity <= 1)) return;
+
+    // Update UI immediately
+    quantity = action === 'increase' ? quantity + 1 : quantity - 1;
+    quantitySpan.textContent = quantity;
+
+    toggleButtons(row, quantity);
+    updateItemSubtotal(row, quantity);
+    updateOrderTotal();
+
+    // Sync backend asynchronously
+    updateBackendCartAsync(itemId, action);
+  }
+
+  // 🔹 Attach listeners for increment/decrement
+  document.querySelectorAll('.increment-btn').forEach(button => {
+    button.addEventListener('click', e => {
+      e.preventDefault();
+      handleQuantityChangeUIOnly(button, 'increase');
+    });
+  });
+
+  document.querySelectorAll('.decrement-btn').forEach(button => {
+    button.addEventListener('click', e => {
+      e.preventDefault();
+      handleQuantityChangeUIOnly(button, 'decrease');
+    });
+  });
+
+  // 🔹 Initialize all rows on load
+  document.querySelectorAll('tbody tr').forEach(row => {
+    const quantity = parseInt(row.querySelector('.quantity-text').textContent);
+    toggleButtons(row, quantity);
+    updateItemSubtotal(row, quantity);
+  });
+  updateOrderTotal();
+
+  // 🔹 Handle variant change (price & stock update)
+  document.querySelectorAll('.variant-select').forEach(select => {
+    select.addEventListener('change', async (e) => {
+      const itemId = e.target.dataset.itemId;
+      const form = e.target.closest('form');
+      const formData = new FormData(form);
+      const row = e.target.closest('tr');
+
+      try {
+        const response = await fetch(form.action, {
+          method: 'POST',
+          body: formData,
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+
+        const data = await response.json();
+
+        // ✅ Update UI instantly
+        const priceCell = row.querySelector('td:nth-child(3)');
+        const newPrice = `₹${data.price.toFixed(2)}`;
+        priceCell.innerHTML = `<p class="fw-bold mb-0 text-success">${newPrice}</p>`;
+
+        // ✅ Update cached itemData
+        itemData[itemId].price = data.price;
+        itemData[itemId].stock = data.stock;
+        itemData[itemId].discountPercent = data.discount_percent || 0;
+
+        // ✅ Update subtotal and total
+        const quantity = parseInt(row.querySelector('.quantity-text').textContent);
+        updateItemSubtotal(row, quantity);
+        updateOrderTotal();
+
+      } catch (error) {
+        console.error('Error updating variant:', error);
+      }
+    });
+  });
 });
 </script>
+<script>
+  {{ block.super }}
+</script>
+
 {% endblock %}
