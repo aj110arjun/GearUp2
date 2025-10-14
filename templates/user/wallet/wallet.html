@@ -1,13 +1,91 @@
 {% extends "user/base.html" %}
 {% load humanize %}
 {% block title %} My Wallet {% endblock title %}
+
 {% block content %}
+<style>
+  /* Skeleton Loading CSS */
+  .skeleton {
+    background-color: #e2e2e2;
+    border-radius: 8px;
+    animation: skeleton-loading 1.2s infinite linear;
+  }
+  .skeleton-text {
+    width: 80%;
+    height: 20px;
+    margin: 12px auto;
+    border-radius: 4px;
+  }
+  .skeleton-balance {
+    width: 150px;
+    height: 60px;
+    margin: 20px auto 10px;
+  }
+  .skeleton-btn {
+    width: 140px;
+    height: 48px;
+    margin: 0 auto;
+  }
+  .skeleton-table-row {
+    height: 48px;
+    margin: 10px 0;
+    border-radius: 6px;
+  }
+  @keyframes skeleton-loading {
+    0% { opacity: 1; }
+    50% { opacity: 0.4;}
+    100% { opacity: 1;}
+  }
+</style>
+
 <div class="container py-5">
+
+  <!-- Skeleton wallet card -->
+  <div id="skeleton-wallet" style="display: block;">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
+      <div class="skeleton skeleton-text" style="width:150px; height:36px;"></div>
+      <div class="skeleton skeleton-btn"></div>
+    </div>
+    <div class="row mb-4">
+      <div class="col-md-6 col-lg-4 mx-auto">
+        <div class="card border-0 shadow text-center">
+          <div class="card-body p-4">
+            <div class="skeleton skeleton-balance"></div>
+            <div class="skeleton skeleton-text" style="width: 120px; height: 18px; margin: 10px auto;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card border-0 shadow-sm mb-5">
+      <div class="card-header bg-light text-primary d-flex align-items-center">
+        <div class="skeleton skeleton-text" style="width: 180px; height: 24px;"></div>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table align-middle table-bordered mb-0 bg-white">
+            <tbody>
+              {% for _ in "12345" %}
+              <tr>
+                <td><div class="skeleton skeleton-table-row"></div></td>
+                <td><div class="skeleton skeleton-table-row"></div></td>
+                <td><div class="skeleton skeleton-table-row"></div></td>
+                <td><div class="skeleton skeleton-table-row"></div></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Real wallet content -->
+  <div id="real-wallet" style="display: none;">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="fw-bold mb-0">💰 My Wallet</h2>
-        <a href="{% url 'add_money' %}" class="btn btn-success btn-lg px-4 py-2 shadow-sm">
-            <i class="bi bi-plus-circle me-2"></i>Add Money
-        </a>
+      <h2 class="fw-bold mb-0">💰 My Wallet</h2>
+      <a href="{% url 'add_money' %}" class="btn btn-success btn-lg px-4 py-2 shadow-sm">
+          <i class="bi bi-plus-circle me-2"></i>Add Money
+      </a>
     </div>
     {% if error %}
         <div class="row mb-3">
@@ -63,9 +141,7 @@
                                     <td class="fw-bold {% if txn.transaction_type == 'CREDIT' %}text-success{% else %}text-danger{% endif %}">
                                         {% if txn.transaction_type == "CREDIT" %}+{% else %}-{% endif %}₹{{ txn.amount }}
                                     </td>
-                                    <td>
-                                        {{ txn.description }}
-                                    </td>
+                                    <td>{{ txn.description }}</td>
                                 </tr>
                             {% endfor %}
                         </tbody>
@@ -107,6 +183,13 @@
     </div>
 </div>
 
-<!-- Optionally add Razorpay or Add Money Script if needed here -->
-
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Simulate loading delay
+    setTimeout(function() {
+      document.getElementById('skeleton-wallet').style.display = 'none';
+      document.getElementById('real-wallet').style.display = 'block';
+    }, 1000); // 1 second delay
+  });
+</script>
 {% endblock %}

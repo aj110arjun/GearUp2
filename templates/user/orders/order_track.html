@@ -1,7 +1,30 @@
 {% extends "user/base.html" %}
 {% load static %}
 {% block title %} Track Order {% endblock title %}
+
 {% block content %}
+<style>
+  /* Skeleton Loading Styles */
+  .skeleton-bg {
+    background-color: #e2e2e2;
+    border-radius: 6px;
+    animation: skeleton-loading 1.2s infinite linear;
+  }
+  .skeleton-line {
+    height: 20px;
+    margin: 10px 0;
+  }
+  .skeleton-table-row {
+    height: 40px;
+    margin-bottom: 10px;
+  }
+  @keyframes skeleton-loading {
+    0% { opacity: 1; }
+    50% { opacity: 0.4; }
+    100% { opacity: 1; }
+  }
+</style>
+
 <div class="container my-5">
     <h2>Track Your Order</h2>
 
@@ -14,46 +37,95 @@
         </div>
     </form>
 
-    {% if order %}
-        <div class="card p-3 shadow">
-            <p><strong>Tracking Code:</strong> #{{ order.order_code }}</p>
-            <p><strong>Placed on:</strong> {{ order.created_at|date:"d M  Y" }}</p>
+    <!-- Skeleton Loader (Shown initially) -->
+    <div id="skeleton-tracking" style="display: none;">
+      <div class="card p-3 shadow">
+        <div class="skeleton-bg skeleton-line" style="width: 150px;"></div>
+        <div class="skeleton-bg skeleton-line" style="width: 120px; margin-top: 15px;"></div>
+        <h5 class="mt-4 skeleton-bg skeleton-line" style="width: 80px;"></h5>
+        <table class="table table-bordered">
+          <thead>
+              <tr>
+                  <th><div class="skeleton-bg skeleton-line" style="width: 100%; height: 20px;"></div></th>
+                  <th><div class="skeleton-bg skeleton-line" style="width: 100%; height: 20px;"></div></th>
+              </tr>
+          </thead>
+          <tbody>
+              {% for _ in "1234" %}
+              <tr>
+                  <td><div class="skeleton-bg skeleton-table-row"></div></td>
+                  <td><div class="skeleton-bg skeleton-table-row"></div></td>
+              </tr>
+              {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
 
-            <h5>Items:</h5>
-            <table class="table table-bordered">
-                <thead>
-                    <tr>
-                        <th>Item</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in order.items.all %}
-                    <tr>
-                        <td>{{ item.variant.product.name }} ({{ item.variant.size }})</td>
-                        <td>
-                            <span class="badge 
-                                {% if item.status == 'pending' %} bg-warning
-                                {% elif item.status == 'shipped' %} bg-info
-                                {% elif item.status == 'out for Delivery' %} bg-primary
-                                {% elif item.status == 'delivered' %} bg-success
-                                {% elif item.status == 'cancelled' %} bg-danger
-                                {% elif item.status == 'returned' %} bg-dark
-                                {% endif %}">
-                                {{ item.status }}
-                            </span>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="2" class="text-center text-muted">No items found in this order</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    {% elif request.method == "POST" %}
-        <div class="alert alert-danger">No order found for this Tracking Code.</div>
-    {% endif %}
+    <!-- Actual Order Tracking Info -->
+    <div id="real-tracking" style="display: {% if order %}block{% else %}none{% endif %};">
+      {% if order %}
+          <div class="card p-3 shadow">
+              <p><strong>Tracking Code:</strong> #{{ order.order_code }}</p>
+              <p><strong>Placed on:</strong> {{ order.created_at|date:"d M  Y" }}</p>
+
+              <h5>Items:</h5>
+              <table class="table table-bordered">
+                  <thead>
+                      <tr>
+                          <th>Item</th>
+                          <th>Status</th>
+                      </tr>
+                  </thead>
+                  <tbody>
+                      {% for item in order.items.all %}
+                      <tr>
+                          <td>{{ item.variant.product.name }} ({{ item.variant.size }})</td>
+                          <td>
+                              <span class="badge 
+                                  {% if item.status == 'pending' %} bg-warning
+                                  {% elif item.status == 'shipped' %} bg-info
+                                  {% elif item.status == 'out for Delivery' %} bg-primary
+                                  {% elif item.status == 'delivered' %} bg-success
+                                  {% elif item.status == 'cancelled' %} bg-danger
+                                  {% elif item.status == 'returned' %} bg-dark
+                                  {% endif %}">
+                                  {{ item.status }}
+                              </span>
+                          </td>
+                      </tr>
+                      {% empty %}
+                      <tr>
+                          <td colspan="2" class="text-center text-muted">No items found in this order</td>
+                      </tr>
+                      {% endfor %}
+                  </tbody>
+              </table>
+          </div>
+      {% elif request.method == "POST" %}
+          <div class="alert alert-danger">No order found for this Tracking Code.</div>
+      {% endif %}
+    </div>
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function() {
+      // Show skeleton loader on search submit
+      document.getElementById('skeleton-tracking').style.display = 'block';
+      document.getElementById('real-tracking').style.display = 'none';
+    });
+
+    // After page load, if order exists, show real tracking info
+    {% if order %}
+      document.getElementById('skeleton-tracking').style.display = 'none';
+      document.getElementById('real-tracking').style.display = 'block';
+    {% else %}
+      document.getElementById('skeleton-tracking').style.display = 'none'; // Initially hidden
+      document.getElementById('real-tracking').style.display = 'none';
+    {% endif %}
+  });
+</script>
+
 {% endblock %}

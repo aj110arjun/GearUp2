@@ -1,12 +1,77 @@
 {% extends "user/base.html" %}
 {% block title %} My Wishlist {% endblock title %}
+
 {% block content %}
+<style>
+  /* Skeleton loading styles */
+  .skeleton-card {
+    background-color: #e2e2e2;
+    border-radius: 12px;
+    height: 320px;
+    margin-bottom: 1rem;
+    animation: skeleton-loading 1.2s infinite linear;
+  }
+  .skeleton-img {
+    height: 200px;
+    border-radius: 12px 12px 0 0;
+  }
+  .skeleton-text {
+    height: 24px;
+    width: 60%;
+    margin: 15px auto;
+    border-radius: 6px;
+  }
+  .skeleton-subtext {
+    height: 18px;
+    width: 40%;
+    margin: 6px auto;
+    border-radius: 6px;
+  }
+  .skeleton-form {
+    height: 40px;
+    width: 90%;
+    margin: 20px auto;
+    border-radius: 6px;
+  }
+  .skeleton-btn {
+    width: 100px;
+    height: 36px;
+    margin: 10px 15px 20px 15px;
+    border-radius: 6px;
+    display: inline-block;
+  }
+  @keyframes skeleton-loading {
+    0% { opacity: 1; }
+    50% { opacity: 0.4; }
+    100% { opacity: 1; }
+  }
+</style>
+
 <div class="container my-5">
     <h2>❤️ My Wishlist</h2>
     <hr>
 
-    {% if items %}
-        <div class="row">
+    <!-- Skeleton loading placeholders -->
+    <div id="wishlist-skeleton" class="row">
+        {% for _ in "123" %}
+        <div class="col-md-4">
+            <div class="skeleton-card">
+                <div class="skeleton-img skeleton-bg"></div>
+                <div class="skeleton-text skeleton-bg"></div>
+                <div class="skeleton-subtext skeleton-bg"></div>
+                <div class="skeleton-form skeleton-bg"></div>
+                <div style="text-align:center;">
+                    <div class="skeleton-btn skeleton-bg"></div>
+                    <div class="skeleton-btn skeleton-bg"></div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Real wishlist items (hidden initially) -->
+    <div id="wishlist-items" class="row" style="display:none;">
+        {% if items %}
             {% for w in items %}
                 <div class="col-md-4">
                     <div class="card shadow-sm mb-4">
@@ -22,7 +87,6 @@
                                     <div class="mb-2">
                                         <label for="variant-{{ w.id }}" class="form-label">Choose Variant:</label>
                                         <select name="variant_id" id="variant-{{ w.id }}" class="form-select" required>
-
                                             {% for v in w.product.variants.all %}
                                                 {% if v.stock > 0 %}
                                                     <option value="{{ v.id }}">
@@ -43,9 +107,19 @@
                     </div>
                 </div>
             {% endfor %}
-        </div>
-    {% else %}
-        <p class="text-muted">You don’t have any products in your wishlist yet.</p>
-    {% endif %}
+        {% else %}
+            <p class="text-muted">You don’t have any products in your wishlist yet.</p>
+        {% endif %}
+    </div>
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+      document.getElementById('wishlist-skeleton').style.display = 'none';
+      document.getElementById('wishlist-items').style.display = 'flex';
+    }, 1000); // Show real content after 1s
+  });
+</script>
+
 {% endblock %}

@@ -1,133 +1,200 @@
 {% extends "user/base.html" %}
-{% load static %}
 {% block title %} Checkout {% endblock title %}
 {% block content %}
+<style>
+  /* Skeleton loading styles */
+  .skeleton-bg {
+    background-color: #e2e2e2;
+    border-radius: 6px;
+    animation: skeleton-loading 1.2s infinite linear;
+  }
+  .skeleton-line {
+    height: 20px;
+    margin: 12px 0;
+    border-radius: 6px;
+  }
+  .skeleton-input {
+    height: 38px;
+    width: 100%;
+  }
+  .skeleton-radio {
+    height: 20px;
+    width: 120px;
+    margin: 8px 0;
+  }
+  .skeleton-btn {
+    height: 40px;
+    width: 150px;
+    margin-top: 15px;
+    border-radius: 6px;
+    animation: skeleton-loading 1.2s infinite linear;
+  }
+  .skeleton-list-item {
+    margin-bottom: 12px;
+    height: 25px;
+    width: 100%;
+  }
+  @keyframes skeleton-loading {
+    0% {opacity: 1;}
+    50% {opacity: 0.4;}
+    100% {opacity: 1;}
+  }
+</style>
 <div class="container my-5">
-    <h2>Checkout</h2>
-    <hr>
+  <h2>Checkout</h2>
+  <hr>
+
+  <!-- Skeleton loading placeholders -->
+  <div id="skeleton-checkout">
+    <!-- Shipping Address -->
+    <h5 class="skeleton-bg skeleton-line" style="width: 180px;"></h5>
+    {% for _ in "1234" %}
+      <div class="skeleton-bg skeleton-list-item"></div>
+    {% endfor %}
+    <div class="skeleton-bg skeleton-btn"></div>
+
+    <!-- Payment Method -->
+    <h5 class="mt-4 skeleton-bg skeleton-line" style="width: 140px;"></h5>
+    <div class="skeleton-bg skeleton-radio"></div>
+    <div class="skeleton-bg skeleton-radio"></div>
+    <div class="skeleton-bg skeleton-radio"></div>
+
+    <!-- Order Summary -->
+    <h5 class="mt-4 skeleton-bg skeleton-line" style="width: 130px;"></h5>
+    {% for _ in "12345" %}
+      <div class="skeleton-bg skeleton-list-item"></div>
+    {% endfor %}
+    <div class="skeleton-bg skeleton-btn" style="width: 180px;"></div>
+  </div>
+
+
+  <!-- Real checkout form (hidden initially) -->
+  <div id="real-checkout-form" style="display:none;">
     <form method="post">
-        {% csrf_token %}
-        <!-- Shipping Address -->
-        <h5>Shipping Address</h5>
-        <div class="mb-3">
-            {% for addr in addresses %}
-                <div class="card p-3 mb-3 {% if addr.is_default %}border-success shadow-sm{% else %}border-light{% endif %}">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <label class="d-flex align-items-center m-0 w-100">
-                            <input type="radio" name="address" value="{{ addr.id }}" 
-                                   {% if addr.is_default %}checked{% elif forloop.first %}checked{% endif %} 
-                                   class="me-2">
-                            <div>
-                                <strong>{{ addr.full_name }}</strong><br>
-                                <small class="text-muted">{{ addr.full_address }}</small>
-                            </div>
-                        </label>
-                        {% if addr.is_default %}
-                            <span class="badge bg-success d-flex align-items-center">
-                                <i class="bi bi-star-fill me-1"></i> Default
-                            </span>
-                        {% endif %}
-                    </div>
-                    <div class="mt-2 text-end">
-                        <a href="{% url 'edit_address' addr.id %}?next={{ request.path }}" 
-                           class="btn btn-sm btn-outline-primary">Edit</a>
-                        {% if not addr.is_default %}
-                            <a href="{% url 'delete_address' addr.pk %}" class="btn btn-sm btn-danger"
-                            onclick="return confirm('Are you sure you want to delete this address?');">
-                                Delete
-                            </a>
-                        {% endif %}
-                    </div>
-                </div>
-            {% empty %}
-                <p class="text-danger fw-bold">No addresses found. Please add one.</p>
-            {% endfor %}
-        </div>
-        <!-- Add New Address -->
-        <a href="{% url 'add_address' %}?next={{ request.path }}" class="btn btn-sm btn-success mb-3">+ Add New Address</a>
-        <!-- Payment Method -->
-        <h5>Payment Method</h5>
-        <div class="card p-3 mb-2">
-            <label class="d-flex align-items-center">
-                <input type="radio" name="payment_method" value="COD" 
-                       {% if total > 1000 %}disabled{% else %}checked{% endif %}
-                       class="me-2">
-                <span>Cash on Delivery</span>
-                {% if total > 1000 %}
-                    <span class="text-danger ms-2">(COD not available for orders above ₹1000)</span>
-                {% endif %}
+      {% csrf_token %}
+      <!-- Shipping Address -->
+      <h5>Shipping Address</h5>
+      <div class="mb-3">
+        {% for addr in addresses %}
+        <div class="card p-3 mb-3 {% if addr.is_default %}border-success shadow-sm{% else %}border-light{% endif %}">
+          <div class="d-flex justify-content-between align-items-center">
+            <label class="d-flex align-items-center m-0 w-100">
+              <input type="radio" name="address" value="{{ addr.id }}" 
+                     {% if addr.is_default %}checked{% elif forloop.first %}checked{% endif %} 
+                     class="me-2">
+              <div>
+                <strong>{{ addr.full_name }}</strong><br>
+                <small class="text-muted">{{ addr.full_address }}</small>
+              </div>
             </label>
+            {% if addr.is_default %}
+              <span class="badge bg-success d-flex align-items-center">
+                <i class="bi bi-star-fill me-1"></i> Default
+              </span>
+            {% endif %}
+          </div>
+          <div class="mt-2 text-end">
+            <a href="{% url 'edit_address' addr.id %}?next={{ request.path }}" class="btn btn-sm btn-outline-primary">Edit</a>
+            {% if not addr.is_default %}
+              <a href="{% url 'delete_address' addr.pk %}" class="btn btn-sm btn-danger"
+                 onclick="return confirm('Are you sure you want to delete this address?');">Delete</a>
+            {% endif %}
+          </div>
         </div>
-        <div class="card p-3 mb-2">
-            <label class="d-flex align-items-center">
-                <input type="radio" name="payment_method" value="ONLINE" 
-                       {% if grand_total > 1000 %}checked{% endif %} class="me-2">
-                <span>Pay Online (Razorpay)</span>
-            </label>
-        </div>
-        <div class="card p-3 mb-2">
-            <label class="d-flex align-items-center">
-                <input type="radio" name="payment_method" value="WALLET" class="me-2">
-                <span>Pay with Wallet 
-                    (Balance: ₹{{ wallet.balance }})
-                    {% if error.wallet %}
-                        <small class="text-danger">{{ error.wallet }}</small>
-                    {% endif %}
-                </span>
-            </label>
-        </div>
-        <!-- Order Summary -->
-        <h5>Order Summary</h5>
-        <ul class="list-group mb-3">
-            {% for item in cart_items %}
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <div>
-                        {{ item.variant.product.name }} 
-                        ({{ item.variant.color }}/{{ item.variant.size }}) x{{ item.quantity }}
-                        {% if item.variant.product.get_best_offer > 0 %}
-                            <br>
-                            <small class="text-success">
-                                Offer Applied: {{ item.variant.product.get_best_offer }}% Off
-                            </small>
-                        {% endif %}
-                    </div>
-                    <div>
-                        {% if item.variant.product.get_best_offer > 0 %}
-                            <span class="text-success fw-bold ms-2">₹{{ item.subtotal }}</span>
-                        {% else %}
-                            <span>₹{{ item.subtotal }}</span>
-                        {% endif %}
-                    </div>
-                </li>
-            {% endfor %}
-        </ul>
-        <!-- Coupon Discount Display -->
-        {% if coupon %}
+        {% empty %}
+        <p class="text-danger fw-bold">No addresses found. Please add one.</p>
+        {% endfor %}
+      </div>
+      <a href="{% url 'add_address' %}?next={{ request.path }}" class="btn btn-sm btn-success mb-3">+ Add New Address</a>
+
+      <!-- Payment Method -->
+      <h5>Payment Method</h5>
+      <div class="card p-3 mb-2">
+        <label class="d-flex align-items-center">
+          <input type="radio" name="payment_method" value="COD" 
+                 {% if total > 1000 %}disabled{% else %}checked{% endif %} class="me-2">
+          <span>Cash on Delivery</span>
+          {% if total > 1000 %}
+            <span class="text-danger ms-2">(COD not available for orders above ₹1000)</span>
+          {% endif %}
+        </label>
+      </div>
+      <div class="card p-3 mb-2">
+        <label class="d-flex align-items-center">
+          <input type="radio" name="payment_method" value="ONLINE" 
+                 {% if grand_total > 1000 %}checked{% endif %} class="me-2">
+          <span>Pay Online (Razorpay)</span>
+        </label>
+      </div>
+      <div class="card p-3 mb-2">
+        <label class="d-flex align-items-center">
+          <input type="radio" name="payment_method" value="WALLET" class="me-2">
+          <span>Pay with Wallet (Balance: ₹{{ wallet.balance }})</span>
+          {% if error.wallet %}
+            <small class="text-danger">{{ error.wallet }}</small>
+          {% endif %}
+        </label>
+      </div>
+
+      <!-- Order Summary -->
+      <h5>Order Summary</h5>
+      <ul class="list-group mb-3">
+        {% for item in cart_items %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+              {{ item.variant.product.name }} ({{ item.variant.color }}/{{ item.variant.size }}) x{{ item.quantity }}
+              {% if item.variant.product.get_best_offer > 0 %}
+                <br><small class="text-success">Offer Applied: {{ item.variant.product.get_best_offer }}% Off</small>
+              {% endif %}
+            </div>
+            <div>
+              {% if item.variant.product.get_best_offer > 0 %}
+                <span class="text-success fw-bold ms-2">₹{{ item.subtotal }}</span>
+              {% else %}
+                <span>₹{{ item.subtotal }}</span>
+              {% endif %}
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+
+      <!-- Coupon, delivery, tax, total -->
+      {% if coupon %}
         <div class="mb-3 p-2 bg-light border rounded">
-            <strong>Coupon "{{ coupon.code }}" Applied:</strong>
-            <span class="text-success">
-                -₹{{ discount }}
-            </span>
+          <strong>Coupon "{{ coupon.code }}" Applied:</strong>
+          <span class="text-success">-₹{{ discount }}</span>
         </div>
-        {% endif %}
+      {% endif %}
+      <div class="d-flex justify-content-between fs-6 mb-1">
+        <span>Delivery Charges:</span>
+        <span>₹{{ delivery_charge }}</span>
+      </div>
+      <div class="d-flex justify-content-between fs-6 mb-1">
+        <span>Tax:</span>
+        <span>₹{{ tax }}</span>
+      </div>
+      <div class="d-flex justify-content-between fs-5 fw-bold">
+        <span>Total to Pay:</span>
+        <span>₹{{ grand_total }}</span>
+      </div>
 
-        <!-- Delivery Charge -->
-        <div class="d-flex justify-content-between fs-6 mb-1">
-            <span>Delivery Charges:</span>
-            <span>₹{{ delivery_charge }}</span>
-        </div>
-
-        <div class="d-flex justify-content-between fs-6 mb-1">
-            <span>Tax:</span>
-            <span>₹{{ tax }}</span>
-        </div>
-
-        <!-- Final Total -->
-        <div class="d-flex justify-content-between fs-5 fw-bold">
-            <span>Total to Pay:</span>
-            <span>₹{{ grand_total }}</span>
-        </div>
-        <button type="submit" class="btn btn-success mt-3">Place Order</button>
+      <button type="submit" class="btn btn-success mt-3">Place Order</button>
     </form>
+  </div>
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const skeleton = document.getElementById('skeleton-checkout');
+    const realForm = document.getElementById('real-checkout-form');
+
+    skeleton.style.display = 'block';
+    realForm.style.display = 'none';
+
+    setTimeout(() => {
+      skeleton.style.display = 'none';
+      realForm.style.display = 'block';
+    }, 1000);
+  });
+</script>
 {% endblock %}

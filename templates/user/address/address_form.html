@@ -1,7 +1,56 @@
 {% extends 'user/base.html' %}
 {% block title %} {% if address %}Edit Address{% else %}Add Address{% endif %} {% endblock title %}
 {% block content %}
+<style>
+  /* Skeleton loading bars for form fields */
+  .skeleton-bar {
+    background-color: #e2e2e2;
+    height: 40px;
+    border-radius: 6px;
+    margin: 12px 0;
+    animation: skeleton-loading 1.2s infinite linear;
+  }
+  .skeleton-checkbox {
+    width: 180px;
+    height: 24px;
+    margin: 20px 0;
+    background-color: #e2e2e2;
+    border-radius: 12px;
+    animation: skeleton-loading 1.2s infinite linear;
+  }
+  .skeleton-btn {
+    width: 100px;
+    height: 40px;
+    margin-top: 20px;
+    background-color: #e2e2e2;
+    border-radius: 6px;
+    animation: skeleton-loading 1.2s infinite linear;
+  }
+  @keyframes skeleton-loading {
+      0% { opacity: 1; }
+      50% { opacity: 0.4; }
+      100% { opacity: 1; }
+  }
+</style>
+
 <div class="container my-4">
+
+  <!-- Skeleton form (visible initially) -->
+  <div id="skeleton-form">
+    <div class="skeleton-bar"></div>
+    <div class="skeleton-bar"></div>
+    <div class="skeleton-bar"></div>
+    <div class="skeleton-bar"></div>
+    <div class="skeleton-bar"></div>
+    <div class="skeleton-bar"></div>
+    <div class="skeleton-bar"></div>
+    <div class="skeleton-bar"></div>
+    <div class="skeleton-checkbox"></div>
+    <div class="skeleton-btn"></div>
+  </div>
+
+  <!-- Real form (hidden initially) -->
+  <div id="real-form" style="display:none;">
     <h2>{% if address %}Edit Address{% else %}Add Address{% endif %}</h2>
     {% if error %}
         <div class="alert alert-danger">{{ error }}</div>
@@ -25,5 +74,16 @@
         <br>
         <button type="submit" class="btn btn-success mt-3">Save</button>
     </form>
+  </div>
+
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+      setTimeout(function () {
+          document.getElementById('skeleton-form').style.display = 'none';
+          document.getElementById('real-form').style.display = 'block';
+      }, 1000); // Show real form after 1s simulated loading
+  });
+</script>
 {% endblock %}

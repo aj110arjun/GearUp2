@@ -12,8 +12,8 @@
     </div>
 
     <div class="mt-4">
-        <a href="{% url 'admin_approve_reject_return' item.item_id 'approve' %}" class="btn btn-success me-2">Approve</a>
-        <a href="{% url 'admin_approve_reject_return' item.item_id 'reject' %}" class="btn btn-danger me-2">Reject</a>
+        <a onclick="return confirm('Are you sure want to approve the return?')" href="{% url 'admin_approve_reject_return' item.item_id 'approve' %}" class="btn btn-success me-2">Approve</a>
+        <a onclick="return confirm('Are you sure want to reject the return?')" href="{% url 'admin_approve_reject_return' item.item_id 'reject' %}" class="btn btn-danger me-2">Reject</a>
         <a href="{% url 'admin_return_requests' %}" class="btn btn-secondary">Back</a>
     </div>
 </div>

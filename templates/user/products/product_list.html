@@ -1,153 +1,163 @@
-{% extends 'user/base.html' %}
+{% extends "user/base.html" %}
 {% load static %}
-
 {% block title %}Products{% endblock %}
 
-
 {% block content %}
-            <div class="container my-4">
+<div class="container my-4">
 
-                <!-- Search & Filters Row -->
-                <div class="row mb-4 align-items-center">
-                    <!-- Search -->
-                    <form method="get" class="row g-2 align-items-center mb-4">
-                        <!-- Search -->
-                        <div class="col-md-4 position-relative">
-                            <div class="input-group">
-                                <input type="text" name="q" id="search-input" class="form-control"
-                                    placeholder="Search products..." value="{{ filters.search }}"
-                                    style="padding-right: 60px;">
+    <!-- Search & Filters Row -->
+    <div class="row mb-4 align-items-center">
+        <!-- Search -->
+        <form method="get" class="row g-2 align-items-center mb-4">
+            <!-- Search -->
+            <div class="col-md-4 position-relative">
+                <div class="input-group">
+                    <input type="text" name="q" id="search-input" class="form-control"
+                        placeholder="Search products..." value="{{ filters.search }}"
+                        style="padding-right: 60px;">
 
-                                <!-- Clear button for search -->
-                                <button type="button" id="clear-btn" aria-label="Clear search"
-                                        style="
-                                            position: absolute;
-                                            right: 75px;
-                                            top: 50%;
-                                            transform: translateY(-50%);
-                                            border: none;
-                                            background: transparent;
-                                            font-size: 18px;
-                                            cursor: pointer;
-                                            color: #999;
-                                            display: none;
-                                            z-index: 1000;
-                                        ">
-                                    &times;
-                                </button>
+                    <!-- Clear button for search -->
+                    <button type="button" id="clear-btn" aria-label="Clear search"
+                            style="
+                                position: absolute;
+                                right: 75px;
+                                top: 50%;
+                                transform: translateY(-50%);
+                                border: none;
+                                background: transparent;
+                                font-size: 18px;
+                                cursor: pointer;
+                                color: #999;
+                                display: none;
+                                z-index: 1000;
+                            ">
+                        &times;
+                    </button>
 
-                                <button type="submit" class="btn btn-primary">Search</button>
-                            </div>
-                        </div>
+                    <button type="submit" class="btn btn-primary">Search</button>
+                </div>
+            </div>
 
-                        <!-- Category filter -->
-                        <div class="col-md-3">
-                            <select name="category" class="form-select" onchange="this.form.submit()">
-                                <option value="">All Categories</option>
-                                {% for cat in categories %}
-                                    <option value="{{ cat.id }}" {% if filters.category == cat.id|stringformat:"s" %}selected{% endif %}>
-                                        {{ cat.name }}
-                                    </option>
-                                {% endfor %}
-                            </select>
-                        </div>
+            <!-- Category filter -->
+            <div class="col-md-3">
+                <select name="category" class="form-select" onchange="this.form.submit()">
+                    <option value="">All Categories</option>
+                    {% for cat in categories %}
+                        <option value="{{ cat.id }}" {% if filters.category == cat.id|stringformat:"s" %}selected{% endif %}>
+                            {{ cat.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
 
-                        <!-- Sorting -->
-                        <div class="col-md-3">
-                            <select name="sort" class="form-select" onchange="this.form.submit()">
-                                <option value="">Sort by</option>
-                                <option value="name" {% if filters.sort == "name" %}selected{% endif %}>Name: A-Z</option>
-                                <option value="name2" {% if filters.sort == "name2" %}selected{% endif %}>Name: Z-A</option>
-                                <option value="price_asc" {% if filters.sort == "price_asc" %}selected{% endif %}>Price: Low to High</option>
-                                <option value="price_desc" {% if filters.sort == "price_desc" %}selected{% endif %}>Price: High to Low</option>
-                            </select>
-                        </div>
+            <!-- Sorting -->
+            <div class="col-md-3">
+                <select name="sort" class="form-select" onchange="this.form.submit()">
+                    <option value="">Sort by</option>
+                    <option value="name" {% if filters.sort == "name" %}selected{% endif %}>Name: A-Z</option>
+                    <option value="name2" {% if filters.sort == "name2" %}selected{% endif %}>Name: Z-A</option>
+                    <option value="price_asc" {% if filters.sort == "price_asc" %}selected{% endif %}>Price: Low to High</option>
+                    <option value="price_desc" {% if filters.sort == "price_desc" %}selected{% endif %}>Price: High to Low</option>
+                </select>
+            </div>
 
-                        <!-- ✅ Clear Filters Button -->
-                        <div class="col-md-2 text-end">
-                            {% if filters.search or filters.category or filters.sort %}
-                                <a href="{% url 'product_list' %}" class="btn btn-outline-secondary w-100">
-                                    Clear Filters
-                                </a>
-                            {% endif %}
-                        </div>
-                    </form>
+            <!-- Clear Filters Button -->
+            <div class="col-md-2 text-end">
+                {% if filters.search or filters.category or filters.sort %}
+                    <a href="{% url 'product_list' %}" class="btn btn-outline-secondary w-100">
+                        Clear Filters
+                    </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
 
-
-    <!-- Product Grid -->
-    <!-- Product Grid -->
-<div class="row g-4">
-    {% if products %}
-        {% for product in products %}
+    <!-- Skeleton Loading Grid (visible by default, hidden after 1s) -->
+    <div id="product-skeletons" class="row g-4">
+        {% for i in "12345678" %}
             <div class="col-6 col-md-3">
-                <div class="card h-100 shadow-sm d-flex flex-column">
+                <div class="card h-100 shadow-sm d-flex flex-column skeleton-card">
+                    <div class="skeleton-img" style="background: #e2e2e2; height: 200px; border-radius: 15px; animation: skeleton-loading 1.2s infinite linear;"></div>
+                    <div class="skeleton-text skeleton-title" style="background: #e2e2e2; height: 18px; width: 70%; margin: 10px auto; border-radius: 4px; animation: skeleton-loading 1.2s infinite linear;"></div>
+                    <div class="skeleton-text skeleton-price" style="background: #e2e2e2; height: 16px; width: 35%; margin: 0 auto 10px; border-radius: 4px; animation: skeleton-loading 1.2s infinite linear;"></div>
+                    <div class="skeleton-btn" style="background:#e2e2e2; height: 28px; width: 50%; margin: 10px auto; border-radius: 6px; animation: skeleton-loading 1.2s infinite linear;"></div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
 
-                    <!-- Product Image -->
-                    {% if product.image %}
-                        <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.name }}">
-                    {% else %}
-                        <img src="{% static 'images/placeholder.png' %}" class="card-img-top" alt="No image">
-                    {% endif %}
+    <!-- Actual Product Grid (initially hidden, shown after skeleton) -->
+    <div id="product-grid" class="row g-4" style="display:none;">
+        {% if products %}
+            {% for product in products %}
+                <div class="col-6 col-md-3">
+                    <div class="card h-100 shadow-sm d-flex flex-column">
 
-                    <!-- Card Body -->
-                    <div class="card-body d-flex flex-column">
-                        <h6 class="card-title text-truncate">{{ product.name }}</h6>
-
-                        <!-- Offer Badge -->
-                        {% if product.best_offer %}
-                            <span class="badge bg-danger align-self-start mb-2">
-                                {{ product.best_offer.discount_percent }}% OFF
-                            </span>
-                        {% endif %}
-
-                        <!-- Price -->
-                        {% if product.variants.all %}
-                            <p class="card-text mb-2">
-                                From <strong>₹{{ product.variants.all.0.price }}</strong>
-                            </p>
+                        <!-- Product Image -->
+                        {% if product.image %}
+                            <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.name }}">
                         {% else %}
-                            <p class="text-muted mb-2">No variants available</p>
+                            <img src="{% static 'images/placeholder.png' %}" class="card-img-top" alt="No image">
                         {% endif %}
 
-                        <!-- Spacer pushes button to bottom -->
-                        <div class="mt-auto">
-                            <a href="{% url 'product_detail' product.product_id %}"
-                               class="btn btn-outline-primary btn-sm w-100">
-                                View Details
-                            </a>
-                        </div>
-                        <div class="d-flex gap-2 mt-3 justify-content-center text-center">
-                            <!-- Add to Cart -->
-                            <form acion="{% url 'add_to_cart' product.id %}" method="POST" class="flex-fill toggle-cart-form" data-variant-id="{{ product.variants.first.id }}">
-                                {% csrf_token %}
-                                <button type="button"
-                                    class="btn cart-btn {% if product.variants.first.id in cart_variant_ids %}btn-success{% else %}btn-dark{% endif %} btn-circle"
-                                    data-product-id="{{ product.id }}"
-                                    data-variant-id="{{ product.variants.first.id }}"
-                                    title="{% if product.variants.first.id in cart_variant_ids %}Remove from Cart{% else %}Add to Cart{% endif %}">
-                                <i class="bi {% if product.variants.first.id in cart_variant_ids %}bi-check2{% else %}bi-cart3{% endif %} fs-5"></i>
-                            </button>
-                            </form>
+                        <!-- Card Body -->
+                        <div class="card-body d-flex flex-column">
+                            <h6 class="card-title text-truncate">{{ product.name }}</h6>
 
-                            <!-- Add to Wishlist -->
+                            <!-- Offer Badge -->
+                            {% if product.best_offer %}
+                                <span class="badge bg-danger align-self-start mb-2">
+                                    {{ product.best_offer.discount_percent }}% OFF
+                                </span>
+                            {% endif %}
+
+                            <!-- Price -->
+                            {% if product.variants.all %}
+                                <p class="card-text mb-2">
+                                    From <strong>₹{{ product.variants.all.0.price }}</strong>
+                                </p>
+                            {% else %}
+                                <p class="text-muted mb-2">No variants available</p>
+                            {% endif %}
+
+                            <!-- Spacer pushes button to bottom -->
+                            <div class="mt-auto">
+                                <a href="{% url 'product_detail' product.product_id %}"
+                                   class="btn btn-outline-primary btn-sm w-100">
+                                    View Details
+                                </a>
+                            </div>
+                            <div class="d-flex gap-2 mt-3 justify-content-center text-center">
+                                <!-- Add to Cart -->
+                                <form action="{% url 'add_to_cart' product.id %}" method="POST" class="flex-fill toggle-cart-form" data-variant-id="{{ product.variants.first.id }}">
+                                    {% csrf_token %}
+                                    <button type="button"
+                                        class="btn cart-btn {% if product.variants.first.id in cart_variant_ids %}btn-success{% else %}btn-dark{% endif %} btn-circle"
+                                        data-product-id="{{ product.id }}"
+                                        data-variant-id="{{ product.variants.first.id }}"
+                                        title="{% if product.variants.first.id in cart_variant_ids %}Remove from Cart{% else %}Add to Cart{% endif %}">
+                                    <i class="bi {% if product.variants.first.id in cart_variant_ids %}bi-check2{% else %}bi-cart3{% endif %} fs-5"></i>
+                                </button>
+                                </form>
+
+                                <!-- Add to Wishlist -->
                                 <form method="POST" action="{% url 'remove_from_wishlist' product.id %}" class="flex-fill">
-                                {% csrf_token %}
+                                    {% csrf_token %}
                                     <button type="button" class="btn wishlist-btn {% if product.id in wishlist_ids %}btn-danger{% else %}btn-outline-danger{% endif %} btn-circle"
                                             data-product-id="{{ product.id }}"
                                             title="{% if product.id in wishlist_ids %}Remove from Wishlist{% else %}Add to Wishlist{% endif %}">
                                         <i class="bi {% if product.id in wishlist_ids %}bi-heart-fill{% else %}bi-heart{% endif %} fs-5"></i>
                                     </button>
                                 </form> 
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        {% endfor %}
-    {% else %}
-        <p>No products found.</p>
-    {% endif %}
-</div>
-
+            {% endfor %}
+        {% else %}
+            <p>No products found.</p>
+        {% endif %}
+    </div>
 
     <!-- Pagination -->
     {% if products.has_other_pages %}
@@ -167,9 +177,7 @@
                 {% if products.number == i %}
                     <li class="page-item active"><span class="page-link">{{ i }}</span></li>
                 {% else %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ i }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}">{{ i }}</a>
-                    </li>
+                    <li class="page-item"><a class="page-link" href="?page={{ i }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}">{{ i }}</a></li>
                 {% endif %}
             {% endfor %}
 
@@ -185,10 +193,16 @@
         </ul>
     </nav>
     {% endif %}
-
 </div>
 
 <script>
+  document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+      document.getElementById('product-skeletons').style.display = 'none';
+      document.getElementById('product-grid').style.display = 'flex';
+    }, 1000);
+  });
+
   const input = document.getElementById('search-input');
   const clearBtn = document.getElementById('clear-btn');
 
@@ -207,83 +221,78 @@
   toggleClearBtn();
 
   document.addEventListener('DOMContentLoaded', () => {
-  const wishlistButtons = document.querySelectorAll('.wishlist-btn');
+    const wishlistButtons = document.querySelectorAll('.wishlist-btn');
 
-  wishlistButtons.forEach(button => {
-    button.addEventListener('click', async () => {
-      const productId = button.dataset.productId;
+    wishlistButtons.forEach(button => {
+      button.addEventListener('click', async () => {
+        const productId = button.dataset.productId;
+        try {
+          const response = await fetch("{% url 'toggle_wishlist' 0 %}".replace('0', productId), {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': '{{ csrf_token }}',
+              'X-Requested-With': 'XMLHttpRequest',
+            },
+          });
 
-      try {
-        const response = await fetch("{% url 'toggle_wishlist' 0 %}".replace('0', productId), {
-          method: 'POST',
-          headers: {
-            'X-CSRFToken': '{{ csrf_token }}',
-            'X-Requested-With': 'XMLHttpRequest',
-          },
-        });
+          const data = await response.json();
 
-        const data = await response.json();
-
-        if (data.status === 'added') {
-          button.classList.remove('btn-outline-danger');
-          button.classList.add('btn-danger');
-          button.querySelector('i').classList.remove('bi-heart');
-          button.querySelector('i').classList.add('bi-heart-fill');
-          button.title = 'Remove from Wishlist';
-        } else if (data.status === 'removed') {
-          button.classList.remove('btn-danger');
-          button.classList.add('btn-outline-danger');
-          button.querySelector('i').classList.remove('bi-heart-fill');
-          button.querySelector('i').classList.add('bi-heart');
-          button.title = 'Add to Wishlist';
+          if (data.status === 'added') {
+            button.classList.remove('btn-outline-danger');
+            button.classList.add('btn-danger');
+            button.querySelector('i').classList.remove('bi-heart');
+            button.querySelector('i').classList.add('bi-heart-fill');
+            button.title = 'Remove from Wishlist';
+          } else if (data.status === 'removed') {
+            button.classList.remove('btn-danger');
+            button.classList.add('btn-outline-danger');
+            button.querySelector('i').classList.remove('bi-heart-fill');
+            button.querySelector('i').classList.add('bi-heart');
+            button.title = 'Add to Wishlist';
+          }
+        } catch (error) {
+          console.error('Error toggling wishlist:', error);
         }
-      } catch (error) {
-        console.error('Error toggling wishlist:', error);
-      }
+      });
     });
   });
-});
 
-document.addEventListener("DOMContentLoaded", function () {
+  document.addEventListener("DOMContentLoaded", function () {
     document.querySelectorAll(".cart-btn").forEach(button => {
-        button.addEventListener("click", function () {
-            const btn = this;
-            const productId = btn.getAttribute("data-product-id");
-            const variantId = btn.getAttribute("data-variant-id");
-            
-            fetch("{% url 'toggle_cart' %}", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-CSRFToken": "{{ csrf_token }}",
-                },
-                body: JSON.stringify({
-                    product_id: productId,
-                    variant_id: variantId,
-                }),
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.added) {
-                    // Added to cart
-                    btn.classList.remove("btn-dark");
-                    btn.classList.add("btn-success");
-                    btn.setAttribute("title", "Remove from Cart");
-                    btn.querySelector("i").classList.remove("bi-cart3");
-                    btn.querySelector("i").classList.add("bi-check2");
-                } else if (data.removed) {
-                    // Removed from cart
-                    btn.classList.remove("btn-success");
-                    btn.classList.add("btn-dark");
-                    btn.setAttribute("title", "Add to Cart");
-                    btn.querySelector("i").classList.remove("bi-check2");
-                    btn.querySelector("i").classList.add("bi-cart3");
-                }
-            });
+      button.addEventListener("click", function () {
+        const btn = this;
+        const productId = btn.getAttribute("data-product-id");
+        const variantId = btn.getAttribute("data-variant-id");
+
+        fetch("{% url 'toggle_cart' %}", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": "{{ csrf_token }}",
+          },
+          body: JSON.stringify({
+            product_id: productId,
+            variant_id: variantId,
+          }),
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.added) {
+            btn.classList.remove("btn-dark");
+            btn.classList.add("btn-success");
+            btn.setAttribute("title", "Remove from Cart");
+            btn.querySelector("i").classList.remove("bi-cart3");
+            btn.querySelector("i").classList.add("bi-check2");
+          } else if (data.removed) {
+            btn.classList.remove("btn-success");
+            btn.classList.add("btn-dark");
+            btn.setAttribute("title", "Add to Cart");
+            btn.querySelector("i").classList.remove("bi-check2");
+            btn.querySelector("i").classList.add("bi-cart3");
+          }
         });
+      });
     });
-});
-
-
+  });
 </script>
 {% endblock %}
