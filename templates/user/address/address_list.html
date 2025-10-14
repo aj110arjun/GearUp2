@@ -1,13 +1,35 @@
 {% extends 'user/base.html' %}
 {% block title %} My Addresses {% endblock title %}
 {% block content %}
+<style>
+  /* Skeleton loading styles */
+  .skeleton-card {
+    background-color: #e2e2e2;
+    border-radius: 8px;
+    height: 120px;
+    margin-bottom: 1rem;
+    animation: skeleton-loading 1.2s infinite linear;
+  }
+  @keyframes skeleton-loading {
+    0% { opacity: 1; }
+    50% { opacity: 0.4; }
+    100% { opacity: 1; }
+  }
+</style>
+
 <div class="container my-4">
     <h2>My Addresses</h2>
     <a href="{% url 'add_address' %}" class="btn btn-primary mb-3">Add New Address</a>
-        
-
-    <!-- Scrollable container -->
-    <div style="max-height: 400px; overflow-y: auto;">
+    
+    <!-- Skeleton placeholders area -->
+    <div id="addresses-skeleton" style="max-height: 400px; overflow-y: auto;">
+        {% for _ in "1234" %}
+            <div class="skeleton-card"></div>
+        {% endfor %}
+    </div>
+    
+    <!-- Actual addresses (hidden initially) -->
+    <div id="addresses-list" style="max-height: 400px; overflow-y: auto; display: none;">
         {% for addr in addresses %}
             <div class="card mb-3 {% if addr.is_default %}border-success{% endif %}">
                 <div class="card-body">
@@ -36,4 +58,13 @@
         {% endfor %}
     </div>
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+      setTimeout(function () {
+          document.getElementById('addresses-skeleton').style.display = 'none';
+          document.getElementById('addresses-list').style.display = 'block';
+      }, 1000); // 1 second simulated loading delay
+  });
+</script>
 {% endblock %}

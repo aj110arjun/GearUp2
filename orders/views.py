@@ -428,7 +428,7 @@ def admin_update_order_item_status(request, item_id):
                     }
                     html_message = render_to_string('emails/order_delivered.html', context)
                     plain_message = strip_tags(html_message)
-                    from_email = 'pythondjango110@gmail.com'
+                    from_email = config("EMAIL_HOST_USER")
                     to_email = order_item.order.user.email
 
                     send_mail(subject, plain_message, from_email, [to_email], html_message=html_message)

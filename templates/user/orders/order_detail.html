@@ -1,150 +1,245 @@
 {% extends 'user/base.html' %}
 {% load custom_filters %}
 {% block title %} Order Details {% endblock title %}
+
 {% block content %}
+<style>
+  /* Skeleton Loading Styles */
+  .skeleton-bg {
+    background-color: #e2e2e2;
+    border-radius: 8px;
+    animation: skeleton-loading 1.2s infinite linear;
+  }
+  .skeleton-line {
+    height: 20px;
+    margin: 10px 0;
+  }
+  .skeleton-img {
+    width: 50px;
+    height: 50px;
+    border-radius: 6px;
+  }
+  .skeleton-table-row {
+    height: 40px;
+    margin-bottom: 10px;
+  }
+  .skeleton-badge {
+    width: 80px;
+    height: 20px;
+    border-radius: 12px;
+  }
+  @keyframes skeleton-loading {
+    0% { opacity: 1; }
+    50% { opacity: 0.4; }
+    100% { opacity: 1; }
+  }
+</style>
+
 <div class="container my-5">
+
+  <!-- Skeleton order detail (visible initially) -->
+  <div id="skeleton-order-detail">
     <div class="row">
-        <!-- Order Info -->
-        <div class="col-12 mb-4">
-            <h2 class="fw-bold">Order Details <span class="text-primary">#{{ order.order_code }}</span></h2>
-            <p class="text-muted">Placed on: {{ order.created_at|date:"d M Y, H:i" }}</p>
+      <div class="col-12 mb-4">
+        <div class="skeleton-bg skeleton-line" style="width: 300px; height: 30px;"></div>
+        <div class="skeleton-bg skeleton-line" style="width: 200px; height: 18px;"></div>
+      </div>
+
+      <div class="col-lg-8 mb-4">
+        <div class="card shadow-sm p-3">
+          <div class="skeleton-bg skeleton-line" style="width: 120px; height: 24px; margin-bottom: 15px;"></div>
+          <table class="table mb-0">
+            <thead>
+              <tr>
+                {% for _ in "1234567" %}
+                  <th><div class="skeleton-bg skeleton-line" style="width: 80px; height: 16px;"></div></th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for _ in "1234" %}
+              <tr>
+                <td><div class="skeleton-bg skeleton-img"></div></td>
+                <td><div class="skeleton-bg skeleton-line" style="width: 120px;"></div></td>
+                <td><div class="skeleton-bg skeleton-line" style="width: 50px;"></div></td>
+                <td><div class="skeleton-bg skeleton-line" style="width: 30px;"></div></td>
+                <td><div class="skeleton-bg skeleton-line" style="width: 50px;"></div></td>
+                <td><div class="skeleton-bg skeleton-badge"></div></td>
+                <td><div class="skeleton-bg skeleton-line" style="width: 80px;"></div></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="card shadow-sm mb-4 p-3">
+          <div class="skeleton-bg skeleton-line" style="width: 150px; height: 24px; margin-bottom: 20px;"></div>
+          <ul class="list-group list-group-flush">
+            {% for _ in "12345" %}
+            <li class="list-group-item"><div class="skeleton-bg skeleton-line"></div></li>
+            {% endfor %}
+          </ul>
         </div>
 
-        <!-- Items Table -->
-        <div class="col-lg-8 mb-4">
-            <div class="card shadow-sm">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2>Order Details - #{{ order.order_code }}</h2>
-                    <a href="{% url 'download_invoice' order.order_code %}" class="btn btn-outline-success">
-                        <i class="bi bi-file-earmark-arrow-down"></i> Download Invoice
-                    </a>
-                </div>
-                <div class="card-header bg-light">
-                    <h5 class="mb-0">Items in Your Order</h5>
-                </div>
-                <div class="card-body p-0">
-                    <table class="table table-hover table-striped mb-0 align-middle">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Product</th>
-                                <th>Variant</th>
-                                <th>Price</th>
-                                <th>Qty</th>
-                                <th>Tax</th>
-                                <th>Status</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for item in items %}
-                            <tr>
-                                <td class="d-flex align-items-center gap-2">
-                                    {% if item.variant.product.image %}
-                                        <img src="{{ item.variant.product.image.url }}" alt="{{ item.variant.product.name }}" class="rounded" width="50" height="50">
-                                    {% endif %}
-                                    {{ item.variant.product.name }}
-                                </td>
-                                <td>{{ item.variant.color }} - {{ item.variant.size }}</td>
-                                <td>₹{{ item.price }}</td>
-                                <td>{{ item.quantity }}</td>
-                                <td>₹{{ item.tax }}</td>
-                                <td>
-                                    <span class="badge 
-                                        {% if item.status == 'delivered' %}bg-success
-                                        {% elif item.status == 'shipped' %}bg-primary
-                                        {% elif item.status == 'pending' %}bg-warning text-light
-                                        {% elif item.status == 'cancelled' %}bg-danger
-                                        {% else %}bg-secondary{% endif %}">
-                                        {{ item.status|title }}
-                                    </span>
-                                </td>
-                                <td>
-                                    {% if item.status == "delivered" and not item.return_requested %}
-                                        <a href="{% url 'return_order_item_page' item.item_id %}" 
-                                           class="btn btn-dark btn-sm text-white py-1 px-2 gap-1">
-                                            Return
-                                        </a>
-                                    {% elif item.status == "pending" or item.status == "shipped" and not item.cancellation_requested %}
-                                        {% if item.cancellation_requested %}
-                                            <span class="text-muted">Cancel Requested</span>
-                                        {% else %}
-                                            <a href="{% url 'cancel_order_item_page' item.item_id %}" 
-                                            class="btn btn-danger btn-sm text-align py-1 px-2 gap-1">
-                                             Cancel
-                                            </a>
-                                        {% endif %}
-
-                                    {% else %}
-                                        <span class="text-muted">N/A</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+        <div class="card shadow-sm mb-4 p-3">
+          <div class="skeleton-bg skeleton-line" style="width: 150px; height: 24px; margin-bottom: 20px;"></div>
+          <div class="skeleton-bg skeleton-line" style="height: 80px;"></div>
         </div>
 
-        <!-- Summary & Actions Card -->
-        <div class="col-lg-4">
-            <!-- Order Summary -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-light">
-                    <h5 class="mb-0">Order Summary</h5>
-                </div>
-                <div class="card-body">
-                    <ul class="list-group list-group-flush mb-3">
-                        <li class="list-group-item d-flex justify-content-between">
-                            <span>Subtotal</span>
-                            <span>₹{{ subtotal }}</span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between">
-                            <span>Total Tax</span>
-                            <span>₹{{ total_tax }}</span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between">
-                            <span>Delivery Charge</span>
-                            <span>₹{{ delivery_charge }}</span>
-                        </li>
-                        {% if order.discount %}
-                        <li class="list-group-item d-flex justify-content-between text-success">
-                            <span>Discount</span>
-                            <span>-₹{{ order.discount }}</span>
-                        </li>
-                        {% endif %}
-                        <li class="list-group-item d-flex justify-content-between fw-bold bg-light">
-                            <span>Grand Total</span>
-                            <span>₹{{ grand_total }}</span>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- Shipping Address -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-light">
-                    <h5 class="mb-0">Shipping Address</h5>
-                </div>
-                <div class="card-body">
-                    <p class="mb-1">{{ order.address.full_name }}</p>
-                    <p class="mb-1">{{ order.address.address_line_1 }}{% if order.address.address_line_2 %}, {{ order.address.address_line_2 }}{% endif %}</p>
-                    <p class="mb-1">{{ order.address.city }}, {{ order.address.state }} - {{ order.address.postal_code }}</p>
-                    <p class="mb-0">Phone: {{ order.address.phone }}</p>
-                </div>
-            </div>
-
-            <!-- Payment Info -->
-            <div class="card shadow-sm">
-                <div class="card-header bg-light">
-                    <h5 class="mb-0">Payment Information</h5>
-                </div>
-                <div class="card-body">
-                    <p class="mb-1"><strong>Method:</strong> {{ order.payment_method }}</p>
-                    <p class="mb-0"><strong>Status:</strong> {{ order.payment_status }}</p>
-                </div>
-            </div>
+        <div class="card shadow-sm p-3">
+          <div class="skeleton-bg skeleton-line" style="width: 150px; height: 24px; margin-bottom: 20px;"></div>
+          <div class="skeleton-bg skeleton-line" style="height: 40px;"></div>
         </div>
+      </div>
     </div>
+  </div>
+
+  <!-- Real order detail (hidden initially) -->
+  <div id="real-order-detail" style="display:none;">
+    <div class="row">
+      <!-- Order Info Section -->
+      <div class="col-12 mb-4">
+          <h2 class="fw-bold">Order Details <span class="text-primary">#{{ order.order_code }}</span></h2>
+          <p class="text-muted">Placed on: {{ order.created_at|date:"d M Y, H:i" }}</p>
+      </div>
+
+      <!-- Items Table Section -->
+      <div class="col-lg-8 mb-4">
+          <div class="card shadow-sm">
+              <div class="d-flex justify-content-between align-items-center mb-4">
+                  <h2>Order Details - #{{ order.order_code }}</h2>
+                  <a href="{% url 'download_invoice' order.order_code %}" class="btn btn-outline-success">
+                      <i class="bi bi-file-earmark-arrow-down"></i> Download Invoice
+                  </a>
+              </div>
+              <div class="card-header bg-light">
+                  <h5 class="mb-0">Items in Your Order</h5>
+              </div>
+              <div class="card-body p-0">
+                  <table class="table table-hover table-striped mb-0 align-middle">
+                      <thead class="table-light">
+                          <tr>
+                              <th>Product</th>
+                              <th>Variant</th>
+                              <th>Price</th>
+                              <th>Qty</th>
+                              <th>Tax</th>
+                              <th>Status</th>
+                              <th>Action</th>
+                          </tr>
+                      </thead>
+                      <tbody>
+                          {% for item in items %}
+                          <tr>
+                              <td class="d-flex align-items-center gap-2">
+                                  {% if item.variant.product.image %}
+                                      <img src="{{ item.variant.product.image.url }}" alt="{{ item.variant.product.name }}" class="rounded" width="50" height="50">
+                                  {% endif %}
+                                  {{ item.variant.product.name }}
+                              </td>
+                              <td>{{ item.variant.color }} - {{ item.variant.size }}</td>
+                              <td>₹{{ item.price }}</td>
+                              <td>{{ item.quantity }}</td>
+                              <td>₹{{ item.tax }}</td>
+                              <td><span class="badge 
+                                {% if item.status == 'delivered' %}bg-success
+                                {% elif item.status == 'shipped' %}bg-primary
+                                {% elif item.status == 'pending' %}bg-warning text-light
+                                {% elif item.status == 'cancelled' %}bg-danger
+                                {% else %}bg-secondary{% endif %}">
+                                {{ item.status|title }}
+                              </span></td>
+                              <td>
+                                  {% if item.status == "delivered" and not item.return_requested %}
+                                      <a href="{% url 'return_order_item_page' item.item_id %}" 
+                                      class="btn btn-dark btn-sm text-white py-1 px-2 gap-1">Return</a>
+                                  {% elif item.status == "pending" or item.status == "shipped" and not item.cancellation_requested %}
+                                      {% if item.cancellation_requested %}
+                                          <span class="text-muted">Cancel Requested</span>
+                                      {% else %}
+                                          <a href="{% url 'cancel_order_item_page' item.item_id %}" 
+                                          class="btn btn-danger btn-sm text-align py-1 px-2 gap-1">Cancel</a>
+                                      {% endif %}
+                                  {% else %}
+                                      <span class="text-muted">N/A</span>
+                                  {% endif %}
+                              </td>
+                          </tr>
+                          {% endfor %}
+                      </tbody>
+                  </table>
+              </div>
+          </div>
+      </div>
+
+      <!-- Summary & Actions Card Section -->
+      <div class="col-lg-4">
+          <div class="card shadow-sm mb-4">
+              <div class="card-header bg-light">
+                  <h5 class="mb-0">Order Summary</h5>
+              </div>
+              <div class="card-body">
+                  <ul class="list-group list-group-flush mb-3">
+                      <li class="list-group-item d-flex justify-content-between">
+                          <span>Subtotal</span>
+                          <span>₹{{ subtotal }}</span>
+                      </li>
+                      <li class="list-group-item d-flex justify-content-between">
+                          <span>Total Tax</span>
+                          <span>₹{{ total_tax }}</span>
+                      </li>
+                      <li class="list-group-item d-flex justify-content-between">
+                          <span>Delivery Charge</span>
+                          <span>₹{{ delivery_charge }}</span>
+                      </li>
+                      {% if order.discount %}
+                      <li class="list-group-item d-flex justify-content-between text-success">
+                          <span>Discount</span>
+                          <span>-₹{{ order.discount }}</span>
+                      </li>
+                      {% endif %}
+                      <li class="list-group-item d-flex justify-content-between fw-bold bg-light">
+                          <span>Grand Total</span>
+                          <span>₹{{ grand_total }}</span>
+                      </li>
+                  </ul>
+              </div>
+          </div>
+
+          <div class="card shadow-sm mb-4">
+              <div class="card-header bg-light">
+                  <h5 class="mb-0">Shipping Address</h5>
+              </div>
+              <div class="card-body">
+                  <p class="mb-1">{{ order.address.full_name }}</p>
+                  <p class="mb-1">{{ order.address.address_line_1 }}{% if order.address.address_line_2 %}, {{ order.address.address_line_2 }}{% endif %}</p>
+                  <p class="mb-1">{{ order.address.city }}, {{ order.address.state }} - {{ order.address.postal_code }}</p>
+                  <p class="mb-0">Phone: {{ order.address.phone }}</p>
+              </div>
+          </div>
+
+          <div class="card shadow-sm">
+              <div class="card-header bg-light">
+                  <h5 class="mb-0">Payment Information</h5>
+              </div>
+              <div class="card-body">
+                  <p class="mb-1"><strong>Method:</strong> {{ order.payment_method }}</p>
+                  <p class="mb-0"><strong>Status:</strong> {{ order.payment_status }}</p>
+              </div>
+          </div>
+      </div>
+    </div>
+
 </div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    setTimeout(function() {
+      document.getElementById('skeleton-order-detail').style.display = 'none';
+      document.getElementById('real-order-detail').style.display = 'block';
+    }, 1000); // Show real content after 1 second
+  });
+</script>
 {% endblock %}
