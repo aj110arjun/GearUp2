@@ -50,7 +50,7 @@
           <td class="px-6 py-4">
             <form method="post" action="{% url 'update_variant' item.id %}" class="variant-form">
               {% csrf_token %}
-              <select name="variant_id" class="form-select text-sm rounded border border-gray-300 p-1" data-item-id="{{ item.id }}">
+              <select name="variant_id" class="variant-select text-sm rounded border border-gray-300 p-1" data-item-id="{{ item.id }}">
                 {% for variant in item.variant.product.variants.all %}
                   <option value="{{ variant.id }}" {% if variant.id == item.variant.id %}selected{% endif %}>
                     {{ variant.color }} / {{ variant.size }}
