@@ -1,18 +1,30 @@
 {% extends "custom_admin/base.html" %}
 {% block content %}
-<div class="container my-5">
-    <h2>Add Images for {{ product.name }}</h2>
-    <form method="POST" enctype="multipart/form-data">
+<div class="max-w-3xl mx-auto bg-white shadow-md rounded-2xl p-8 mt-8">
+    <h2 class="text-2xl font-semibold text-gray-800 mb-6">Add Images for {{ product.name }}</h2>
+
+    <form method="POST" enctype="multipart/form-data" class="space-y-4">
         {% csrf_token %}
-        <div class="mb-3">
-            <label>Upload Images</label>
-            <input type="file" name="images" multiple class="form-control {% if errors.images %}is-invalid{% endif %}">
+
+        <div>
+            <label class="block text-gray-700 font-medium mb-1">Upload Images</label>
+            <input type="file" name="images" multiple
+                   class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 {% if errors.images %}border-red-500{% endif %}">
             {% if errors.images %}
-                <div class="invalid-feedback">{{ errors.images }}</div>
+                <p class="text-red-500 text-sm mt-1">{{ errors.images }}</p>
             {% endif %}
         </div>
-        <button type="submit" class="btn btn-success">Upload Images</button>
-        <a href="{% url 'admin_product_edit' product.product_id %}" class="btn btn-secondary">Cancel</a>
+
+        <div class="flex gap-3 mt-4">
+            <button type="submit"
+                    class="px-6 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition">
+                Upload Images
+            </button>
+            <a href="{% url 'admin_product_edit' product.product_id %}"
+               class="px-6 py-2 bg-gray-300 text-gray-800 font-medium rounded-lg hover:bg-gray-400 transition">
+               Cancel
+            </a>
+        </div>
     </form>
 </div>
 {% endblock %}

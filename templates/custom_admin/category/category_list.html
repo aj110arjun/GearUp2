@@ -1,66 +1,72 @@
 {% extends 'custom_admin/base.html' %}
 {% block content %}
-<h2>Categories</h2>
-<a href="{% url 'category_add' %}" class="btn btn-primary mb-3">Add Category</a>
+<div class="max-w-6xl mx-auto mt-10 px-4">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-semibold text-gray-800">Categories</h2>
+        <a href="{% url 'category_add' %}" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">Add Category</a>
+    </div>
 
-<table class="table table-bordered">
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Parent</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for cat in categories %}
-        <tr>
-            <td>{{ cat.name|title }}</td>
-            <td>
-                {% if cat.parent %}
-                    {{ cat.parent.name }}
-                {% else %}
-                    -
+    <div class="overflow-x-auto bg-white shadow-md rounded-lg">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-800 text-white">
+                <tr>
+                    <th class="px-4 py-3 text-left text-sm font-medium">Name</th>
+                    <th class="px-4 py-3 text-left text-sm font-medium">Parent</th>
+                    <th class="px-4 py-3 text-center text-sm font-medium">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for cat in categories %}
+                <tr class="hover:bg-gray-100">
+                    <td class="px-4 py-3 text-gray-700">{{ cat.name|title }}</td>
+                    <td class="px-4 py-3 text-gray-600">
+                        {% if cat.parent %}
+                            {{ cat.parent.name }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-center space-x-2">
+                        <a href="{% url 'category_edit' cat.id %}" class="px-3 py-1 bg-yellow-500 text-white rounded-md text-sm hover:bg-yellow-600 transition">Edit</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3" class="px-4 py-4 text-center text-gray-500">No categories found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if categories.paginator.count > 0 %}
+    <div class="flex flex-col md:flex-row justify-between items-center mt-4">
+        <p class="text-gray-500 text-sm mb-2 md:mb-0">
+            Showing {{ categories.start_index }}–{{ categories.end_index }} of {{ categories.paginator.count }} categories
+        </p>
+        <nav>
+            <ul class="inline-flex -space-x-px">
+                {% if categories.has_previous %}
+                <li>
+                    <a href="?page={{ categories.previous_page_number }}" class="px-3 py-1 bg-gray-200 text-gray-700 rounded-l-md hover:bg-gray-300 transition">Previous</a>
+                </li>
                 {% endif %}
-            </td>
-            <td>
-                <a href="{% url 'category_edit' cat.id %}" class="btn btn-sm btn-warning">Edit</a>
-            </td>
-        </tr>
-        {% empty %}
-        <tr>
-            <td colspan="3" class="text-center text-muted">No categories found.</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
 
-<!-- ✅ Pagination Controls -->
-{% if categories.paginator.count > 0 %}
-<div class="d-flex justify-content-between align-items-center mt-3">
-    <p class="text-muted small mb-0">
-        Showing {{ categories.start_index }}–{{ categories.end_index }} of {{ categories.paginator.count }} categories
-    </p>
-    <nav>
-        <ul class="pagination mb-0">
-            {% if categories.has_previous %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ categories.previous_page_number }}">Previous</a>
+                {% for num in categories.paginator.page_range %}
+                <li>
+                    <a href="?page={{ num }}" class="px-3 py-1 {% if categories.number == num %}bg-indigo-600 text-white{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %} transition">{{ num }}</a>
                 </li>
-            {% endif %}
+                {% endfor %}
 
-            {% for num in categories.paginator.page_range %}
-                <li class="page-item {% if categories.number == num %}active{% endif %}">
-                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                {% if categories.has_next %}
+                <li>
+                    <a href="?page={{ categories.next_page_number }}" class="px-3 py-1 bg-gray-200 text-gray-700 rounded-r-md hover:bg-gray-300 transition">Next</a>
                 </li>
-            {% endfor %}
-
-            {% if categories.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ categories.next_page_number }}">Next</a>
-                </li>
-            {% endif %}
-        </ul>
-    </nav>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
 </div>
-{% endif %}
 {% endblock %}

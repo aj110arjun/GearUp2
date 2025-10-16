@@ -1,121 +1,143 @@
 {% extends 'custom_admin/base.html' %}
-{% block title %}
-    Add Product - GearUp
-{% endblock title %}
+{% block title %}Add Product - GearUp{% endblock title %}
+
 {% block content %}
-    <h2>Add Product</h2>
+<link href="https://unpkg.com/cropperjs@1.5.13/dist/cropper.min.css" rel="stylesheet"/>
+<script src="https://unpkg.com/cropperjs@1.5.13/dist/cropper.min.js"></script>
 
-    <link href="https://unpkg.com/cropperjs@1.5.13/dist/cropper.min.css" rel="stylesheet"/>
-    <script src="https://unpkg.com/cropperjs@1.5.13/dist/cropper.min.js"></script>
+<div class="max-w-3xl mx-auto bg-white shadow-md rounded-2xl p-8 mt-8">
+  <h2 class="text-2xl font-semibold text-gray-800 mb-6">Add Product</h2>
 
-    <form method="POST" enctype="multipart/form-data" id="product-form" novalidate>
-        {% csrf_token %}
-        <div class="mb-3">
-            <label>Name</label>
-            <input type="text" name="name" class="form-control" required>
-            {% if errors.name %}
-            <div class="text-danger">{{ errors.name }}</div>
-            {% endif %}
+  <form method="POST" enctype="multipart/form-data" id="product-form" novalidate class="space-y-6">
+    {% csrf_token %}
 
-        </div>
+    <!-- Name -->
+    <div>
+      <label class="block text-gray-700 font-medium mb-2">Product Name</label>
+      <input type="text" name="name"
+             class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+             placeholder="Enter product name" required>
+      {% if errors.name %}
+      <p class="text-red-500 text-sm mt-1">{{ errors.name }}</p>
+      {% endif %}
+    </div>
 
-        <div class="mb-3">
-            <label>Description</label>
-            <textarea name="description" class="form-control"></textarea>
-            {% if errors.description %}
-            <div class="text-danger">{{ errors.description }}</div>
-            {% endif %}
-        </div>
+    <!-- Description -->
+    <div>
+      <label class="block text-gray-700 font-medium mb-2">Description</label>
+      <textarea name="description" rows="4"
+                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                placeholder="Enter product description"></textarea>
+      {% if errors.description %}
+      <p class="text-red-500 text-sm mt-1">{{ errors.description }}</p>
+      {% endif %}
+    </div>
 
-        <div class="mb-3">
-            <label>Category</label>
-            <select name="category" class="form-control">
-                <option value="">-- Select Category --</option>
-                {% for cat in categories %}
-                    <option value="{{ cat.id }}">{{ cat.name }}</option>
-                {% endfor %}
-            </select>
-            {% if errors.category %}
-            <div class="text-danger">{{ errors.category }}</div>
-            {% endif %}
-        </div>
+    <!-- Category -->
+    <div>
+      <label class="block text-gray-700 font-medium mb-2">Category</label>
+      <select name="category"
+              class="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        <option value="">-- Select Category --</option>
+        {% for cat in categories %}
+          <option value="{{ cat.id }}">{{ cat.name }}</option>
+        {% endfor %}
+      </select>
+      {% if errors.category %}
+      <p class="text-red-500 text-sm mt-1">{{ errors.category }}</p>
+      {% endif %}
+    </div>
 
-        <div class="mb-3">
-            <label>Brand</label>
-            <input type="text" name="brand" class="form-control">
-            {% if errors.brand %}
-            <div class="text-danger">{{ errors.brand }}</div>
-            {% endif %}
-        </div>
+    <!-- Brand -->
+    <div>
+      <label class="block text-gray-700 font-medium mb-2">Brand</label>
+      <input type="text" name="brand"
+             class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+             placeholder="Enter brand name">
+      {% if errors.brand %}
+      <p class="text-red-500 text-sm mt-1">{{ errors.brand }}</p>
+      {% endif %}
+    </div>
 
-        <div class="mb-3">
-            <label>Image</label>
-            <input type="file" name="image" class="form-control" id="image-input" accept="image/*">
-            {% if errors.image %}
-            <div class="text-danger">{{ errors.image }}</div>
-            {% endif %}
+    <!-- Image Upload -->
+    <div>
+      <label class="block text-gray-700 font-medium mb-2">Product Image</label>
+      <input type="file" name="image" id="image-input" accept="image/*"
+             class="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+      {% if errors.image %}
+      <p class="text-red-500 text-sm mt-1">{{ errors.image }}</p>
+      {% endif %}
+    </div>
 
-        </div>
+    <!-- Cropping Preview -->
+    <div class="mt-4">
+      <img id="image-preview" alt="Preview" class="rounded-lg border shadow-md hidden w-full max-h-[400px] object-contain">
+    </div>
 
-        <!-- Preview container for cropping -->
-        <div class="mb-3">
-            <img id="image-preview" style="max-width:100%; display:none;">
-        </div>
+    <!-- Active Checkbox -->
+    <div class="flex items-center space-x-2">
+      <input type="checkbox" name="is_active" id="is_active" checked
+             class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+      <label for="is_active" class="text-gray-700 font-medium">Active</label>
+    </div>
 
-        <div class="mb-3">
-            <label>
-                <input type="checkbox" name="is_active" checked> Active
-            </label>
-        </div>
+    <!-- Submit -->
+    <div class="pt-4">
+      <button type="submit"
+              class="w-full bg-indigo-600 text-white py-2.5 rounded-lg font-medium hover:bg-indigo-700 transition duration-200">
+        Save Product
+      </button>
+    </div>
+  </form>
+</div>
 
-        <button type="submit" class="btn btn-success">Save</button>
-    </form>
+<!-- CropperJS Script -->
+<script>
+let cropper;
+const input = document.getElementById('image-input');
+const preview = document.getElementById('image-preview');
+const form = document.getElementById('product-form');
 
-    <script>
-    let cropper;
-    const input = document.getElementById('image-input');
-    const preview = document.getElementById('image-preview');
+input.addEventListener('change', function (e) {
+  const file = e.target.files[0];
+  if (!file) return;
 
-    input.addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (!file) return;
+  const url = URL.createObjectURL(file);
+  preview.src = url;
+  preview.classList.remove('hidden');
 
-        const url = URL.createObjectURL(file);
-        preview.src = url;
-        preview.style.display = 'block';
+  if (cropper) cropper.destroy();
+  cropper = new Cropper(preview, {
+    aspectRatio: 1,
+    viewMode: 1,
+    autoCropArea: 1,
+  });
+});
 
-        if (cropper) cropper.destroy(); // destroy previous cropper
-        cropper = new Cropper(preview, {
-            aspectRatio: 1, // change to 16/9 if needed
-            viewMode: 1,
-            autoCropArea: 1,
-        });
-    });
+form.addEventListener('submit', function (e) {
+  e.preventDefault();
 
-    // On form submit, replace file with cropped image
-    document.getElementById('product-form').addEventListener('submit', function(e) {
-        e.preventDefault(); // stop default form submission
+  if (cropper) {
+    cropper.getCroppedCanvas().toBlob((blob) => {
+      const formData = new FormData(form);
+      formData.set('image', blob, 'cropped.png');
 
-        if (cropper) {
-            cropper.getCroppedCanvas().toBlob((blob) => {
-                const formData = new FormData(this);
-                formData.set('image', blob, 'cropped.png'); // replace original image
-
-                // Send form via fetch
-                fetch("{% url 'product_add'  %}", {
-                    method: 'POST',
-                    body: formData,
-                }).then(response => {
-                    if (response.ok) {
-                        window.location.reload(); // or redirect
-                    } else {
-                        alert('Failed to save product');
-                    }
-                });
-            });
+      fetch("{% url 'product_add' %}", {
+        method: 'POST',
+        body: formData,
+      })
+      .then(response => {
+        if (response.ok) {
+          window.location.href = "{% url 'admin_product_list' %}";
         } else {
-            this.submit(); // if no cropper, submit normally
+          alert('Failed to save product');
         }
+      })
+      .catch(() => alert('Something went wrong'));
     });
-    </script>
-{% endblock %}
+  } else {
+    form.submit();
+  }
+});
+</script>
+{% endblock content %}

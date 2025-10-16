@@ -1,38 +1,44 @@
 {% extends "custom_admin/base.html" %}
 {% block content %}
-<div class="container my-5">
-    <h2>Pending Return Requests</h2>
+<div class="max-w-6xl mx-auto my-6">
+    <h2 class="text-2xl font-bold mb-6">Pending Return Requests</h2>
+
     {% if items %}
-        <table class="table table-hover">
-            <thead class="table-dark">
+    <div class="overflow-x-auto bg-white shadow rounded-lg">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-800 text-white">
                 <tr>
-                    <th>Order #</th>
-                    <th>User</th>
-                    <th>Product</th>
-                    <th>Variant</th>
-                    <th>Quantity</th>
-                    <th>Reason</th>
-                    <th>Action</th>
+                    <th class="px-4 py-2 text-left text-sm font-medium">Order #</th>
+                    <th class="px-4 py-2 text-left text-sm font-medium">User</th>
+                    <th class="px-4 py-2 text-left text-sm font-medium">Product</th>
+                    <th class="px-4 py-2 text-left text-sm font-medium">Variant</th>
+                    <th class="px-4 py-2 text-left text-sm font-medium">Quantity</th>
+                    <th class="px-4 py-2 text-left text-sm font-medium">Reason</th>
+                    <th class="px-4 py-2 text-left text-sm font-medium">Action</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody class="divide-y divide-gray-200">
                 {% for item in items %}
-                <tr>
-                    <td>#{{ item.order.order_code }}</td>
-                    <td>{{ item.order.user.email }}</td>
-                    <td>{{ item.variant.product.name }}</td>
-                    <td>{{ item.variant.color }} / {{ item.variant.size }}</td>
-                    <td>{{ item.quantity }}</td>
-                    <td>{{ item.return_reason }}</td>
-                    <td>
-                        <a href="{% url 'admin_view_return_reason' item.item_id %}" class="btn btn-warning btn-sm">View</a>
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-2 text-sm">#{{ item.order.order_code }}</td>
+                    <td class="px-4 py-2 text-sm">{{ item.order.user.email }}</td>
+                    <td class="px-4 py-2 text-sm">{{ item.variant.product.name }}</td>
+                    <td class="px-4 py-2 text-sm">{{ item.variant.color }} / {{ item.variant.size }}</td>
+                    <td class="px-4 py-2 text-sm">{{ item.quantity }}</td>
+                    <td class="px-4 py-2 text-sm">{{ item.return_reason }}</td>
+                    <td class="px-4 py-2 text-sm">
+                        <a href="{% url 'admin_view_return_reason' item.item_id %}" 
+                           class="inline-block bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm font-medium">
+                           View
+                        </a>
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+    </div>
     {% else %}
-        <p>No pending return requests.</p>
+        <p class="text-gray-500">No pending return requests.</p>
     {% endif %}
 </div>
 {% endblock %}

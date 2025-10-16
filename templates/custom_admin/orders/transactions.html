@@ -1,99 +1,83 @@
 {% extends "custom_admin/base.html" %}
 {% block content %}
-<h1>Admin Transaction History</h1>
+<div class="max-w-7xl mx-auto my-10 px-4">
+    <h1 class="text-2xl font-semibold text-gray-800 mb-6">Admin Transaction History</h1>
 
-<table class="table table-striped table-bordered">
-    <thead>
-        <tr>
-            <th>Transaction Id</th>
-            <th>User</th>
-            <th>Payment Status</th>
-            <th>Amount (₹)</th>
-            <th>Date & Time</th>
-            <th>View</th>
+    <div class="overflow-x-auto">
+        <table class="min-w-full bg-white border border-gray-200 rounded-lg shadow-sm">
+            <thead class="bg-gray-800 text-white">
+                <tr>
+                    <th class="px-4 py-2 text-left">Transaction Id</th>
+                    <th class="px-4 py-2 text-left">User</th>
+                    <th class="px-4 py-2 text-left">Payment Status</th>
+                    <th class="px-4 py-2 text-left">Amount (₹)</th>
+                    <th class="px-4 py-2 text-left">Date & Time</th>
+                    <th class="px-4 py-2 text-left">View</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for txn in transactions %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-2">{{ txn.transaction_id }}</td>
+                    <td class="px-4 py-2">{{ txn.user.email }}</td>
+                    <td class="px-4 py-2">
+                        {% if txn.payment_status == "Credit" %}
+                            <span class="inline-block px-2 py-1 text-xs font-semibold text-white bg-green-600 rounded">{{ txn.payment_status }}</span>
+                        {% elif txn.payment_status == "Debit" %}
+                            <span class="inline-block px-2 py-1 text-xs font-semibold text-white bg-red-600 rounded">{{ txn.payment_status }}</span>
+                        {% else %}
+                            <span class="inline-block px-2 py-1 text-xs font-semibold text-white bg-gray-500 rounded">{{ txn.payment_status }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-2">
+                        {% if txn.payment_status == "Credit" %}
+                            <span class="text-green-600 font-bold">+₹{{ txn.amount }}</span>
+                        {% else %}
+                            <span class="text-red-600 font-bold">-₹{{ txn.amount }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-2">{{ txn.timestamp|date:"d/m/Y H:i" }}</td>
+                    <td class="px-4 py-2">
+                        <a href="{% url 'admin_transaction_detail' transaction_id=txn.transaction_id %}" 
+                           class="px-3 py-1 text-sm bg-yellow-400 text-white rounded hover:bg-yellow-500 transition">
+                            View
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="px-4 py-2 text-center text-gray-500">No transactions found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 
-        </tr>
-    </thead>
-    <tbody>
-        {% for txn in transactions %}
-        <tr>
-            <td>{{ txn.transaction_id }}</td>
-            <td>{{ txn.user.email }}</td>
-            <td>
-                {% if txn.payment_status == "Credit" %}
-                    <span class="badge bg-success">{{ txn.payment_status }}</span>
-                {% elif txn.payment_status == "Debit" %}
-                    <span class="badge bg-danger">{{ txn.payment_status }}</span>
-                {% else %}
-                    <span class="badge bg-secondary">{{ txn.payment_status }}</span>
-                {% endif %}
-            </td>
-            <td>
-                {% if txn.payment_status == "Credit" %}
-                    <span class="text-success fw-bold">+₹{{ txn.amount }}</span>
-                {% else %}
-                    <span class="text-danger fw-bold">-₹{{ txn.amount }}</span>
-                {% endif %}
-            </td>
-            <td>{{ txn.timestamp|date:"d/m/Y" }}</td>
-            <td><a href="{% url 'admin_transaction_detail' transaction_id=txn.transaction_id %}" class="btn btn-outline-warning">View</a></td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="7">No transactions found.</td></tr>
-        {% endfor %}
-    </tbody>
-</table>
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <div class="flex justify-center mt-6">
+        <nav class="inline-flex rounded-md shadow-sm">
+            {% if page_obj.has_previous %}
+                <a href="?page=1" class="px-3 py-1 border border-gray-300 rounded-l-md hover:bg-gray-100">&laquo;&laquo;</a>
+                <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1 border-t border-b border-gray-300 hover:bg-gray-100">&laquo;</a>
+            {% else %}
+                <span class="px-3 py-1 border border-gray-300 rounded-l-md text-gray-400 cursor-not-allowed">&laquo;&laquo;</span>
+                <span class="px-3 py-1 border-t border-b border-gray-300 text-gray-400 cursor-not-allowed">&laquo;</span>
+            {% endif %}
 
-{% if is_paginated %}
-<nav aria-label="Transaction pagination">
-  <ul class="pagination justify-content-center">
-    {% if page_obj.has_previous %}
-      <li class="page-item">
-        <a class="page-link" href="?page=1" aria-label="First">
-          <span aria-hidden="true">&laquo;&laquo;</span><span class="visually-hidden">First</span>
-        </a>
-      </li>
-      <li class="page-item">
-        <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Previous">
-          <span aria-hidden="true">&laquo;</span><span class="visually-hidden">Previous</span>
-        </a>
-      </li>
-    {% else %}
-      <li class="page-item disabled" aria-disabled="true">
-        <span class="page-link" aria-hidden="true">&laquo;&laquo;</span>
-      </li>
-      <li class="page-item disabled" aria-disabled="true">
-        <span class="page-link" aria-hidden="true">&laquo;</span>
-      </li>
+            <span class="px-3 py-1 border-t border-b border-gray-300 bg-gray-200">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+            </span>
+
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1 border-t border-b border-gray-300 hover:bg-gray-100">&raquo;</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}" class="px-3 py-1 border border-gray-300 rounded-r-md hover:bg-gray-100">&raquo;&raquo;</a>
+            {% else %}
+                <span class="px-3 py-1 border-t border-b border-gray-300 text-gray-400 cursor-not-allowed">&raquo;</span>
+                <span class="px-3 py-1 border border-gray-300 rounded-r-md text-gray-400 cursor-not-allowed">&raquo;&raquo;</span>
+            {% endif %}
+        </nav>
+    </div>
     {% endif %}
-
-    <li class="page-item active" aria-current="page">
-      <span class="page-link">
-        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-      </span>
-    </li>
-
-    {% if page_obj.has_next %}
-      <li class="page-item">
-        <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Next">
-          <span aria-hidden="true">&raquo;</span><span class="visually-hidden">Next</span>
-        </a>
-      </li>
-      <li class="page-item">
-        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}" aria-label="Last">
-          <span aria-hidden="true">&raquo;&raquo;</span><span class="visually-hidden">Last</span>
-        </a>
-      </li>
-    {% else %}
-      <li class="page-item disabled" aria-disabled="true">
-        <span class="page-link" aria-hidden="true">&raquo;</span>
-      </li>
-      <li class="page-item disabled" aria-disabled="true">
-        <span class="page-link" aria-hidden="true">&raquo;&raquo;</span>
-      </li>
-    {% endif %}
-  </ul>
-</nav>
-{% endif %}
-
+</div>
 {% endblock %}

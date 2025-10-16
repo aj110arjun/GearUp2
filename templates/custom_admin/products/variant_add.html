@@ -1,39 +1,57 @@
 {% extends "custom_admin/base.html" %}
 {% block content %}
-<div class="container my-5">
-    <h2>Add Variant for {{ product.name }}</h2>
-    <form method="POST">
+<div class="max-w-3xl mx-auto bg-white shadow-md rounded-2xl p-8 mt-8">
+    <h2 class="text-2xl font-semibold text-gray-800 mb-6">Add Variant for {{ product.name }}</h2>
+
+    <form method="POST" class="space-y-4">
         {% csrf_token %}
-        <div class="mb-3">
-            <label>Color</label>
-            <input type="text" name="color" class="form-control {% if errors.color %}is-invalid{% endif %}">
+
+        <div>
+            <label class="block text-gray-700 font-medium mb-1">Color</label>
+            <input type="text" name="color"
+                   class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 {% if errors.color %}border-red-500{% endif %}">
             {% if errors.color %}
-                <div class="invalid-feedback">{{ errors.color }}</div>
+                <p class="text-red-500 text-sm mt-1">{{ errors.color }}</p>
             {% endif %}
         </div>
-        <div class="mb-3">
-            <label>Size</label>
-            <input type="text" name="size" class="form-control {% if errors.size %}is-invalid{% endif %}">
+
+        <div>
+            <label class="block text-gray-700 font-medium mb-1">Size</label>
+            <input type="text" name="size"
+                   class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 {% if errors.size %}border-red-500{% endif %}">
             {% if errors.size %}
-                <div class="invalid-feedback">{{ errors.size }}</div>
+                <p class="text-red-500 text-sm mt-1">{{ errors.size }}</p>
             {% endif %}
         </div>
-        <div class="mb-3">
-            <label>Price</label>
-            <input type="number" step="0.01" name="price" class="form-control {% if errors.price %}is-invalid{% endif %}">
+
+        <div>
+            <label class="block text-gray-700 font-medium mb-1">Price</label>
+            <input type="number" step="0.01" name="price"
+                   class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 {% if errors.price %}border-red-500{% endif %}">
             {% if errors.price %}
-                <div class="invalid-feedback">{{ errors.price }}</div>
+                <p class="text-red-500 text-sm mt-1">{{ errors.price }}</p>
             {% endif %}
         </div>
-        <div class="mb-3">
-            <label>Stock</label>
-            <input type="number" name="stock" class="form-control {% if errors.stock %}is-invalid{% endif %}">
+
+        <div>
+            <label class="block text-gray-700 font-medium mb-1">Stock</label>
+            <input type="number" name="stock"
+                   class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 {% if errors.stock %}border-red-500{% endif %}">
             {% if errors.stock %}
-                <div class="invalid-feedback">{{ errors.stock }}</div>
+                <p class="text-red-500 text-sm mt-1">{{ errors.stock }}</p>
             {% endif %}
         </div>
-        <button type="submit" class="btn btn-success">Add Variant</button>
-        <a href="{% url 'admin_product_edit' product.product_id %}" class="btn btn-secondary">Cancel</a>
+
+        <div class="flex gap-3 mt-4">
+            <button type="submit"
+                    class="px-6 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition">
+                Add Variant
+            </button>
+            <a href="{% url 'admin_product_edit' product.product_id %}"
+               class="px-6 py-2 bg-gray-300 text-gray-800 font-medium rounded-lg hover:bg-gray-400 transition">
+               Cancel
+            </a>
+        </div>
     </form>
 </div>
 {% endblock %}

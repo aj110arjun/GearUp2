@@ -3,121 +3,132 @@
 {% block title %}Admin - Product List{% endblock title %}
 
 {% block content %}
-<div class="container-fluid">
+<div class="px-6 py-8">
 
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h4>All Products</h4>
-    <a href="{% url 'product_add' %}" class="btn btn-primary">+ Add Product</a>
+  <!-- Header -->
+  <div class="flex flex-col md:flex-row justify-between items-center mb-6">
+    <h2 class="text-2xl font-semibold text-gray-800 mb-4 md:mb-0">All Products</h2>
+    <a href="{% url 'product_add' %}"
+       class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg font-medium shadow-md transition">
+      + Add Product
+    </a>
   </div>
 
   <!-- Filters -->
-  <form method="get" class="row g-2 mb-4 align-items-center">
+  <form method="get" class="grid grid-cols-1 md:grid-cols-5 gap-3 mb-6">
 
-    <div class="col-md-3">
-      <select name="category" class="form-select" onchange="this.form.submit()">
-        <option value="">All Categories</option>
-        {% for cat in categories %}
-          <option value="{{ cat.id }}" {% if filters.category == cat.id|stringformat:"s" %}selected{% endif %}>
-            {{ cat.name }}
-          </option>
-        {% endfor %}
-      </select>
+    <select name="category"
+            class="border border-gray-300 rounded-lg px-3 py-2 text-gray-700 focus:ring-2 focus:ring-indigo-500"
+            onchange="this.form.submit()">
+      <option value="">All Categories</option>
+      {% for cat in categories %}
+      <option value="{{ cat.id }}" {% if filters.category == cat.id|stringformat:"s" %}selected{% endif %}>
+        {{ cat.name }}
+      </option>
+      {% endfor %}
+    </select>
+
+    <select name="in_stock"
+            class="border border-gray-300 rounded-lg px-3 py-2 text-gray-700 focus:ring-2 focus:ring-indigo-500"
+            onchange="this.form.submit()">
+      <option value="">Stock Status</option>
+      <option value="true" {% if filters.in_stock == 'true' %}selected{% endif %}>In Stock</option>
+      <option value="false" {% if filters.in_stock == 'false' %}selected{% endif %}>Out of Stock</option>
+    </select>
+
+    <select name="is_active"
+            class="border border-gray-300 rounded-lg px-3 py-2 text-gray-700 focus:ring-2 focus:ring-indigo-500"
+            onchange="this.form.submit()">
+      <option value="">Active Status</option>
+      <option value="true" {% if filters.is_active == 'true' %}selected{% endif %}>Active</option>
+      <option value="false" {% if filters.is_active == 'false' %}selected{% endif %}>Inactive</option>
+    </select>
+
+    <select name="sort"
+            class="border border-gray-300 rounded-lg px-3 py-2 text-gray-700 focus:ring-2 focus:ring-indigo-500"
+            onchange="this.form.submit()">
+      <option value="">Sort By</option>
+      <option value="name" {% if filters.sort == 'name' %}selected{% endif %}>Name (A–Z)</option>
+      <option value="price_asc" {% if filters.sort == 'price_asc' %}selected{% endif %}>Price Low → High</option>
+      <option value="price_desc" {% if filters.sort == 'price_desc' %}selected{% endif %}>Price High → Low</option>
+      <option value="stock_asc" {% if filters.sort == 'stock_asc' %}selected{% endif %}>Stock Low → High</option>
+      <option value="stock_desc" {% if filters.sort == 'stock_desc' %}selected{% endif %}>Stock High → Low</option>
+    </select>
+
+    <!-- Search -->
+    <div class="relative flex items-center">
+      <input type="text" name="q" id="search-input"
+             value="{{ filters.search }}"
+             placeholder="Search products..."
+             class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 pr-8">
+      <button type="button" id="clear-btn"
+              class="absolute right-10 text-gray-400 text-xl hidden"
+              aria-label="Clear search">&times;</button>
+      <button type="submit"
+              class="absolute right-1 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded-md text-sm font-medium">
+        Search
+      </button>
     </div>
 
-    <div class="col-md-2">
-      <select name="in_stock" class="form-select" onchange="this.form.submit()">
-        <option value="">Stock Status</option>
-        <option value="true" {% if filters.in_stock == 'true' %}selected{% endif %}>In Stock</option>
-        <option value="false" {% if filters.in_stock == 'false' %}selected{% endif %}>Out of Stock</option>
-      </select>
-    </div>
-
-    <div class="col-md-2">
-      <select name="is_active" class="form-select" onchange="this.form.submit()">
-        <option value="">Active Status</option>
-        <option value="true" {% if filters.is_active == 'true' %}selected{% endif %}>Active</option>
-        <option value="false" {% if filters.is_active == 'false' %}selected{% endif %}>Inactive</option>
-      </select>
-    </div>
-
-    <div class="col-md-2">
-      <select name="sort" class="form-select" onchange="this.form.submit()">
-        <option value="">Sort By</option>
-        <option value="name" {% if filters.sort == 'name' %}selected{% endif %}>Name (A-Z)</option>
-        <option value="price_asc" {% if filters.sort == 'price_asc' %}selected{% endif %}>Price Low to High</option>
-        <option value="price_desc" {% if filters.sort == 'price_desc' %}selected{% endif %}>Price High to Low</option>
-        <option value="stock_asc" {% if filters.sort == 'stock_asc' %}selected{% endif %}>Stock Low to High</option>
-        <option value="stock_desc" {% if filters.sort == 'stock_desc' %}selected{% endif %}>Stock High to Low</option>
-      </select>
-    </div>
-
-    <!-- Search with Clear Button -->
-    <div class="col-md-3 position-relative">
-      <div class="input-group">
-        <input type="text" name="q" id="search-input" value="{{ filters.search }}" class="form-control"
-               placeholder="Search products..." style="padding-right: 60px;">
-
-        <!-- Clear button (×) -->
-        <button type="button" id="clear-btn" aria-label="Clear search"
-                style="
-                  position: absolute;
-                  right: 75px;
-                  top: 50%;
-                  transform: translateY(-50%);
-                  border: none;
-                  background: transparent;
-                  font-size: 18px;
-                  cursor: pointer;
-                  color: #999;
-                  display: none;
-                  z-index: 1000;
-                ">
-          &times;
-        </button>
-
-        <button class="btn btn-primary" type="submit">Search</button>
-      </div>
-    </div>
   </form>
 
   <!-- Table -->
-  <div class="table-responsive">
-    <table class="table table-hover align-middle shadow-sm">
-      <thead class="table-dark">
+  <div class="overflow-x-auto bg-white shadow-md rounded-lg border border-gray-200">
+    <table class="min-w-full text-sm text-gray-700">
+      <thead class="bg-gray-100 text-gray-800 text-sm uppercase">
         <tr>
-          <th>#</th>
-          <th>Image</th>
-          <th>Name</th>
-          <th>Category</th>
-          <th>Status</th>
-          <th>Price</th>
-          <th>Stock</th>
-          <th class="text-center">Actions</th>
+          <th class="px-4 py-3 text-left">#</th>
+          <th class="px-4 py-3 text-left">Image</th>
+          <th class="px-4 py-3 text-left">Name</th>
+          <th class="px-4 py-3 text-left">Category</th>
+          <th class="px-4 py-3 text-left">Status</th>
+          <th class="px-4 py-3 text-left">Price</th>
+          <th class="px-4 py-3 text-left">Stock</th>
+          <th class="px-4 py-3 text-center">Actions</th>
         </tr>
       </thead>
       <tbody>
         {% for product in products %}
-        <tr>
-          <th>{{ forloop.counter0|add:products.start_index }}</th>
-          <td>
-            <img src="{{ product.image.url }}" alt="{{ product.name }}" width="60" class="rounded shadow-sm">
+        <tr class="border-t hover:bg-gray-50 transition">
+          <td class="px-4 py-3">{{ forloop.counter|add:products.start_index|default:forloop.counter }}</td>
+          <td class="px-4 py-3">
+            <img src="{{ product.image.url|default:'/static/images/no-image.jpg' }}"
+                 alt="{{ product.name }}"
+                 class="w-14 h-14 object-cover rounded-md border border-gray-200">
           </td>
-          <td>{{ product.name|title }}</td>
-          <td>{{ product.category.name }}</td>
-          {% if product.is_active %}
-            <td><span class="badge bg-success">Active</span></td>
-          {% else %}
-            <td><span class="badge bg-danger">Blocked</span></td>
-          {% endif %}
-          <td>₹{{ product.variants.first.price }}</td>
-          <td>{{ product.total_stock }}</td>
-          <td class="text-center">
-            <a href="{% url 'admin_product_detail' product.product_id %}" class="btn btn-sm btn-info me-1">View</a>
+          <td class="px-4 py-3 font-medium">{{ product.name|title }}</td>
+          <td class="px-4 py-3">{{ product.category.name }}</td>
+          <td class="px-4 py-3">
+            {% if product.is_active %}
+              <span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium">Active</span>
+            {% else %}
+              <span class="bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-xs font-medium">Blocked</span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-3">
+            {% if product.variants.first %}
+              ₹{{ product.variants.first.price }}
+            {% else %}
+              <span class="text-gray-400">No Variant</span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-3">
+            {% if product.total_stock > 0 %}
+              {{ product.total_stock }}
+            {% else %}
+              <span class="text-red-600 font-semibold">0</span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-3 text-center">
+            <a href="{% url 'admin_product_detail' product.product_id %}"
+               class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-md text-xs font-medium transition">
+              View
+            </a>
           </td>
         </tr>
         {% empty %}
         <tr>
-          <td colspan="8" class="text-center text-muted">No products found.</td>
+          <td colspan="8" class="text-center py-6 text-gray-500">No products found.</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -126,44 +137,40 @@
 
   <!-- Pagination -->
   {% if products.paginator.count > 0 %}
-  <div class="d-flex justify-content-between align-items-center mt-3">
-    <p class="text-muted small mb-0">
+  <div class="flex flex-col md:flex-row justify-between items-center mt-6 text-gray-600 text-sm">
+    <p class="mb-3 md:mb-0">
       Showing {{ products.start_index }}–{{ products.end_index }} of {{ products.paginator.count }} products
     </p>
 
-    <nav>
-      <ul class="pagination mb-0">
-        {% if products.has_previous %}
-          <li class="page-item">
-            <a class="page-link" href="?page={{ products.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
-              Previous
-            </a>
-          </li>
-        {% endif %}
+    <div class="flex items-center space-x-2">
+      {% if products.has_previous %}
+        <a href="?page={{ products.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+           class="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md border border-gray-300">Previous</a>
+      {% endif %}
 
-        {% for num in products.paginator.page_range %}
-          <li class="page-item {% if products.number == num %}active{% endif %}">
-            <a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
-              {{ num }}
-            </a>
-          </li>
-        {% endfor %}
+      {% if products.number == num %}
+        <a href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+          class="px-3 py-1 border border-indigo-600 bg-indigo-600 text-white rounded-md">
+          {{ num }}
+        </a>
+      {% else %}
+        <a href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+          class="px-3 py-1 border border-gray-300 bg-white text-gray-700 rounded-md hover:bg-gray-100">
+          {{ num }}
+        </a>
+      {% endif %}
 
-        {% if products.has_next %}
-          <li class="page-item">
-            <a class="page-link" href="?page={{ products.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
-              Next
-            </a>
-          </li>
-        {% endif %}
-      </ul>
-    </nav>
+      {% if products.has_next %}
+        <a href="?page={{ products.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+           class="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md border border-gray-300">Next</a>
+      {% endif %}
+    </div>
   </div>
   {% endif %}
 
 </div>
 
-<!-- ✅ Clear Search Button Script -->
+<!-- Clear Search Script -->
 <script>
   const input = document.getElementById('search-input');
   const clearBtn = document.getElementById('clear-btn');
@@ -180,7 +187,6 @@
     input.focus();
   });
 
-  // Initialize on load
   toggleClearBtn();
 </script>
 {% endblock content %}

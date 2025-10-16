@@ -1,60 +1,65 @@
 {% extends "custom_admin/base.html" %}
 {% block content %}
-<div class="container my-5">
-    <h2>Order #{{ order.order_code }}</h2>
-    <p>User: {{ order.user.email }}</p>
-    <p>Total: ₹{{ order.total_price }}</p>
-    <p>Payment Method: <span class="badge bg-secondary">{{ order.payment_method }}</span></p>
+<div class="max-w-6xl mx-auto my-10 px-4">
+    <h2 class="text-2xl font-semibold text-gray-800 mb-2">Order #{{ order.order_code }}</h2>
+    <p class="text-gray-700"><span class="font-semibold">User:</span> {{ order.user.email }}</p>
+    <p class="text-gray-700"><span class="font-semibold">Total:</span> ₹{{ order.total_price }}</p>
+    <p class="text-gray-700">
+        <span class="font-semibold">Payment Method:</span> 
+        <span class="inline-block bg-gray-300 text-gray-800 text-xs px-2 py-1 rounded">{{ order.payment_method }}</span>
+    </p>
+    <p class="text-gray-700"><span class="font-semibold">Placed On:</span> {{ order.created_at|date:"M d, Y" }}</p>
 
-    <p>Placed On: {{ order.created_at|date:"M d, Y " }}</p>
     {% if order.status == "cancelled" %}
-        <p class="text-danger">Cancellation Reason: {{ order.cancellation_reason }}</p>
+        <p class="text-red-600 font-semibold mt-2">Cancellation Reason: {{ order.cancellation_reason }}</p>
     {% endif %}
 
-    <hr>
-    <h4>Items</h4>
-    <table class="table table-hover align-middle">
-        <thead class="table-dark">
-            <tr>
-                <th>Product</th>
-                <th>Variant</th>
-                <th>Quantity</th>
-                <th>Price</th>
-                <th>Status</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for item in items %}
+    <hr class="my-6 border-gray-300">
+
+    <h4 class="text-xl font-semibold mb-3">Items</h4>
+
+    <div class="overflow-x-auto">
+        <table class="min-w-full bg-white border border-gray-200 rounded-lg shadow-sm">
+            <thead class="bg-gray-800 text-white">
                 <tr>
-                    <td>{{ item.variant.product.name }}</td>
-                    <td>{{ item.variant.color }} / {{ item.variant.size }}</td>
-                    <td>{{ item.quantity }}</td>
-                    <td>₹{{ item.price }}</td>
-                    <td>
-                        <form method="post" action="{% url 'admin_update_order_item_status' item.item_id %}">
+                    <th class="px-4 py-2 text-left">Product</th>
+                    <th class="px-4 py-2 text-left">Variant</th>
+                    <th class="px-4 py-2 text-left">Quantity</th>
+                    <th class="px-4 py-2 text-left">Price</th>
+                    <th class="px-4 py-2 text-left">Status</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for item in items %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-2">{{ item.variant.product.name }}</td>
+                    <td class="px-4 py-2">{{ item.variant.color }} / {{ item.variant.size }}</td>
+                    <td class="px-4 py-2">{{ item.quantity }}</td>
+                    <td class="px-4 py-2">₹{{ item.price }}</td>
+                    <td class="px-4 py-2">
+                        <form method="post" action="{% url 'admin_update_order_item_status' item.item_id %}" class="flex gap-2">
                             {% csrf_token %}
-                            <div class="input-group">
-                                <select name="status" class="form-select form-select-sm">
-                                    <option value="Pending" {% if item.status == "pending" %}selected{% endif %}>Pending</option>
-                                    <option value="Shipped" {% if item.status == "shipped" %}selected{% endif %}>Shipped</option>
-                                    <option value="Delivered" {% if item.status == "delivered" %}selected{% endif %}>Delivered</option>
-                                    <option value="Cancelled" {% if item.status == "cancelled" %}selected{% endif %}>Cancelled</option>
-                                    <option value="Returned" {% if item.status == "returned" %}selected{% endif %}>Returned</option>
-                                </select>
-                                <button type="submit" class="btn btn-sm btn-primary">Update</button>
-                            </div>
+                            <select name="status" class="form-select block w-full border-gray-300 rounded-md text-sm">
+                                <option value="Pending" {% if item.status == "pending" %}selected{% endif %}>Pending</option>
+                                <option value="Shipped" {% if item.status == "shipped" %}selected{% endif %}>Shipped</option>
+                                <option value="Delivered" {% if item.status == "delivered" %}selected{% endif %}>Delivered</option>
+                                <option value="Cancelled" {% if item.status == "cancelled" %}selected{% endif %}>Cancelled</option>
+                                <option value="Returned" {% if item.status == "returned" %}selected{% endif %}>Returned</option>
+                            </select>
+                            <button type="submit" class="px-3 py-1 bg-indigo-600 text-white rounded-md text-sm hover:bg-indigo-700 transition">
+                                Update
+                            </button>
                         </form>
                         {% for message in messages %}
-                            {% if message.error%}
-                                <div>{{message}}</div>
+                            {% if message.error %}
+                                <div class="text-red-600 text-sm mt-1">{{ message }}</div>
                             {% endif %}
                         {% endfor %}
-
-                            
                     </td>
                 </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 {% endblock %}

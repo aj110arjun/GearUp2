@@ -1,32 +1,48 @@
 {% extends 'custom_admin/base.html' %}
 {% block content %}
-<h2>{% if category %}Edit{% else %}Add{% endif %} Category</h2>
-<form method="POST" novalidate>
-    {% csrf_token %}
-    <div class="mb-3">
-        <label>Name</label>
-        <input type="text" name="name" class="form-control" value="{{ category.name|default:'' }}" required>
-        
-        {% if errors %}
-            <span class="text-danger">{{errors.name}}</span>
-        {% endif %}
-            
-    </div>
-    <div class="mb-3">
-        <label>Description</label>
-        <textarea name="description" class="form-control">{{ category.description|default:'' }}</textarea>
-    </div>
-    <div class="mb-3">
-        <label>Parent Category</label>
-        <select name="parent" class="form-control">
-            <option value="">-- None --</option>
-            {% for cat in categories %}
-                <option value="{{ cat.id }}" {% if category.parent.id == cat.id %}selected{% endif %}>
-                    {{ cat.name }}
-                </option>
-            {% endfor %}
-        </select>
-    </div>
-    <button type="submit" class="btn btn-success">Save</button>
-</form>
+<div class="max-w-2xl mx-auto mt-10 px-4">
+    <h2 class="text-2xl font-semibold text-gray-800 mb-6">
+        {% if category %}Edit{% else %}Add{% endif %} Category
+    </h2>
+
+    <form method="POST" novalidate class="space-y-4">
+        {% csrf_token %}
+
+        <!-- Name -->
+        <div>
+            <label class="block text-gray-700 font-medium mb-1">Name</label>
+            <input type="text" name="name" value="{{ category.name|default:'' }}"
+                   class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 {% if errors.name %}border-red-500{% else %}border-gray-300{% endif %}" required>
+            {% if errors %}
+                <p class="text-red-500 text-sm mt-1">{{ errors.name }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Description -->
+        <div>
+            <label class="block text-gray-700 font-medium mb-1">Description</label>
+            <textarea name="description"
+                      class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 border-gray-300">{{ category.description|default:'' }}</textarea>
+        </div>
+
+        <!-- Parent Category -->
+        <div>
+            <label class="block text-gray-700 font-medium mb-1">Parent Category</label>
+            <select name="parent"
+                    class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 border-gray-300">
+                <option value="">-- None --</option>
+                {% for cat in categories %}
+                    <option value="{{ cat.id }}" {% if category.parent.id == cat.id %}selected{% endif %}>
+                        {{ cat.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <button type="submit"
+                class="px-5 py-2 bg-green-600 text-white font-medium rounded-md hover:bg-green-700 transition">
+            Save
+        </button>
+    </form>
+</div>
 {% endblock %}
