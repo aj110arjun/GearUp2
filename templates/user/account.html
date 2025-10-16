@@ -3,173 +3,116 @@
 
 {% block title %}My Account{% endblock %}
 
-{% block css %}
-<link rel="stylesheet" href="{% static 'css/account.css' %}" type="text/css" />
-{% endblock %}
-
 {% block content %}
-<style>
-    body {
-        background-color: #BAA991;
-    }
-    .account-container {
-        max-width: 850px;
-        margin: auto;
-    }
-    .account-card {
-        background: #fff;
-        border-radius: 12px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        padding: 2rem;
-    }
-    .account-avatar {
-        width: 120px;
-        height: 120px;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 3px solid #ddd;
-    }
-    /* Skeleton CSS */
-    .skeleton-account {
-        background: #fff;
-        border-radius: 12px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        padding: 2rem;
-        min-height: 420px;
-    }
-    .skeleton-avatar {
-        width: 120px;
-        height: 120px;
-        border-radius: 50%;
-        background: #e2e2e2;
-        margin: 0 auto 16px;
-        animation: skeleton-loading 1.2s infinite linear;
-    }
-    .skeleton-line {
-        height: 18px;
-        background: #e2e2e2;
-        border-radius: 5px;
-        margin: 16px auto;
-        animation: skeleton-loading 1.2s infinite linear;
-    }
-    .skeleton-name { width: 42%; }
-    .skeleton-email { width: 34%; }
-    .skeleton-btn-row .skeleton-btn {
-        display: inline-block;
-        width: 100px;
-        height: 28px;
-        background: #e2e2e2;
-        border-radius: 6px;
-        margin: 8px 6px 0 0;
-        animation: skeleton-loading 1.2s infinite linear;
-    }
-    .skeleton-details-row .skeleton-detail {
-        width: 60%;
-        height: 18px;
-        background: #e2e2e2;
-        border-radius: 6px;
-        margin: 12px 0;
-        animation: skeleton-loading 1.2s infinite linear;
-    }
-    @keyframes skeleton-loading {
-        0% { opacity: 1; }
-        50% { opacity: 0.4; }
-        100% { opacity: 1; }
-    }
-</style>
+<script src="https://cdn.tailwindcss.com"></script>
 
-<div class="container account-container my-5">
+<div class="min-h-[80vh] flex justify-center py-10 px-4">
+  <div class="w-full max-w-3xl">
 
-    <!-- Skeleton account card (shows on load) -->
-    <div id="skeleton-account-card" class="skeleton-account">
-        <div class="text-center mb-4">
-            <div class="skeleton-avatar"></div>
-            <div class="skeleton-line skeleton-name"></div>
-            <div class="skeleton-line skeleton-email"></div>
-            <div class="skeleton-btn-row">
-                <div class="skeleton-btn"></div>
-            </div>
+    <!-- Skeleton Account Card -->
+    <div id="skeleton-account-card" class="bg-white rounded-2xl shadow-lg p-8 animate-pulse space-y-6">
+      <div class="text-center space-y-4">
+        <div class="w-28 h-28 rounded-full bg-gray-300 mx-auto"></div>
+        <div class="h-5 w-40 bg-gray-300 rounded mx-auto"></div>
+        <div class="h-4 w-32 bg-gray-300 rounded mx-auto"></div>
+        <div class="flex justify-center space-x-4 mt-2">
+          <div class="h-8 w-24 bg-gray-300 rounded"></div>
         </div>
-        <div class="skeleton-line" style="width: 140px;"></div>
-        <div class="skeleton-details-row">
-            <div class="skeleton-detail"></div>
-            <div class="skeleton-detail"></div>
-            <div class="skeleton-detail"></div>
-            <div class="skeleton-detail"></div>
-        </div>
-        <div class="skeleton-btn-row text-center mt-4">
-            <div class="skeleton-btn"></div>
-            <div class="skeleton-btn"></div>
-            <div class="skeleton-btn"></div>
-            <div class="skeleton-btn"></div>
-        </div>
+      </div>
+
+      <div class="h-5 w-36 bg-gray-300 rounded mx-auto"></div>
+
+      <div class="space-y-4">
+        <div class="h-4 w-3/5 bg-gray-300 rounded mx-auto"></div>
+        <div class="h-4 w-3/5 bg-gray-300 rounded mx-auto"></div>
+        <div class="h-4 w-3/5 bg-gray-300 rounded mx-auto"></div>
+        <div class="h-4 w-3/5 bg-gray-300 rounded mx-auto"></div>
+      </div>
+
+      <div class="flex justify-center space-x-4 mt-4">
+        <div class="h-8 w-24 bg-gray-300 rounded"></div>
+        <div class="h-8 w-24 bg-gray-300 rounded"></div>
+        <div class="h-8 w-24 bg-gray-300 rounded"></div>
+        <div class="h-8 w-24 bg-gray-300 rounded"></div>
+      </div>
     </div>
 
-    <!-- Actual account card (initially hidden, fades in) -->
-    <div id="real-account-card" style="display:none;">
-        {% if success_message %}
-            <div id="alert-success" class="alert alert-success mt-2">{{ success_message }}</div>
+    <!-- Real Account Card -->
+    <div id="real-account-card" class="hidden bg-white rounded-2xl shadow-lg p-8 space-y-6">
+
+      {% if success_message %}
+      <div id="alert-success" class="bg-green-100 text-green-700 text-center p-3 rounded">
+        {{ success_message }}
+      </div>
+      {% endif %}
+
+      <!-- Profile Info -->
+      <div class="text-center space-y-3">
+        {% if profile.profile_image %}
+        <img src="{{profile.profile_image.url}}" alt="Profile" class="w-28 h-28 rounded-full mx-auto object-cover border-2 border-gray-300">
+        {% else %}
+        <img src="https://imgs.search.brave.com/XLM6WQZOOjg4USteTMmA56CbGwKhBGOcLHTpbDno-xU/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9tZWRp/YS5pc3RvY2twaG90/by5jb20vaWQvMjE3/MTM4MjYzMy92ZWN0/b3IvdXNlci1wcm9m/aWxlLWljb24tYW5v/bnltb3VzLXBlcnNv/bi1zeW1ib2wtYmxh/bmstYXZhdGFyLWdy/YXBoaWMtdmVjdG9y/LWlsbHVzdHJhdGlv/bi5qcGc_cz02MTJ4/NjEyJnc9MCZrPTIw/JmM9WndPRjZOZk9S/MHpoWUM0NHhPWDA2/cnlJUEFVaER2QWFq/clBzYVo2djEtdz0"
+             alt="Profile" class="w-28 h-28 rounded-full mx-auto object-cover border-2 border-gray-300">
         {% endif %}
-        <div class="account-card">
-            <div class="text-center mb-4">
-                {% if profile.profile_image %}
-                    <img src="{{profile.profile_image.url}}" alt="Profile" class="account-avatar">
-                {% else %}
-                    <img src="https://imgs.search.brave.com/XLM6WQZOOjg4USteTMmA56CbGwKhBGOcLHTpbDno-xU/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9tZWRp/YS5pc3RvY2twaG90/by5jb20vaWQvMjE3/MTM4MjYzMy92ZWN0/b3IvdXNlci1wcm9m/aWxlLWljb24tYW5v/bnltb3VzLXBlcnNv/bi1zeW1ib2wtYmxh/bmstYXZhdGFyLWdy/YXBoaWMtdmVjdG9y/LWlsbHVzdHJhdGlv/bi5qcGc_cz02MTJ4/NjEyJnc9MCZrPTIw/JmM9WndPRjZOZk9S/MHpoWUM0NHhPWDA2/cnlJUEFVaER2QWFq/clBzYVo2djEtdz0" alt="Profile" class="account-avatar">
-                {% endif %}
-                <h4 class="mt-3">{{ user.get_full_name|default:user.username }}</h4>
-                <p class="text-muted">{{ user.email }}</p>
-                <a href="{% url 'edit_profile' %}" class="btn btn-outline-primary btn-sm">Edit Profile</a>
-            </div>
 
-            <h5>Account Details</h5>
-            <table class="table table-striped">
-                <tbody>
-                    <tr>
-                        <th>Full Name</th>
-                        <td>{{ user.get_full_name|default:"Not set" }}</td>
-                    </tr>
-                    <tr>
-                        <th>Email</th>
-                        <td>{{ user.email }}</td>
-                    </tr>
-                    <tr>
-                        <th>Joined</th>
-                        <td>{{ user.date_joined|date:"F j, Y" }}</td>
-                    </tr>
-                    <tr>
-                        <th>Last Login</th>
-                        <td>{{ user.last_login|date:"F j, Y" }}</td>
-                    </tr>
-                </tbody>
-            </table>
-            <div class="d-flex justify-content-between mt-4">
-                <a href="{% url 'order_list' %}" class="btn btn-outline-dark">My Orders</a>
-                <a href="{% url 'address_list' %}" class="btn btn-outline-primary">Address</a>
-                <a href="{% url 'track_order_search' %}" class="btn btn-outline-warning">Track Order</a>
-                <a href="{% url 'logout' %}" class="btn btn-outline-danger">Logout</a>
-            </div>
-        </div>
+        <h3 class="text-xl font-semibold text-gray-800">{{ user.get_full_name|default:user.username }}</h3>
+        <p class="text-gray-500">{{ user.email }}</p>
+        <a href="{% url 'edit_profile' %}" class="inline-block mt-2 px-4 py-2 border border-blue-600 text-blue-600 rounded hover:bg-blue-600 hover:text-white transition">Edit Profile</a>
+      </div>
+
+      <!-- Account Details -->
+      <div>
+        <h4 class="text-lg font-semibold text-gray-700 mb-3">Account Details</h4>
+        <table class="w-full text-left border border-gray-200 rounded-lg">
+          <tbody>
+            <tr class="border-b border-gray-200">
+              <th class="px-4 py-2 font-medium text-gray-600">Full Name</th>
+              <td class="px-4 py-2">{{ user.get_full_name|default:"Not set" }}</td>
+            </tr>
+            <tr class="border-b border-gray-200">
+              <th class="px-4 py-2 font-medium text-gray-600">Email</th>
+              <td class="px-4 py-2">{{ user.email }}</td>
+            </tr>
+            <tr class="border-b border-gray-200">
+              <th class="px-4 py-2 font-medium text-gray-600">Joined</th>
+              <td class="px-4 py-2">{{ user.date_joined|date:"F j, Y" }}</td>
+            </tr>
+            <tr>
+              <th class="px-4 py-2 font-medium text-gray-600">Last Login</th>
+              <td class="px-4 py-2">{{ user.last_login|date:"F j, Y" }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex flex-wrap justify-between mt-6 gap-3">
+        <a href="{% url 'order_list' %}" class="flex-1 text-center px-4 py-2 border border-gray-700 rounded hover:bg-gray-700 hover:text-white transition">My Orders</a>
+        <a href="{% url 'address_list' %}" class="flex-1 text-center px-4 py-2 border border-blue-600 rounded hover:bg-blue-600 hover:text-white transition">Address</a>
+        <a href="{% url 'track_order_search' %}" class="flex-1 text-center px-4 py-2 border border-yellow-500 rounded hover:bg-yellow-500 hover:text-white transition">Track Order</a>
+        <a href="{% url 'logout' %}" class="flex-1 text-center px-4 py-2 border border-red-600 rounded hover:bg-red-600 hover:text-white transition">Logout</a>
+      </div>
+
     </div>
+  </div>
 </div>
 
 <script>
-    // Skeleton swap
-    document.addEventListener('DOMContentLoaded', function() {
-        setTimeout(function() {
-            document.getElementById('skeleton-account-card').style.display = 'none';
-            document.getElementById('real-account-card').style.display = 'block';
-        }, 1000); // 1s simulated delay; adjust as needed
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+        document.getElementById('skeleton-account-card').style.display = 'none';
+        document.getElementById('real-account-card').classList.remove('hidden');
+    }, 1000);
 
-        // Fade out success message after 3 seconds (as before)
-        setTimeout(function() {
-            let alertBox = document.getElementById('alert-success');
-            if (alertBox) {
-                alertBox.style.transition = "opacity 0.5s ease";
-                alertBox.style.opacity = "0";
-                setTimeout(() => alertBox.remove(), 500);
-            }
-        }, 3500);
-    });
+    setTimeout(function() {
+        let alertBox = document.getElementById('alert-success');
+        if(alertBox){
+            alertBox.classList.add('transition-opacity', 'duration-500');
+            alertBox.style.opacity = '0';
+            setTimeout(() => alertBox.remove(), 500);
+        }
+    }, 3500);
+});
 </script>
+
 {% endblock %}

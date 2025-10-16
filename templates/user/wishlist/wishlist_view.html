@@ -1,125 +1,73 @@
 {% extends "user/base.html" %}
-{% block title %} My Wishlist {% endblock title %}
+{% block title %}My Wishlist{% endblock title %}
 
 {% block content %}
-<style>
-  /* Skeleton loading styles */
-  .skeleton-card {
-    background-color: #e2e2e2;
-    border-radius: 12px;
-    height: 320px;
-    margin-bottom: 1rem;
-    animation: skeleton-loading 1.2s infinite linear;
-  }
-  .skeleton-img {
-    height: 200px;
-    border-radius: 12px 12px 0 0;
-  }
-  .skeleton-text {
-    height: 24px;
-    width: 60%;
-    margin: 15px auto;
-    border-radius: 6px;
-  }
-  .skeleton-subtext {
-    height: 18px;
-    width: 40%;
-    margin: 6px auto;
-    border-radius: 6px;
-  }
-  .skeleton-form {
-    height: 40px;
-    width: 90%;
-    margin: 20px auto;
-    border-radius: 6px;
-  }
-  .skeleton-btn {
-    width: 100px;
-    height: 36px;
-    margin: 10px 15px 20px 15px;
-    border-radius: 6px;
-    display: inline-block;
-  }
-  @keyframes skeleton-loading {
-    0% { opacity: 1; }
-    50% { opacity: 0.4; }
-    100% { opacity: 1; }
-  }
-</style>
+<div class="container mx-auto my-10 px-4">
+    <h2 class="text-2xl font-bold mb-4">❤️ My Wishlist</h2>
+    <hr class="mb-6 border-gray-300">
 
-<div class="container my-5">
-    <h2>❤️ My Wishlist</h2>
-    <hr>
-
-    <!-- Skeleton loading placeholders -->
-    <div id="wishlist-skeleton" class="row">
+    <!-- Skeleton placeholders -->
+    <div id="wishlist-skeleton" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
         {% for _ in "123" %}
-        <div class="col-md-4">
-            <div class="skeleton-card">
-                <div class="skeleton-img skeleton-bg"></div>
-                <div class="skeleton-text skeleton-bg"></div>
-                <div class="skeleton-subtext skeleton-bg"></div>
-                <div class="skeleton-form skeleton-bg"></div>
-                <div style="text-align:center;">
-                    <div class="skeleton-btn skeleton-bg"></div>
-                    <div class="skeleton-btn skeleton-bg"></div>
-                </div>
+        <div class="animate-pulse border rounded-lg overflow-hidden shadow">
+            <div class="bg-gray-300 h-48 w-full"></div>
+            <div class="bg-gray-300 h-6 w-3/4 mt-4 mx-auto rounded"></div>
+            <div class="bg-gray-300 h-4 w-1/2 mt-2 mx-auto rounded"></div>
+            <div class="bg-gray-300 h-10 w-11/12 mt-4 mx-auto rounded"></div>
+            <div class="flex justify-center gap-4 mt-4 mb-4">
+                <div class="bg-gray-300 h-9 w-24 rounded"></div>
+                <div class="bg-gray-300 h-9 w-24 rounded"></div>
             </div>
         </div>
         {% endfor %}
     </div>
 
-    <!-- Real wishlist items (hidden initially) -->
-    <div id="wishlist-items" class="row" style="display:none;">
+    <!-- Real wishlist items -->
+    <div id="wishlist-items" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 hidden">
         {% if items %}
             {% for w in items %}
-                <div class="col-md-4">
-                    <div class="card shadow-sm mb-4">
-                        <img src="{{ w.product.image.url }}" class="card-img-top" style="height:200px; object-fit:cover;">
-                        <div class="card-body">
-                            <h5>{{ w.product.name }}</h5>
-                            <p class="text-muted">{{ w.product.brand }}</p>
+            <div class="border rounded-lg shadow hover:shadow-lg overflow-hidden">
+                <img src="{{ w.product.image.url }}" alt="{{ w.product.name }}" class="h-48 w-full object-cover">
+                <div class="p-4">
+                    <h5 class="font-semibold text-lg">{{ w.product.name }}</h5>
+                    <p class="text-gray-500 mb-2">{{ w.product.brand }}</p>
 
-                            <!-- Variant Selection -->
-                            {% if w.product.variants.exists %}
-                                <form method="post" action="{% url 'add_to_cart' 0 %}" id="wishlist-form-{{ w.id }}">
-                                    {% csrf_token %}
-                                    <div class="mb-2">
-                                        <label for="variant-{{ w.id }}" class="form-label">Choose Variant:</label>
-                                        <select name="variant_id" id="variant-{{ w.id }}" class="form-select" required>
-                                            {% for v in w.product.variants.all %}
-                                                {% if v.stock > 0 %}
-                                                    <option value="{{ v.id }}">
-                                                        {{ v.color }} | {{ v.size }} | ₹{{ v.price }}
-                                                    </option>
-                                                {% endif %}
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-
-                                    <button type="submit" class="btn btn-success btn-sm">Add to Cart</button>
-                                    <a href="{% url 'remove_from_wishlist' w.product.pk %}" class="btn btn-danger btn-sm">Remove</a>
-                                </form>
-                            {% else %}
-                                <p class="text-muted">No variants available</p>
-                            {% endif %}
+                    {% if w.product.variants.exists %}
+                    <form method="post" action="{% url 'add_to_cart' 0 %}" id="wishlist-form-{{ w.id }}">
+                        {% csrf_token %}
+                        <div class="mb-2">
+                            <label for="variant-{{ w.id }}" class="block text-sm font-medium mb-1">Choose Variant:</label>
+                            <select name="variant_id" id="variant-{{ w.id }}" class="block w-full border rounded px-2 py-1" required>
+                                {% for v in w.product.variants.all %}
+                                    {% if v.stock > 0 %}
+                                        <option value="{{ v.id }}">{{ v.color }} | {{ v.size }} | ₹{{ v.price }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
                         </div>
-                    </div>
+                        <div class="flex gap-2">
+                            <button type="submit" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 text-sm">Add to Cart</button>
+                            <a href="{% url 'remove_from_wishlist' w.product.pk %}" class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 text-sm">Remove</a>
+                        </div>
+                    </form>
+                    {% else %}
+                        <p class="text-gray-500 text-sm">No variants available</p>
+                    {% endif %}
                 </div>
+            </div>
             {% endfor %}
         {% else %}
-            <p class="text-muted">You don’t have any products in your wishlist yet.</p>
+            <p class="text-gray-500 col-span-full">You don’t have any products in your wishlist yet.</p>
         {% endif %}
     </div>
 </div>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function() {
     setTimeout(function() {
-      document.getElementById('wishlist-skeleton').style.display = 'none';
-      document.getElementById('wishlist-items').style.display = 'flex';
-    }, 1000); // Show real content after 1s
-  });
+        document.getElementById('wishlist-skeleton').classList.add('hidden');
+        document.getElementById('wishlist-items').classList.remove('hidden');
+    }, 1000); // 1 second simulated loading
+});
 </script>
-
 {% endblock %}

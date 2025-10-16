@@ -4,312 +4,213 @@
 {% block title %}{{ product.name }} - GearUp{% endblock %}
 
 {% block content %}
-<style>
-    /* Your existing CSS */
-    h2 { font-size: 1.8rem; }
-    .btn { border-radius: 8px; padding: 8px 16px; }
-    .btn-success { background: linear-gradient(45deg, #28a745, #20c997); border: none; }
-    .btn-outline-danger:hover { background: #dc3545; color: #fff; }
-    .main-image-wrapper {
-        cursor: crosshair;
-        background: #f8f9fa;
-        border: 2px solid transparent;
-        transition: transform 0.2s, border-color 0.2s;
-        height: 400px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    .main-image-wrapper:hover { border-color: #0d6efd; transform: scale(1.01); }
-    .zoomable-image { max-height: 100%; max-width: 100%; object-fit: contain; transition: transform 0.2s ease; }
-    .thumb-img { width: 80px; height: 80px; object-fit: cover; border-radius: 6px; border: 2px solid transparent; transition: transform 0.2s, border-color 0.2s; }
-    .thumb-img:hover { transform: scale(1.05); border-color: #adb5bd; }
-    .thumb-img.border-primary { border-color: #0d6efd !important; }
-    .stars {
-        display: flex;
-        flex-direction: row-reverse;
-        justify-content: center;
-        margin-bottom: 1rem;
-    }
-    .stars input { display: none; }
-    .stars label {
-        font-size: 30px;
-        color: #ccc;
-        cursor: pointer;
-        transition: color 0.2s;
-    }
-    .stars input:checked ~ label,
-    .stars label:hover,
-    .stars label:hover ~ label {
-        color: #f5b301;
-    }
-    .review-section {
-        margin-top: 4rem;
-        background: #fff;
-        border-radius: 10px;
-        padding: 2rem;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
-    .review-box {
-        border-bottom: 1px solid #e9ecef;
-        padding-bottom: 1rem;
-        margin-bottom: 1rem;
-    }
-    .review-box:last-child { border-bottom: none; }
+<div class="container mx-auto my-8 px-4">
 
-    /* Skeleton Loading styles */
-    .skeleton {
-      background-color: #e2e2e2;
-      border-radius: 8px;
-      animation: skeleton-loading 1.2s infinite linear;
-    }
-    .skeleton-text {
-      width: 80%;
-      height: 20px;
-      margin: 12px auto;
-      border-radius: 4px;
-    }
-    .skeleton-img {
-      width: 100%;
-      height: 400px;
-      border-radius: 8px;
-      margin-bottom: 1rem;
-    }
-    .skeleton-thumb {
-      width: 80px;
-      height: 80px;
-      border-radius: 6px;
-      display: inline-block;
-      margin-right: 8px;
-    }
-    .skeleton-variant {
-      height: 72px;
-      margin-bottom: 16px;
-      border-radius: 8px;
-    }
-    /* Keyframe for shimmer effect */
-    @keyframes skeleton-loading {
-      0% { opacity: 1; }
-      50% { opacity: 0.4;}
-      100% { opacity: 1;}
-    }
-</style>
-
-<div class="container my-5">
-
-  <!-- Skeleton content (visible initially) -->
+  <!-- Skeleton Loader -->
   <div id="skeleton-content">
-    <div class="row g-5">
-      <div class="col-md-6">
-        <div class="skeleton skeleton-img"></div>
-        <div class="d-flex mb-3">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div>
+        <div class="animate-pulse bg-gray-200 rounded-xl h-96 mb-4"></div>
+        <div class="flex gap-2">
           {% for i in "12345" %}
-          <div class="skeleton skeleton-thumb"></div>
+            <div class="animate-pulse bg-gray-200 h-20 w-20 rounded-md"></div>
           {% endfor %}
         </div>
       </div>
-      <div class="col-md-6">
-        <div class="skeleton skeleton-text" style="width: 60%; height: 32px;"></div>
-        <div class="skeleton skeleton-text" style="width: 40%; height: 18px;"></div>
-        <div class="skeleton skeleton-text" style="height: 120px; margin-top: 1rem;"></div>
-        <div>
-          {% for i in "123" %}
-          <div class="skeleton skeleton-variant"></div>
-          {% endfor %}
-        </div>
+      <div>
+        <div class="animate-pulse bg-gray-200 h-8 w-3/5 mb-2 rounded"></div>
+        <div class="animate-pulse bg-gray-200 h-5 w-2/5 mb-4 rounded"></div>
+        <div class="animate-pulse bg-gray-200 h-32 mb-4 rounded"></div>
+        {% for i in "123" %}
+          <div class="animate-pulse bg-gray-200 h-18 mb-4 rounded"></div>
+        {% endfor %}
       </div>
     </div>
   </div>
 
-  <!-- Actual product content (hidden initially) -->
-  <div id="real-content" style="display:none;">
-
-    <div class="row g-5">
-      <!-- Product Image -->
-      <div class="col-md-6">
-        <div class="main-image-wrapper border rounded p-3 text-center shadow-sm position-relative overflow-hidden">
-            <img id="main-product-image" src="{{ product.image.url }}" alt="{{ product.name }}" class="zoomable-image">
+  <!-- Actual Product Content -->
+  <div id="real-content" class="hidden">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+      
+      <!-- Product Images -->
+      <div>
+        <div class="relative rounded-xl overflow-hidden shadow-lg mb-3 w-full h-96 cursor-zoom-in">
+            <img id="main-product-image" src="{{ product.image.url }}" alt="{{ product.name }}"
+                class="w-full h-full object-contain transition-transform duration-300">
         </div>
-
-        <div class="additional-images mt-3 d-flex flex-wrap gap-2">
-            <div>
-                <img src="{{ product.image.url }}" alt="{{ product.name }}" class="thumb-img border-primary" style="cursor:pointer;">
-            </div>
+        <div class="flex flex-wrap gap-2 mt-3">
+            <img src="{{ product.image.url }}" alt="{{ product.name }}"
+                class="thumb-img border-2 border-blue-600 rounded-md cursor-pointer h-20 w-20 object-cover transition-transform transform hover:scale-110">
             {% for img in additional_images %}
-                <div>
-                    <img src="{{ img.image.url }}" alt="{{ img.alt_text }}" class="thumb-img" style="cursor:pointer;">
-                </div>
+            <img src="{{ img.image.url }}" alt="{{ img.alt_text }}"
+                class="thumb-img border-2 border-transparent rounded-md cursor-pointer h-20 w-20 object-cover transition-transform transform hover:scale-110">
             {% endfor %}
         </div>
-      </div>
+    </div>
 
       <!-- Product Info -->
-      <div class="col-md-6">
-          <h2 class="fw-bold">{{ product.name }}</h2>
-          <p class="text-muted">Brand: {{ product.brand }}</p>
-          <p>{{ product.description }}</p>
-
+      <div class="flex flex-col justify-between">
+        <div>
+          <h1 class="text-3xl font-bold mb-2">{{ product.name }}</h1>
+          <p class="text-gray-500 mb-2">Brand: {{ product.brand }}</p>
+          <p class="text-gray-700 mb-4">{{ product.description }}</p>
+          
           <!-- Variants -->
-          <div class="mt-4">
-              <h5 class="fw-bold">Available Variants</h5>
-              {% for v in variants %}
-                  <div class="border rounded p-2 mb-3 bg-light shadow-sm">
-                      <div class="d-flex justify-content-between align-items-center flex-wrap">
-                          <div>
-                              <p class="mb-1 fw-semibold">{{ v.color }} | {{ v.size }}</p>
-                              {% with discount=v.product.get_best_offer %}
-                                  {% if discount > 0 %}
-                                      <p class="text-muted text-decoration-line-through mb-0">₹{{ v.price }}</p>
-                                      <p class="fw-bold text-success mb-0">
-                                          ₹{{ v.get_discounted_price }}
-                                          <span class="badge bg-danger ms-2">-{{ discount }}%</span>
-                                      </p>
-                                  {% else %}
-                                      <p class="fw-bold mb-0">₹{{ v.price }}</p>
-                                  {% endif %}
-                              {% endwith %}
-                          </div>
-
-                          <div class="text-end">
-                              {% if v.id in cart_items %}
-                                  <a href="{% url 'cart_view' %}" class="btn btn-sm btn-primary">Go to Cart</a>
-                              {% else %}
-                                  {% if v.stock == 0 %}
-                                      <button class="btn btn-sm btn-secondary" disabled>Out of Stock</button>
-                                  {% else %}
-                                      {% if v.stock <= 10 %}
-                                          <p class="badge bg-danger my-2">Limited Stock: only {{ v.stock }} left</p>
-                                      {% endif %}
-                                      <a href="{% url 'add_to_cart' v.id %}" class="btn btn-sm btn-success">Add to Cart</a>
-                                  {% endif %}
-                              {% endif %}
-                          </div>
-                      </div>
-                  </div>
-              {% empty %}
-                  <p class="text-muted">No variants available</p>
-              {% endfor %}
+          <h2 class="text-xl font-semibold mb-3">Available Variants</h2>
+          <div class="space-y-4">
+            {% for v in variants %}
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center p-4 bg-gray-50 rounded-xl shadow hover:shadow-lg transition">
+              <div>
+                <p class="font-semibold text-gray-800">{{ v.color }} | {{ v.size }}</p>
+                {% with discount=v.product.get_best_offer %}
+                  {% if discount > 0 %}
+                    <p class="text-gray-400 line-through">₹{{ v.price }}</p>
+                    <p class="font-bold text-green-600">
+                      ₹{{ v.get_discounted_price }}
+                      <span class="bg-red-500 text-white px-2 py-0.5 rounded ml-2 text-xs">-{{ discount }}%</span>
+                    </p>
+                  {% else %}
+                    <p class="font-bold text-gray-800">₹{{ v.price }}</p>
+                  {% endif %}
+                {% endwith %}
+              </div>
+              <div class="mt-3 md:mt-0 text-right">
+                {% if v.id in cart_items %}
+                  <a href="{% url 'cart_view' %}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">Go to Cart</a>
+                {% else %}
+                  {% if v.stock == 0 %}
+                    <button class="px-4 py-2 bg-gray-400 text-white rounded-lg cursor-not-allowed">Out of Stock</button>
+                  {% else %}
+                    {% if v.stock <= 10 %}
+                      <p class="bg-red-500 text-white px-2 py-1 rounded mb-2 text-xs">Limited Stock: {{ v.stock }} left</p>
+                    {% endif %}
+                    <a href="{% url 'add_to_cart' v.id %}" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">Add to Cart</a>
+                  {% endif %}
+                {% endif %}
+              </div>
+            </div>
+            {% empty %}
+              <p class="text-gray-500">No variants available</p>
+            {% endfor %}
           </div>
 
           <!-- Wishlist -->
           <div class="mt-4">
-              {% if in_wishlist %}
-                  <a href="{% url 'wishlist_view' %}" class="btn btn-outline-primary">Go to Wishlist</a>
-              {% else %}
-                  <a href="{% url 'add_to_wishlist' product.pk %}" class="btn btn-outline-danger">Add to Wishlist</a>
-              {% endif %}
+            {% if in_wishlist %}
+              <a href="{% url 'wishlist_view' %}" class="px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition">Go to Wishlist</a>
+            {% else %}
+              <a href="{% url 'add_to_wishlist' product.pk %}" class="px-4 py-2 border border-red-500 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition">Add to Wishlist</a>
+            {% endif %}
           </div>
+        </div>
       </div>
     </div>
 
-    <!-- ================== REVIEW & RATING SECTION ================== -->
-    <div class="review-section mt-5">
-        <h3 class="fw-bold text-center mb-4">Customer Reviews & Ratings</h3>
+    <!-- Review Section -->
+    <div class="mt-10 bg-white p-6 rounded-xl shadow">
+      <h2 class="text-2xl font-bold text-center mb-6">Customer Reviews & Ratings</h2>
 
-        <!-- Average Rating Display -->
-        <div class="text-center mb-4">
-            <h4>Average Rating: 
-                <span class="text-warning">{{ product.avg_rating|floatformat:1 }} ★</span>
-                <small class="text-muted">({{ product.rating_count }} reviews)</small>
-            </h4>
-        </div>
+      <!-- Average Rating -->
+      <div class="text-center mb-6">
+        <h3 class="text-xl">Average Rating: <span class="text-yellow-400">{{ product.avg_rating|floatformat:1 }} ★</span> 
+        <span class="text-gray-500">({{ product.rating_count }} reviews)</span></h3>
+      </div>
 
-        <!-- Messages -->
-        <!-- Display Success Messages -->
-            {% for msg in messages %}
-                {% if messages.success %}
-                    <div class="alert alert-success">{{ msg.success }}</div>
-                {% endif %}
-                {% if messages.error %}
-                    <div class="alert alert-danger">{{ msg.error }}</div>
-                {% endif %}
+      <!-- Review Form -->
+      {% if user.is_authenticated %}
+        <div class="mb-6">
+        <form method="POST" action="">
+            {% csrf_token %}
+            
+            <div class="text-center mb-4">
+            <label class="font-semibold mb-2 block text-lg">Rate this product:</label>
+            <div class="flex justify-center flex-row-reverse space-x-1">
+            {% for i in "54321" %}
+                <input type="radio" name="rating" id="star{{ i }}" value="{{ i }}" class="hidden peer">
+                <label for="star{{ i }}" 
+                    class="text-3xl cursor-pointer text-gray-300 hover:text-yellow-400 
+                            peer-checked:text-yellow-400 
+                            transition-transform transform hover:scale-125">
+                ★
+                </label>
             {% endfor %}
+            </div>
+            </div>
 
-        <!-- Display Error Messages -->
-            {% for msg in messages %}
-                <div class="alert alert-danger">{{ msg }}</div>
-            {% endfor %}
-
-        <!-- Review Submission -->
-        {% if user.is_authenticated %}
-        <div class="mb-4">
-            <form method="POST" action="">
-                {% csrf_token %}
-                <div class="text-center mb-2">
-                    <label class="fw-semibold d-block mb-2">Rate this product:</label>
-                    <div class="stars">
-                        <input type="radio" name="rating" value="5" id="star5"><label for="star5">★</label>
-                        <input type="radio" name="rating" value="4" id="star4"><label for="star4">★</label>
-                        <input type="radio" name="rating" value="3" id="star3"><label for="star3">★</label>
-                        <input type="radio" name="rating" value="2" id="star2"><label for="star2">★</label>
-                        <input type="radio" name="rating" value="1" id="star1"><label for="star1">★</label>
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <textarea name="comment" rows="4" class="form-control" placeholder="Write your review here...">{{ request.POST.comment }}</textarea>
-                </div>
-                <div class="text-center">
-                    <button type="submit" class="btn btn-success">Submit Review</button>
-                </div>
-            </form>
+            <textarea name="comment" rows="4" class="w-full border border-gray-300 rounded-md p-2 mb-4" placeholder="Write your review here...">{{ request.POST.comment }}</textarea>
+            <div class="text-center">
+            <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition">Submit Review</button>
+            </div>
+        </form>
         </div>
         {% else %}
-        <p class="text-center">
-            <a href="{% url 'login' %}?next={{ request.path }}">Login</a> to write a review.
-        </p>
+        <p class="text-center"> <a href="{% url 'login' %}?next={{ request.path }}" class="text-blue-600 underline">Login</a> to write a review.</p>
         {% endif %}
 
-        <!-- Reviews List -->
-        <div class="mt-4">
-            {% if reviews %}
-                {% for r in reviews %}
-                    <div class="review-box">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h6 class="fw-bold mb-0">{{ r.user.get_full_name }}</h6>
-                            <span class="text-warning">{{ r.rating }} ★</span>
-                        </div>
-                        <p class="mb-1 mt-2">{{ r.comment }}</p>
-                        <small class="text-muted">{{ r.created_at|date:"d M Y, H:i" }}</small>
-                    </div>
-                {% endfor %}
-            {% else %}
-                <p class="text-center text-muted">No reviews yet. Be the first to review this product!</p>
-            {% endif %}
-        </div>
+      <!-- Reviews List -->
+      <div class="space-y-4">
+        {% if reviews %}
+          {% for r in reviews %}
+            <div class="border-b pb-3">
+              <div class="flex justify-between items-center mb-1">
+                <p class="font-semibold">{{ r.user.get_full_name }}</p>
+                <span class="text-yellow-400">{{ r.rating }} ★</span>
+              </div>
+              <p class="text-gray-700">{{ r.comment }}</p>
+              <small class="text-gray-400">{{ r.created_at|date:"d M Y, H:i" }}</small>
+            </div>
+          {% endfor %}
+        {% else %}
+          <p class="text-center text-gray-500">No reviews yet. Be the first to review this product!</p>
+        {% endif %}
+      </div>
     </div>
+  </div>
 </div>
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-    setTimeout(() => {
-        document.getElementById('skeleton-content').style.display = 'none';
-        document.getElementById('real-content').style.display = 'block';
-    }, 1000);
+  setTimeout(() => {
+    document.getElementById('skeleton-content').classList.add('hidden');
+    document.getElementById('real-content').classList.remove('hidden');
+  }, 800);
 
-    const mainImg = document.getElementById("main-product-image");
-    const thumbs = document.querySelectorAll(".thumb-img");
+  const mainImg = document.getElementById("main-product-image");
+  const thumbs = document.querySelectorAll(".thumb-img");
 
-    thumbs.forEach(thumb => {
-        thumb.addEventListener("click", function() {
-            mainImg.src = this.src;
-            thumbs.forEach(t => t.classList.remove("border-primary"));
-            this.classList.add("border-primary");
-        });
+  thumbs.forEach(thumb => {
+    thumb.addEventListener("click", function() {
+      mainImg.src = this.src;
+      thumbs.forEach(t => t.classList.remove("border-blue-600"));
+      this.classList.add("border-blue-600");
     });
+  });
+});
+document.addEventListener("DOMContentLoaded", function() {
+  const mainImg = document.getElementById("main-product-image");
+  const thumbs = document.querySelectorAll(".thumb-img");
 
-    mainImg.addEventListener("mousemove", function(e) {
-        const { left, top, width, height } = mainImg.getBoundingClientRect();
-        const x = ((e.pageX - left) / width) * 100;
-        const y = ((e.pageY - top) / height) * 100;
-        mainImg.style.transformOrigin = `${x}% ${y}%`;
-        mainImg.style.transform = "scale(2)";
+  thumbs.forEach(thumb => {
+    thumb.addEventListener("click", function() {
+      mainImg.src = this.src;
+      thumbs.forEach(t => t.classList.remove("border-blue-600"));
+      this.classList.add("border-blue-600");
     });
+  });
 
-    mainImg.addEventListener("mouseleave", function() {
-        mainImg.style.transformOrigin = "center center";
-        mainImg.style.transform = "scale(1)";
-    });
+  // Advanced zoom
+  mainImg.addEventListener("mousemove", function(e) {
+    const rect = mainImg.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    mainImg.style.transformOrigin = `${x}% ${y}%`;
+    mainImg.style.transform = "scale(2.2)"; // Stronger zoom
+  });
+
+  mainImg.addEventListener("mouseleave", function() {
+    mainImg.style.transformOrigin = "center center";
+    mainImg.style.transform = "scale(1)";
+  });
 });
 </script>
 {% endblock %}

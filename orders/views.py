@@ -21,7 +21,7 @@ from wallet.models import Wallet, WalletTransaction
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse, HttpResponseBadRequest
-from coupons.models import Coupon
+from coupons.models import Coupon, CouponUsage
 from django.core.paginator import Paginator
 from decimal import Decimal
 from django.db.models import Sum
@@ -92,12 +92,12 @@ def checkout(request):
     if coupon_id:
         try:
             coupon = Coupon.objects.get(code=coupon_id, active=True)
-            if coupon.is_valid() and (coupon.min_purchase is None or subtotal >= coupon.min_purchase):
+            if coupon.is_valid():
                 discount = (subtotal * Decimal(str(coupon.discount))) / Decimal("100")
                 if discount > subtotal:
                     discount = subtotal
             else:
-                error['coupon'] = "Invalid coupon or minimum purchase not met."
+                error['coupon'] = "Coupon is expired or inactive."
                 coupon = None
                 discount = Decimal("0.00")
                 request.session.pop("coupon_id", None)
@@ -494,14 +494,14 @@ def admin_approve_reject_cancellation(request, item_id, action):
 
             if not refund_exists:
                 # Base refund: item price + item tax
-                item_price_total = Decimal(item.price) * item.quantity  # Use OrderItem price (could contain offer discount)
+                item_price_total = Decimal(item.price) * item.quantity
                 item_tax = getattr(item, "tax", Decimal("0.00"))
                 refund_amount = (item_price_total + item_tax).quantize(Decimal("0.01"))
 
                 remaining_items = order.items.exclude(status="cancelled").exclude(item_id=item.item_id)
 
                 if not remaining_items.exists():
-                    # 🧾 Last item cancelled → include delivery charge in refund
+                    # 🧾 Last item cancelled → include delivery charge
                     delivery_charge = Decimal(int(config("DELIVERY_CHARGE")))
                     refund_amount += delivery_charge
                     refund_amount = refund_amount.quantize(Decimal("0.01"))
@@ -528,11 +528,37 @@ def admin_approve_reject_cancellation(request, item_id, action):
                     description=f"Refund for cancelled product '{item.variant.product.name}' (x{item.quantity})"
                 )
 
+                # --- Step 5: Coupon Refund (if applicable) ---
+                if order.coupon and not order.coupon_refunded:
+                    from coupons.models import CouponUsage
+
+                    usage = CouponUsage.objects.filter(
+                        user=order.user,
+                        coupon=order.coupon,
+                        order=order,
+                        refunded=False
+                    ).first()
+
+                    if usage:
+                        # Refund coupon discount to wallet
+                        wallet.balance += order.discount
+                        wallet.save()
+
+                        # Mark coupon as refunded
+                        usage.refunded = True
+                        usage.save()
+                        order.coupon_refunded = True
+                        order.save(update_fields=["coupon_refunded"])
+
+                        # Allow user to reuse coupon again
+                        order.coupon.used_by.remove(order.user)
+
     elif action == "reject":
         item.cancellation_approved = False
 
     item.save()
     return redirect("admin_cancellation_requests")
+
 
 
 @staff_member_required(login_url="admin_login")
@@ -917,4 +943,38 @@ def retry_payment(request, order_id):
     order = get_object_or_404(Order, order_id=order_id)
     # redirect to the same Razorpay payment page
     return redirect("start_payment", order_id=order.order_id)
+
+@login_required(login_url='admin_login')
+@never_cache
+def apply_coupon_and_create_order(user, coupon_code, cart_total, **other_order_data):
+    coupon = None
+    discount_amount = 0
+    try:
+        coupon = Coupon.objects.get(code=coupon_code)
+    except Coupon.DoesNotExist:
+        coupon = None
+
+    if coupon and coupon.can_user_use(user):
+        discount_amount = (cart_total * coupon.discount) / 100
+        grand_total = cart_total - discount_amount
+    else:
+        grand_total = cart_total
+
+    # create the order atomically
+    with transaction.atomic():
+        order = Order.objects.create(
+            user=user,
+            grand_total=grand_total,
+            discount=discount_amount,
+            coupon=coupon if coupon else None,
+            # other fields...
+        )
+
+        if coupon:
+            # record usage
+            CouponUsage.objects.create(user=user, coupon=coupon, order=order)
+            coupon.used_by.add(user)
+            coupon.total_uses = models.F('total_uses') + 1
+            coupon.save(update_fields=['total_uses'])
+    return order
 

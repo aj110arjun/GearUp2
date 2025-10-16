@@ -22,13 +22,6 @@
         {% endif %}
     </div>
     <div class="mb-3">
-        <label class="form-label">Minimum Purchase</label>
-        <input type="number" name="min_purchase" class="form-control" value="{{ coupon.min_purchase|default:'' }}" step="0.01">
-        {% if error.min_purchase %}
-            <span class="text-danger">{{error.min_purchase}}</span>
-        {% endif %}
-    </div>
-    <div class="mb-3">
         <label class="form-label">Valid From</label>
         <input type="date" name="valid_from" class="form-control" 
             value="{{ coupon.valid_from|date:'Y-m-d'|default:'' }}">

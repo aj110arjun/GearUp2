@@ -1,88 +1,84 @@
-{% extends 'user/base.html' %}
+{% extends "user/base.html" %}
 {% block title %} {% if address %}Edit Address{% else %}Add Address{% endif %} {% endblock title %}
+
 {% block content %}
-<style>
-  /* Skeleton loading bars for form fields */
-  .skeleton-bar {
-    background-color: #e2e2e2;
-    height: 40px;
-    border-radius: 6px;
-    margin: 12px 0;
-    animation: skeleton-loading 1.2s infinite linear;
-  }
-  .skeleton-checkbox {
-    width: 180px;
-    height: 24px;
-    margin: 20px 0;
-    background-color: #e2e2e2;
-    border-radius: 12px;
-    animation: skeleton-loading 1.2s infinite linear;
-  }
-  .skeleton-btn {
-    width: 100px;
-    height: 40px;
-    margin-top: 20px;
-    background-color: #e2e2e2;
-    border-radius: 6px;
-    animation: skeleton-loading 1.2s infinite linear;
-  }
-  @keyframes skeleton-loading {
-      0% { opacity: 1; }
-      50% { opacity: 0.4; }
-      100% { opacity: 1; }
-  }
-</style>
+<div class="max-w-3xl mx-auto py-8 px-4">
 
-<div class="container my-4">
-
-  <!-- Skeleton form (visible initially) -->
-  <div id="skeleton-form">
-    <div class="skeleton-bar"></div>
-    <div class="skeleton-bar"></div>
-    <div class="skeleton-bar"></div>
-    <div class="skeleton-bar"></div>
-    <div class="skeleton-bar"></div>
-    <div class="skeleton-bar"></div>
-    <div class="skeleton-bar"></div>
-    <div class="skeleton-bar"></div>
-    <div class="skeleton-checkbox"></div>
-    <div class="skeleton-btn"></div>
+  <!-- Skeleton Form -->
+  <div id="skeleton-form" class="space-y-4">
+    {% for _ in "123456789" %}
+      <div class="h-10 bg-gray-300 rounded animate-pulse"></div>
+    {% endfor %}
+    <div class="h-6 w-48 bg-gray-300 rounded-full animate-pulse"></div>
+    <div class="h-10 w-32 bg-gray-300 rounded animate-pulse"></div>
   </div>
 
-  <!-- Real form (hidden initially) -->
-  <div id="real-form" style="display:none;">
-    <h2>{% if address %}Edit Address{% else %}Add Address{% endif %}</h2>
+  <!-- Real Form -->
+  <div id="real-form" class="hidden bg-white shadow rounded-lg p-6 space-y-4">
+    <h2 class="text-2xl font-bold">{% if address %}Edit Address{% else %}Add Address{% endif %}</h2>
+
     {% if error %}
-        <div class="alert alert-danger">{{ error }}</div>
+      <div class="bg-red-100 text-red-700 px-4 py-2 rounded">{{ error }}</div>
     {% endif %}
-    <form method="post">
-        {% csrf_token %}
-        <input type="hidden" name="next" value="{{ next }}">
-        <input type="text" name="full_name" placeholder="Full Name" class="form-control mb-2" value="{{ address.full_name|default:'' }}" required>
-        <input type="text" name="phone" placeholder="Phone Number" class="form-control mb-2" value="{{ address.phone|default:'' }}" required>
-        <input type="text" name="address_line_1" placeholder="Address Line 1" class="form-control mb-2" value="{{ address.address_line_1|default:'' }}" required>
-        <input type="text" name="address_line_2" placeholder="Address Line 2" class="form-control mb-2" value="{{ address.address_line_2|default:'' }}">
-        <input type="text" name="city" placeholder="City" class="form-control mb-2" value="{{ address.city|default:'' }}" required>
-        <input type="text" name="state" placeholder="State" class="form-control mb-2" value="{{ address.state|default:'' }}" required>
-        <input type="text" name="postal_code" placeholder="Postal Code" class="form-control mb-2" value="{{ address.postal_code|default:'' }}" required>
-        <input type="text" name="country" placeholder="Country" class="form-control mb-2" value="{{ address.country|default:'India' }}">
-        <div class="form-check form-switch mt-2">
-            <input class="form-check-input" type="checkbox" name="is_default" id="is_default"
-                {% if address.is_default %}checked{% endif %}>
-            <label class="form-check-label fw-bold" for="is_default">Set as Default Address</label>
-        </div>
-        <br>
-        <button type="submit" class="btn btn-success mt-3">Save</button>
+
+    <form method="post" class="space-y-3" novalidate>
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ next }}">
+
+      <input type="text" name="full_name" placeholder="Full Name" 
+             class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500"
+             value="{{ address.full_name|default:'' }}" required>
+
+      <input type="text" name="phone" placeholder="Phone Number" 
+             class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500"
+             value="{{ address.phone|default:'' }}" required>
+
+      <input type="text" name="address_line_1" placeholder="Address Line 1" 
+             class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500"
+             value="{{ address.address_line_1|default:'' }}" required>
+
+      <input type="text" name="address_line_2" placeholder="Address Line 2" 
+             class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500"
+             value="{{ address.address_line_2|default:'' }}">
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <input type="text" name="city" placeholder="City" 
+               class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500"
+               value="{{ address.city|default:'' }}" required>
+
+        <input type="text" name="state" placeholder="State" 
+               class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500"
+               value="{{ address.state|default:'' }}" required>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <input type="text" name="postal_code" placeholder="Postal Code" 
+               class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500"
+               value="{{ address.postal_code|default:'' }}" required>
+
+        <input type="text" name="country" placeholder="Country" 
+               class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500"
+               value="{{ address.country|default:'India' }}">
+      </div>
+
+      <div class="flex items-center mt-3">
+        <input type="checkbox" name="is_default" id="is_default" class="h-5 w-5 text-blue-600 focus:ring-blue-500 rounded"
+               {% if address.is_default %}checked{% endif %}>
+        <label for="is_default" class="ml-2 font-semibold">Set as Default Address</label>
+      </div>
+
+      <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded shadow transition">
+        Save
+      </button>
     </form>
   </div>
-
 </div>
 
 <script>
   document.addEventListener('DOMContentLoaded', function () {
       setTimeout(function () {
-          document.getElementById('skeleton-form').style.display = 'none';
-          document.getElementById('real-form').style.display = 'block';
+          document.getElementById('skeleton-form').classList.add('hidden');
+          document.getElementById('real-form').classList.remove('hidden');
       }, 1000); // Show real form after 1s simulated loading
   });
 </script>
