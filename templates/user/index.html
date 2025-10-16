@@ -1,176 +1,86 @@
 {% extends "user/base.html" %}
 {% load static %}
 {% block title %} Home {% endblock title %}
+
 {% block css %}
-<link rel="stylesheet" type="text/css" href="{% static 'css/home.css' %}">
+<!-- Remove old Bootstrap/Home.css and use Tailwind CDN in base.html head -->
 {% endblock css %}
 
 {% block content %}
-<style>
-  body {
-    background-color: #BAA991;
-    font-family: 'Segoe UI', sans-serif;
-    margin: 0;
-    padding: 0;
-  }
-  .navbar {
-    background-color: #f4f1e9;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  }
-  .navbar-brand {
-    font-weight: bold;
-    color: #6a994e !important;
-    font-size: 1.5rem;
-  }
-  .nav-link {
-    color: #333 !important;
-    font-weight: 500;
-    margin: 0 10px;
-  }
-  .nav-link:hover {
-    color: #6a994e !important;
-  }
-  .hero { background-color: #e4e1d5; }
-  .hero-img {
-    border-radius: 20px;
-    background-color: #97af78;
-    padding: 20px;
-  }
-  .section-header {
-    background-color: #b8b3b5;
-    padding: 20px;
-    text-align: center;
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: #333;
-  }
-  .card {
-    border-radius: 20px;
-    background-color: #a9b584;
-    padding: 10px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-    transition: transform 0.2s ease-in-out;
-  }
-  .card:hover { transform: translateY(-5px); }
-  .card img { border-radius: 15px; }
-  .explore-section { padding: 60px 0; }
-  .explore-card {
-    background-color: #a9b584;
-    border-radius: 20px;
-    padding: 20px;
-    margin-bottom: 20px;
-    box-shadow: 0 3px 8px rgba(0,0,0,0.1);
-  }
-  footer {
-    background-color: #5b5b5b;
-    color: white;
-    padding: 30px 0;
-    text-align: center;
-  }
-  .dynamic.container { padding: 40px 15px; }
-  @media (max-width: 768px) {
-    .navbar-nav { text-align: center; }
-    .nav-link { margin: 10px 0; }
-  }
-  .cart-product-img {
-    width: 100%;
-    height: 200px;
-    object-fit: cover;
-    border-radius: 8px;
-    margin-bottom: 10px;
-  }
-  /* Skeleton CSS */
-  .skeleton-card .skeleton-img {
-    width: 100%;
-    height: 200px;
-    background: #e2e2e2;
-    margin-bottom: 10px;
-    border-radius: 8px;
-    animation: skeleton-loading 1.2s infinite linear;
-  }
-  .skeleton-text {
-    background: #e2e2e2;
-    border-radius: 4px;
-    margin: 8px auto;
-    animation: skeleton-loading 1.2s infinite linear;
-  }
-  .skeleton-title { width: 70%; height: 18px; }
-  .skeleton-price { width: 35%; height: 16px; }
-  .skeleton-btn { width: 50%; height: 28px; background: #e2e2e2; border-radius: 6px; margin: 16px auto 0;}
-  @keyframes skeleton-loading {
-    0% { opacity: 1; }
-    50% { opacity: 0.4; }
-    100% { opacity: 1; }
-  }
-</style>
+<!-- You do NOT need any <style> block with Tailwind utility classes -->
 
 <!-- Hero Section -->
-<div class="container hero mt-4">
-  <div class="row align-items-center p-5">
-    <div class="col-md-6 ">
-      <h6>GEAR . UP</h6>
-      <h1>"Tested in the Wild, Approved by Adventurers."</h1>
-      <p>Welcome to GearUp – your ultimate companion for survival, adventure, and everything in between. 
-      Whether you're hiking through the wilderness, preparing for the unexpected, or just love the thrill of 
-      the outdoors, we’ve got the gear to keep you ready. Our collection of rugged, reliable tools and accessories 
-      is built for durability and performance, trusted by explorers, preppers, and adventurers alike. Don’t just 
-      step into nature—conquer it. Gear up, stay prepared, and never look back.</p>
-      <button class="btn btn-dark">Explore Now</button>
+<div class="max-w-7xl mx-auto hero rounded-xl bg-[#e4e1d5] mt-4">
+  <div class="flex flex-col md:flex-row items-center gap-8 p-8 md:p-12">
+    <div class="w-full md:w-1/2 space-y-4">
+      <h6 class="uppercase tracking-widest font-semibold text-green-700">GEAR . UP</h6>
+      <h1 class="text-3xl md:text-4xl font-bold leading-snug">"Tested in the Wild,<br>Approved by Adventurers."</h1>
+      <p class="text-gray-700">
+        Welcome to GearUp – your ultimate companion for survival, adventure, and everything in between.
+        Whether you're hiking through the wilderness, preparing for the unexpected, or just love the thrill of
+        the outdoors, we’ve got the gear to keep you ready. Our collection of rugged, reliable tools and accessories
+        is built for durability and performance, trusted by explorers, preppers, and adventurers alike. Don’t just
+        step into nature—conquer it. Gear up, stay prepared, and never look back.
+      </p>
+      <button class="bg-black text-white py-2 px-6 rounded-lg shadow hover:bg-gray-900 transition-all">Explore Now</button>
     </div>
-    <div class="col-md-6 text-center">
-      <div class="hero-img">
-        <img src="https://res.cloudinary.com/dhpo5iq3m/image/upload/stock-photo-male-tourist-backpack-survival-kit-forest_boht4i.webp" class="img-fluid" alt="Hero Image">
+    <div class="w-full md:w-1/2 flex justify-center">
+      <div class="overflow-hidden rounded-3xl bg-[#97af78] p-4 md:p-8">
+        <img src="https://res.cloudinary.com/dhpo5iq3m/image/upload/stock-photo-male-tourist-backpack-survival-kit-forest_boht4i.webp" class="max-h-[320px] object-cover mx-auto" alt="Hero Image">
       </div>
     </div>
   </div>
 </div>
 
-<div class="section-header text-center my-5">
-  <h5 class="text-uppercase text-muted">New Collections</h5>
-  <h2 class="fw-bold">GearUp With Us</h2>
+<div class="my-12 text-center max-w-3xl mx-auto px-2">
+  <h5 class="uppercase tracking-widest text-gray-400 mb-2">New Collections</h5>
+  <h2 class="text-3xl font-bold text-gray-800">GearUp With Us</h2>
 </div>
 
 <!-- Skeleton Loading Grid -->
-<div class="container mb-5" id="product-skeletons">
-  <div class="row g-4">
+<div class="max-w-7xl mx-auto mb-16 hidden" id="product-skeletons">
+  <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
     {% for i in "12345678" %}
-    <div class="col-6 col-md-4 col-lg-3">
-      <div class="card h-100 shadow-sm border-0 text-center skeleton-card">
-        <div class="skeleton-img"></div>
-        <div class="skeleton-text skeleton-title"></div>
-        <div class="skeleton-text skeleton-price"></div>
-        <div class="skeleton-btn"></div>
-      </div>
+    <div class="skeleton-card bg-[#a9b584] rounded-2xl p-3 flex flex-col items-center shadow relative">
+      <div class="skeleton-img w-full h-52 bg-gray-200 rounded-lg mb-3 animate-pulse"></div>
+      <div class="skeleton-text skeleton-title w-3/4 h-4 bg-gray-200 rounded mb-2 animate-pulse"></div>
+      <div class="skeleton-text skeleton-price w-1/3 h-3 bg-gray-200 rounded mb-2 animate-pulse"></div>
+      <div class="skeleton-btn w-2/4 h-7 bg-gray-200 rounded mt-4 animate-pulse"></div>
     </div>
     {% endfor %}
   </div>
 </div>
 
 <!-- Product Grid (hidden initially, revealed after loading) -->
-<div class="container mb-5" id="product-grid" style="display: none;">
-  <div class="row g-4">
+<div class="max-w-7xl mx-auto mb-16" id="product-grid">
+  <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
     {% for product in products %}
-      <div class="col-6 col-md-4 col-lg-3">
-        <div class="card h-100 shadow-sm border-0 text-center">
-          <img src="{{ product.product.image.url }}" class="card-img-top cart-product-img" alt="{{ product.name }}">
-          <div class="card-body">
-            <h6 class="card-title text-truncate">{{ product.product.name | title }}</h6>
-            <div class="fw-bold text-success">₹{{ product.price }}</div>
-            <a href="{% url 'product_detail' product.product.product_id %}" class="btn btn-sm btn-dark mt-3">View</a>
-          </div>
+      <div class="card bg-[#a9b584] rounded-2xl shadow-lg p-2 flex flex-col h-full text-center transition hover:-translate-y-1 hover:shadow-2xl duration-150">
+        <img src="{{ product.product.image.url }}" class="cart-product-img w-full h-52 object-cover rounded-lg mb-2" alt="{{ product.name }}">
+        <div class="flex-1 flex flex-col justify-between px-1">
+          <h6 class="card-title font-semibold text-lg truncate mb-1">{{ product.product.name|title }}</h6>
+          <div class="text-xl font-bold text-green-600 mb-2">₹{{ product.price }}</div>
+          <a href="{% url 'product_detail' product.product.product_id %}"
+             class="mt-auto inline-block py-2 px-4 text-white bg-black rounded-lg hover:bg-gray-900 text-sm transition">
+            View
+          </a>
         </div>
       </div>
     {% endfor %}
   </div>
 </div>
 
-<!-- JavaScript to fake the loading effect -->
 <script>
+  // Use Tailwind's hidden/block utilities. Loading first, grid later.
   document.addEventListener('DOMContentLoaded', function() {
     setTimeout(function() {
-      document.getElementById('product-skeletons').style.display = 'none';
-      document.getElementById('product-grid').style.display = 'block';
+      document.getElementById('product-skeletons').classList.add('hidden');
+      document.getElementById('product-grid').classList.remove('hidden');
     }, 1000); // 1s simulated delay; adjust as needed
+    // On page load, show skeleton and hide grid.
+    document.getElementById('product-grid').classList.add('hidden');
+    document.getElementById('product-skeletons').classList.remove('hidden');
   });
 </script>
+
 {% endblock content %}

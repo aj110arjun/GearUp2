@@ -27,6 +27,7 @@ class Order(models.Model):
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
     discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     coupon = models.ForeignKey(Coupon, null=True, blank=True, on_delete=models.SET_NULL) 
+    coupon_refunded = models.BooleanField(default=False)
     payment_method = models.CharField(max_length=20, choices=PAYMENT_METHODS, default="COD")
     payment_status = models.CharField(
         max_length=20,

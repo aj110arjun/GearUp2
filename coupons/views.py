@@ -89,7 +89,6 @@ def admin_coupon_add(request):
     form_data = {
         "code": "",
         "discount": "",
-        "min_purchase": "",
         "active": False,
         "valid_from": "",
         "valid_to": "",
@@ -98,7 +97,6 @@ def admin_coupon_add(request):
     if request.method == "POST":
         code = request.POST.get("code", "").strip()
         discount = request.POST.get("discount", "")
-        min_purchase = request.POST.get("min_purchase", "")
         active = request.POST.get("active") == "on"
         valid_from_str = request.POST.get("valid_from", "")
         valid_to_str = request.POST.get("valid_to", "")
@@ -106,7 +104,6 @@ def admin_coupon_add(request):
         form_data.update({
             "code": code,
             "discount": discount,
-            "min_purchase": min_purchase,
             "active": active,
             "valid_from": valid_from_str,
             "valid_to": valid_to_str,
@@ -115,6 +112,7 @@ def admin_coupon_add(request):
         valid_from = parse_datetime(valid_from_str) if valid_from_str else None
         valid_to = parse_datetime(valid_to_str) if valid_to_str else None
 
+        # --- Validations ---
         if not code:
             error["code"] = "Coupon code is required"
         elif Coupon.objects.filter(code=code).exists():
@@ -130,16 +128,6 @@ def admin_coupon_add(request):
             except ValueError:
                 error["discount"] = "Discount must be a valid number"
 
-        if not min_purchase:
-            error["min_purchase"] = "Minimum purchase amount is required"
-        else:
-            try:
-                min_pur_val = int(min_purchase)
-                if min_pur_val < 100:
-                    error["min_purchase"] = "Minimum purchase amount must be greater than 100"
-            except ValueError:
-                error["min_purchase"] = "Minimum purchase must be a valid number"
-
         if not valid_from:
             error["valid_from"] = "Valid from date/time is required"
         if not valid_to:
@@ -149,11 +137,11 @@ def admin_coupon_add(request):
             if valid_from >= valid_to:
                 error["valid_to"] = "'Valid to' must be later than 'Valid from'"
 
+        # --- Save coupon if no errors ---
         if not error:
             Coupon.objects.create(
                 code=code,
                 discount=Decimal(discount),
-                min_purchase=Decimal(min_purchase) if min_purchase else None,
                 active=active,
                 valid_from=valid_from,
                 valid_to=valid_to
@@ -165,6 +153,7 @@ def admin_coupon_add(request):
         "error": error,
         "form_data": form_data,
     })
+
 
 @staff_member_required(login_url='admin_login')
 @never_cache

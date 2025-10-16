@@ -3,193 +3,139 @@
 {% block title %} My Wallet {% endblock title %}
 
 {% block content %}
-<style>
-  /* Skeleton Loading CSS */
-  .skeleton {
-    background-color: #e2e2e2;
-    border-radius: 8px;
-    animation: skeleton-loading 1.2s infinite linear;
-  }
-  .skeleton-text {
-    width: 80%;
-    height: 20px;
-    margin: 12px auto;
-    border-radius: 4px;
-  }
-  .skeleton-balance {
-    width: 150px;
-    height: 60px;
-    margin: 20px auto 10px;
-  }
-  .skeleton-btn {
-    width: 140px;
-    height: 48px;
-    margin: 0 auto;
-  }
-  .skeleton-table-row {
-    height: 48px;
-    margin: 10px 0;
-    border-radius: 6px;
-  }
-  @keyframes skeleton-loading {
-    0% { opacity: 1; }
-    50% { opacity: 0.4;}
-    100% { opacity: 1;}
-  }
-</style>
+<script src="https://cdn.tailwindcss.com"></script>
 
-<div class="container py-5">
+<div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8 font-sans select-none">
 
-  <!-- Skeleton wallet card -->
-  <div id="skeleton-wallet" style="display: block;">
-    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
-      <div class="skeleton skeleton-text" style="width:150px; height:36px;"></div>
-      <div class="skeleton skeleton-btn"></div>
-    </div>
-    <div class="row mb-4">
-      <div class="col-md-6 col-lg-4 mx-auto">
-        <div class="card border-0 shadow text-center">
-          <div class="card-body p-4">
-            <div class="skeleton skeleton-balance"></div>
-            <div class="skeleton skeleton-text" style="width: 120px; height: 18px; margin: 10px auto;"></div>
-          </div>
-        </div>
+  <!-- 🔹 Page Header -->
+  <div class="flex flex-col md:flex-row justify-between items-center mb-10">
+    <h2 class="text-3xl font-extrabold text-gray-800 mb-4 md:mb-0">
+      💰 My Wallet
+    </h2>
+    <a href="{% url 'add_money' %}" 
+       class="inline-flex items-center bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl shadow-md transition transform hover:scale-105">
+      <i class="bi bi-plus-circle mr-2 text-lg"></i> Add Money
+    </a>
+  </div>
+
+  <!-- 🔹 Error Message -->
+  {% if error %}
+  <div class="max-w-md mx-auto my-4">
+    <p class="text-red-600 text-center font-semibold bg-red-100 border border-red-200 rounded-lg py-2">
+      {{ error.amount }}
+    </p>
+  </div>
+  {% endif %}
+
+  <!-- 🔹 Wallet Balance Card -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 justify-center mb-10">
+    <div class="bg-gradient-to-br from-green-500 to-emerald-600 text-white rounded-2xl shadow-xl p-8 text-center transform hover:scale-105 transition">
+      <div class="text-5xl mb-4">
+        <i class="bi bi-wallet2"></i>
       </div>
-    </div>
-    <div class="card border-0 shadow-sm mb-5">
-      <div class="card-header bg-light text-primary d-flex align-items-center">
-        <div class="skeleton skeleton-text" style="width: 180px; height: 24px;"></div>
-      </div>
-      <div class="card-body">
-        <div class="table-responsive">
-          <table class="table align-middle table-bordered mb-0 bg-white">
-            <tbody>
-              {% for _ in "12345" %}
-              <tr>
-                <td><div class="skeleton skeleton-table-row"></div></td>
-                <td><div class="skeleton skeleton-table-row"></div></td>
-                <td><div class="skeleton skeleton-table-row"></div></td>
-                <td><div class="skeleton skeleton-table-row"></div></td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <h5 class="text-lg opacity-80 mb-2">Current Balance</h5>
+      <h2 class="text-4xl font-extrabold">
+        ₹{{ wallet.balance|intcomma }}
+      </h2>
     </div>
   </div>
 
-  <!-- Real wallet content -->
-  <div id="real-wallet" style="display: none;">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h2 class="fw-bold mb-0">💰 My Wallet</h2>
-      <a href="{% url 'add_money' %}" class="btn btn-success btn-lg px-4 py-2 shadow-sm">
-          <i class="bi bi-plus-circle me-2"></i>Add Money
-      </a>
-    </div>
-    {% if error %}
-        <div class="row mb-3">
-            <div class="col-md-6 col-lg-4 mx-auto">
-                <div class="text-danger text-center py-2 mb-0">
-                    {{ error.amount }}
-                </div>
-            </div>
-        </div>
-    {% endif %}
-    <!-- Wallet Balance Card -->
-    <div class="row mb-4">
-        <div class="col-md-6 col-lg-4 mx-auto">
-            <div class="card border-0 shadow text-center">
-                <div class="card-body p-4">
-                    <div class="display-4 mb-2 text-success"><i class="bi bi-wallet2"></i></div>
-                    <h5 class="text-muted mb-1">Current Balance</h5>
-                    <h2 class="fw-bold text-success mb-1">₹{{ wallet.balance|intcomma }}</h2>
-                </div>
-            </div>
-        </div>
+  <!-- 🔹 Transaction Section -->
+  <div class="bg-white rounded-2xl shadow-md p-6 md:p-8 max-w-5xl mx-auto">
+    <div class="flex items-center mb-6 space-x-3 text-blue-600 font-semibold text-lg">
+      <i class="bi bi-clock-history"></i>
+      <span>Transaction History</span>
     </div>
 
-    <!-- Transactions -->
-    <div class="card border-0 shadow-sm mb-5">
-        <div class="card-header bg-light text-primary d-flex align-items-center">
-            <i class="bi bi-clock-history me-2"></i>
-            <h5 class="mb-0">Transaction History</h5>
-        </div>
-        <div class="card-body">
-            {% if page_obj %}
-                <div class="table-responsive">
-                    <table class="table align-middle table-bordered mb-0 bg-white">
-                        <thead class="table-light">
-                            <tr>
-                                <th scope="col"><i class="bi bi-calendar-date me-1"></i>Date</th>
-                                <th scope="col"><i class="bi bi-arrows-collapse-vertical me-1"></i>Type</th>
-                                <th scope="col"><i class="bi bi-cash-coin me-1"></i>Amount (₹)</th>
-                                <th scope="col"><i class="bi bi-journal-text me-1"></i>Description</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for txn in page_obj %}
-                                <tr>
-                                    <td>{{ txn.created_at|date:"d M Y, H:i" }}</td>
-                                    <td>
-                                        {% if txn.transaction_type == "CREDIT" %}
-                                            <span class="badge bg-success"><i class="bi bi-arrow-down-circle me-1"></i>CREDIT</span>
-                                        {% else %}
-                                            <span class="badge bg-danger"><i class="bi bi-arrow-up-circle me-1"></i>DEBIT</span>
-                                        {% endif %}
-                                    </td>
-                                    <td class="fw-bold {% if txn.transaction_type == 'CREDIT' %}text-success{% else %}text-danger{% endif %}">
-                                        {% if txn.transaction_type == "CREDIT" %}+{% else %}-{% endif %}₹{{ txn.amount }}
-                                    </td>
-                                    <td>{{ txn.description }}</td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                <!-- Pagination controls -->
-                <nav aria-label="Transaction pages" class="mt-4">
-                    <ul class="pagination justify-content-center mb-0">
-                        {% if page_obj.has_previous %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
-                            </li>
-                        {% else %}
-                            <li class="page-item disabled"><span class="page-link">Previous</span></li>
-                        {% endif %}
-                        {% for num in page_obj.paginator.page_range %}
-                            {% if page_obj.number == num %}
-                                <li class="page-item active"><span class="page-link">{{ num }}</span></li>
-                            {% elif num > page_obj.number|add:'-2' and num < page_obj.number|add:'2' %}
-                                <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
-                            {% endif %}
-                        {% endfor %}
-                        {% if page_obj.has_next %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
-                            </li>
-                        {% else %}
-                            <li class="page-item disabled"><span class="page-link">Next</span></li>
-                        {% endif %}
-                    </ul>
-                </nav>
-            {% else %}
-                <div class="text-center text-muted py-5">
-                    <i class="bi bi-emoji-frown display-3 mb-3"></i>
-                    <p class="mb-0 fs-5">No transactions yet.</p>
-                </div>
-            {% endif %}
-        </div>
+    {% if page_obj %}
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-200 text-sm">
+        <thead class="bg-gray-100 text-gray-600 uppercase tracking-wider">
+          <tr>
+            <th class="px-6 py-3 text-left font-semibold">Date</th>
+            <th class="px-6 py-3 text-left font-semibold">Type</th>
+            <th class="px-6 py-3 text-left font-semibold">Amount (₹)</th>
+            <th class="px-6 py-3 text-left font-semibold">Description</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 text-gray-700">
+          {% for txn in page_obj %}
+          <tr class="hover:bg-gray-50 transition">
+            <td class="px-6 py-3 whitespace-nowrap">{{ txn.created_at|date:"d M Y, H:i" }}</td>
+            <td class="px-6 py-3 whitespace-nowrap">
+              {% if txn.transaction_type == "CREDIT" %}
+              <span class="inline-flex items-center bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-semibold">
+                <i class="bi bi-arrow-down-circle mr-1"></i> CREDIT
+              </span>
+              {% else %}
+              <span class="inline-flex items-center bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs font-semibold">
+                <i class="bi bi-arrow-up-circle mr-1"></i> DEBIT
+              </span>
+              {% endif %}
+            </td>
+            <td class="px-6 py-3 font-semibold {% if txn.transaction_type == 'CREDIT' %}text-green-600{% else %}text-red-600{% endif %}">
+              {% if txn.transaction_type == "CREDIT" %}+{% else %}-{% endif %}₹{{ txn.amount|intcomma }}
+            </td>
+            <td class="px-6 py-3 text-gray-600">{{ txn.description }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
+
+    <!-- 🔹 Pagination -->
+    <div class="mt-8 flex justify-center">
+      <ul class="flex space-x-2 text-sm">
+        {% if page_obj.has_previous %}
+        <li>
+          <a href="?page={{ page_obj.previous_page_number }}" class="px-4 py-2 border rounded-lg hover:bg-blue-600 hover:text-white transition">
+            Previous
+          </a>
+        </li>
+        {% else %}
+        <li><span class="px-4 py-2 border rounded-lg text-gray-400 cursor-not-allowed">Previous</span></li>
+        {% endif %}
+        
+        {% for num in page_obj.paginator.page_range %}
+          {% if page_obj.number == num %}
+          <li><span class="px-4 py-2 border-b-2 border-blue-600 font-semibold">{{ num }}</span></li>
+          {% elif num > page_obj.number|add:'-2' and num < page_obj.number|add:'2' %}
+          <li><a href="?page={{ num }}" class="px-4 py-2 border rounded-lg hover:bg-blue-600 hover:text-white transition">{{ num }}</a></li>
+          {% endif %}
+        {% endfor %}
+        
+        {% if page_obj.has_next %}
+        <li>
+          <a href="?page={{ page_obj.next_page_number }}" class="px-4 py-2 border rounded-lg hover:bg-blue-600 hover:text-white transition">
+            Next
+          </a>
+        </li>
+        {% else %}
+        <li><span class="px-4 py-2 border rounded-lg text-gray-400 cursor-not-allowed">Next</span></li>
+        {% endif %}
+      </ul>
+    </div>
+    {% else %}
+    <div class="text-center py-12 text-gray-500">
+      <i class="bi bi-emoji-frown text-5xl mb-3"></i>
+      <p class="text-lg">No transactions yet.</p>
+    </div>
+    {% endif %}
+  </div>
 </div>
 
+<!-- 🔹 Smooth Skeleton Loader -->
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Simulate loading delay
-    setTimeout(function() {
-      document.getElementById('skeleton-wallet').style.display = 'none';
-      document.getElementById('real-wallet').style.display = 'block';
-    }, 1000); // 1 second delay
+  document.addEventListener("DOMContentLoaded", function() {
+    const skeleton = document.getElementById("skeleton-wallet");
+    const real = document.getElementById("real-wallet");
+    if (skeleton && real) {
+      setTimeout(() => {
+        skeleton.style.display = "none";
+        real.style.display = "block";
+      }, 800);
+    }
   });
 </script>
+
 {% endblock %}

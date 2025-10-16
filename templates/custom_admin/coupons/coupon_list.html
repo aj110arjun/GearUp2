@@ -15,7 +15,6 @@
             <th style="padding:10px; border-bottom:1px solid #ddd;">#</th>
             <th style="padding:10px; border-bottom:1px solid #ddd;">Code</th>
             <th style="padding:10px; border-bottom:1px solid #ddd;">Discount</th>
-            <th style="padding:10px; border-bottom:1px solid #ddd;">Min Purchase</th>
             <th style="padding:10px; border-bottom:1px solid #ddd;">Active</th>
             <th style="padding:10px; border-bottom:1px solid #ddd;">Valid From</th>
             <th style="padding:10px; border-bottom:1px solid #ddd;">Valid To</th>
@@ -28,13 +27,6 @@
             <td style="padding:10px;">{{ forloop.counter }}</td>
             <td style="padding:10px;">{{ coupon.code }}</td>
             <td style="padding:10px;">{{ coupon.discount }}%</td>
-            <td style="padding:10px;">
-                {% if coupon.min_purchase %}
-                    ₹{{ coupon.min_purchase }}
-                {% else %}
-                    None
-                {% endif %}
-            </td>
             <td style="padding:10px;">
                 {% if coupon.is_expired %}
                     <span class="badge bg-warning">Expired</span>

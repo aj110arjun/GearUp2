@@ -1,33 +1,32 @@
 {% extends "user/base.html" %}
-{% load static %}
-{% block title %} Payment Failed {% endblock title %}
+{% block title %}Payment Failed{% endblock title %}
+
 {% block content %}
-<div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
-  <div class="card shadow-lg border-0 p-4 text-center" style="max-width: 500px; border-radius: 20px;">
-    
-      
-      <h2 class="fw-bold text-danger">Payment Failed</h2>
-      <p class="text-muted">Unfortunately, we could not process your payment.</p>
-      
-      <!-- Order Info -->
-      <div class="mt-3 text-start">
-          <p class="mb-1"><strong>Order ID:</strong> <span class="text-dark">#{{ order.order_code }}</span></p>
-      </div>
-      
-      <p class="mt-2">Please try again or use a different payment method.</p>
-      
-      <!-- Action Buttons -->
-      <div class="mt-4 d-grid gap-2">
-          <a href="{% url 'start_payment' order.order_id %}" 
-             class="btn btn-lg btn-warning w-100" style="border-radius: 12px;">
-             Retry Payment
-          </a>
-          <a href="{% url 'order_detail' order.order_id %}" 
-             class="btn btn-lg btn-secondary w-100" style="border-radius: 12px;">
-             Go to My Orders
-          </a>
-      </div>
-      
+<div class="min-h-[80vh] flex items-center justify-center">
+  <div class="bg-white shadow-lg p-8 text-center rounded-2xl max-w-md w-full">
+
+    <h2 class="text-2xl font-bold text-red-600 mb-2">Payment Failed</h2>
+    <p class="text-gray-600 mb-4">Unfortunately, we could not process your payment.</p>
+
+    <!-- Order Info -->
+    <div class="text-left mb-4">
+      <p><span class="font-semibold">Order ID:</span> <span class="text-gray-800">#{{ order.order_code }}</span></p>
+    </div>
+
+    <p class="text-gray-600 mb-6">Please try again or use a different payment method.</p>
+
+    <!-- Action Buttons -->
+    <div class="flex flex-col gap-3">
+      <a href="{% url 'start_payment' order.order_id %}" 
+         class="block w-full bg-yellow-400 hover:bg-yellow-500 text-white py-3 rounded-xl font-medium transition">
+         Retry Payment
+      </a>
+      <a href="{% url 'order_detail' order.order_id %}" 
+         class="block w-full bg-gray-400 hover:bg-gray-500 text-white py-3 rounded-xl font-medium transition">
+         Go to My Orders
+      </a>
+    </div>
+
   </div>
 </div>
 {% endblock %}

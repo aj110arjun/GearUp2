@@ -59,14 +59,14 @@ def cart_view(request):
     items = CartItem.objects.filter(user=request.user).select_related("variant__product")
 
     subtotal = Decimal("0.00")       # after applying offers
-    offer_savings = Decimal("0.00")  # how much saved from offers
+    offer_savings = Decimal("0.00")  # total savings from product offers
     discount = Decimal("0.00")       # coupon discount
     item_qnt_price = Decimal("0.00")
     coupon = None
 
+    # 🧮 Validate item quantities and stock
     for item in items:
         max_limit = min(5, item.variant.stock)
-
         if item.quantity > max_limit:
             item.quantity = max_limit
             item.save()
@@ -74,40 +74,40 @@ def cart_view(request):
         if item.variant.stock == 0:
             item.delete()
             continue
+
+    # 🧮 Calculate subtotal & offer savings
     for item in items:
         item_qnt_price += item.variant.price * item.quantity
 
-        # Original price
         original_price = item.variant.price
-        # Discounted price (if offer)
         discounted_price = item.variant.get_discounted_price()
 
-        # Offer savings
         if discounted_price < original_price:
             offer_savings += (original_price - discounted_price) * item.quantity
 
-        # Subtotal after applying product offers
         subtotal += discounted_price * item.quantity
 
-    # 🔹 Coupon logic (applied on top of offers)
-    coupon_id = request.session.get("coupon_id")
-    if coupon_id:
+    # 🎟️ Apply coupon (if present)
+    coupon_code = request.session.get("coupon_id")
+    if coupon_code:
         try:
-            coupon = Coupon.objects.get(code=coupon_id, active=True)
-            if coupon.is_valid() and (coupon.min_purchase is None or subtotal >= coupon.min_purchase):
+            coupon = Coupon.objects.get(code=coupon_code, active=True)
+            if coupon.is_valid():
                 discount = (subtotal * Decimal(coupon.discount)) / 100
             else:
-                error["coupon"] = "Invalid coupon or minimum purchase not met."
+                error["coupon"] = "Coupon is expired or inactive."
                 request.session.pop("coupon_id", None)
                 coupon = None
         except Coupon.DoesNotExist:
-            error["coupon"] = "Coupon does not exist."
+            error["coupon"] = "Invalid coupon code."
             request.session.pop("coupon_id", None)
             coupon = None
 
+    # 💰 Final total
     total = subtotal - discount
     if total < 0:
-        total = Decimal('0.00')
+        total = Decimal("0.00")
+
     breadcrumbs = [
         ("Home", reverse("home")),
         ("Cart", None)
@@ -115,17 +115,18 @@ def cart_view(request):
 
     context = {
         "items": items,
-        "subtotal": subtotal,         # after offers
+        "subtotal": subtotal,
         "offer_savings": offer_savings,
-        "discount": discount,         # coupon discount
-        "total": total,               # final payable
+        "discount": discount,
+        "total": total,
         "coupon": coupon,
         "error": error,
-        'item_qnt_price':item_qnt_price,
-        'breadcrumbs': breadcrumbs,
+        "item_qnt_price": item_qnt_price,
+        "breadcrumbs": breadcrumbs,
     }
 
-    return render(request,"user/cart/cart_view.html", context)
+    return render(request, "user/cart/cart_view.html", context)
+
 
 
 @login_required(login_url="login")
