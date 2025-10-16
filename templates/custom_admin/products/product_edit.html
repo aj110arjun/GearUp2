@@ -117,25 +117,29 @@
     <hr class="my-6">
 
     <!-- Additional Images -->
-    <div>
-      <h3 class="text-lg font-semibold text-gray-800 mb-3">Additional Images</h3>
-      <div class="flex flex-wrap gap-4 mb-3">
-        {% for img in additional_images %}
-          <div class="w-24 text-center">
-            <img src="{{ img.image.url }}" alt="Additional Image"
-                 class="w-24 h-24 object-cover rounded-lg shadow-sm mb-1">
-            <div class="flex flex-col items-center text-sm">
-              <label class="flex items-center gap-1">
-                <input type="checkbox" name="delete_image_{{ img.id }}" class="h-4 w-4 text-red-600 rounded">
-                Delete
-              </label>
-              <input type="hidden" name="image_id" value="{{ img.id }}">
+   <div>
+        <h3 class="text-lg font-semibold text-gray-800 mb-3">Additional Images</h3>
+        <div class="flex flex-wrap gap-4 mb-3">
+            {% for img in additional_images %}
+            <div class="relative w-24 h-24 group">
+                <img src="{{ img.image.url }}" alt="Additional Image"
+                    class="w-24 h-24 object-cover rounded-lg shadow-sm">
+
+                <!-- Delete button overlay -->
+                <button type="button"
+                        onclick="document.getElementById('delete_image_{{ img.id }}').checked = true; this.parentElement.style.display='none';"
+                        class="absolute top-1 right-1 bg-red-600 text-white w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-700 transition"
+                        title="Delete Image">
+                &times;
+                </button>
+
+                <input type="hidden" name="image_id_{{ img.id }}" value="{{ img.id }}">
+                <input type="checkbox" id="delete_image_{{ img.id }}" name="delete_image_{{ img.id }}" class="hidden">
             </div>
-          </div>
-        {% endfor %}
-      </div>
-      <a href="{% url 'admin_image_add' product.id %}"
-         class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm">+ Add Image</a>
+            {% endfor %}
+        </div>
+        <a href="{% url 'admin_image_add' product.id %}"
+            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm">+ Add Image</a>
     </div>
 
     <button type="submit"

@@ -413,7 +413,7 @@ def admin_product_edit(request, product_id):
     errors = {}
     
     if request.method == "POST":
-        # --- Update main product only ---
+        # --- Update main product ---
         product.name = request.POST.get('name', '').strip()
         product.brand = request.POST.get('brand', '').strip()
         product.description = request.POST.get('description', '').strip()
@@ -423,6 +423,7 @@ def admin_product_edit(request, product_id):
             product.image = request.FILES['image']
         product.save()
 
+        # --- Validation ---
         error_flag = False
         if not product.name:
             errors['name'] = 'Product name is required.'
@@ -431,7 +432,7 @@ def admin_product_edit(request, product_id):
             errors['name'] = "Product name must contain only letters and spaces"
             error_flag = True
         if len(product.name) < 3:
-            errors['name'] = "Product name must atleast 3 characters"
+            errors['name'] = "Product name must be at least 3 characters"
             error_flag = True
         if not product.brand:
             errors['brand'] = 'Brand is required.'
@@ -443,22 +444,27 @@ def admin_product_edit(request, product_id):
             errors['description'] = 'Description is required.'
             error_flag = True
 
+        # --- Handle additional images deletion ---
+        additional_images = product.images.all()
+        for img in additional_images:
+            if request.POST.get(f'delete_image_{img.id}'):
+                img.delete()
+
         if error_flag:
-            # Still send existing variants & images for display purposes
-            additional_images = product.images.all()
             variants = product.variants.all()
             return render(request, 'custom_admin/products/product_edit.html', {
                 'product': product,
-                'additional_images': additional_images,
+                'additional_images': product.images.all(),
                 'categories': categories,
                 'variants': variants,
                 'errors': errors
             })
+
         return redirect('admin_product_detail', product_id=product.product_id)
 
     # --- GET request ---
-    additional_images = product.images.all()  # For display only
-    variants = product.variants.all()          # For display only
+    additional_images = product.images.all()
+    variants = product.variants.all()
     return render(request, 'custom_admin/products/product_edit.html', {
         'product': product,
         'additional_images': additional_images,
@@ -466,6 +472,7 @@ def admin_product_edit(request, product_id):
         'variants': variants,
         'errors': {}
     })
+
 
 
 
