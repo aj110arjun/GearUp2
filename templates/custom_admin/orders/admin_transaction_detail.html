@@ -1,134 +1,68 @@
 {% extends "custom_admin/base.html" %}
 {% block title %}Admin Transaction Detail{% endblock title %}
+
 {% block content %}
-<style>
-    body {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        background-color: #f0f2f5;
-        margin: 0;
-        padding: 0;
-    }
-    .transaction-container {
-        max-width: 650px;
-        margin: 40px auto;
-        padding: 30px 35px;
-        background-color: #ffffff;
-        border-radius: 10px;
-        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
-        border: 1px solid #e1e4e8;
-        transition: box-shadow 0.3s ease-in-out;
-    }
-    .transaction-container:hover {
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
-    }
-    h2 {
-        color: #222;
-        font-weight: 700;
-        margin-bottom: 30px;
-        border-bottom: 3px solid #007bff;
-        padding-bottom: 10px;
-        letter-spacing: 0.03em;
-        font-size: 28px;
-    }
-    .transaction-label {
-        font-weight: 600;
-        color: #444;
-        display: inline-block;
-        width: 160px;
-        vertical-align: top;
-        margin-top: 18px;
-        font-size: 15px;
-        letter-spacing: 0.02em;
-    }
-    .transaction-value {
-        color: #111;
-        display: inline-block;
-        margin-top: 18px;
-        max-width: 430px;
-        word-wrap: break-word;
-        font-size: 15px;
-    }
-    .transaction-value a {
-        color: #007bff;
-        font-weight: 600;
-        text-decoration: none;
-        transition: color 0.2s ease-in-out;
-    }
-    .transaction-value a:hover {
-        text-decoration: underline;
-        color: #0056b3;
-    }
-    .badge {
-        padding: 5px 14px;
-        font-size: 14px;
-        font-weight: 600;
-        border-radius: 20px;
-        display: inline-block;
-        margin-left: 4px;
-        min-width: 80px;
-        text-align: center;
-    }
-    .bg-success {
-        background-color: #28a745;
-    }
-    .bg-danger {
-        background-color: #dc3545;
-    }
-    .bg-secondary {
-        background-color: #6c757d;
-    }
-    .text-success {
-        color: #28a745 !important;
-    }
-    .text-danger {
-        color: #dc3545 !important;
-    }
-    .text-secondary {
-        color: #6c757d !important;
-    }
-    .fw-bold {
-        font-weight: 700;
-    }
-    p {
-        clear: both;
-        margin-bottom: 12px;
-    }
-</style>
-<div class="transaction-container" role="region" aria-label="Transaction Details">
-    <h2>Transaction Details</h2>
-    <p><span class="transaction-label">Transaction ID:</span><span class="transaction-value">{{ transaction.transaction_id }}</span></p>
-    <p><span class="transaction-label">User:</span><span class="transaction-value">{{ transaction.user.email }}</span></p>
-    <p><span class="transaction-label">Type:</span><span class="transaction-value">{{ transaction.get_transaction_type_display }}</span></p>
-    <p><span class="transaction-label">Payment Status:</span>
-        {% if transaction.payment_status == 'Credit' %}
-            <span class="badge bg-success text-white transaction-value">{{ transaction.payment_status }}</span>
-        {% elif transaction.payment_status == 'Debit' %}
-            <span class="badge bg-danger text-white transaction-value">{{ transaction.payment_status }}</span>
-        {% else %}
-            <span class="badge bg-secondary text-white transaction-value">{{ transaction.payment_status }}</span>
-        {% endif %}
-    </p>
-    <p><span class="transaction-label">Amount:</span>
-        {% if transaction.payment_status == 'Credit' %}
-            <span class="text-success fw-bold transaction-value">+₹{{ transaction.amount }}</span>
-        {% elif transaction.payment_status == 'Debit' %}
-            <span class="text-danger fw-bold transaction-value">-₹{{ transaction.amount }}</span>
-        {% else %}
-            <span class="text-secondary fw-bold transaction-value">₹{{ transaction.amount }}</span>
-        {% endif %}
-    </p>
-    <p><span class="transaction-label">Description:</span><span class="transaction-value">{{ transaction.description|linebreaksbr }}</span></p>
-    
-    <p>
-        <span class="transaction-label">Order:</span>
-        <span class="transaction-value">
-            {% if transaction.order %}
-                <a href="{% url 'admin_order_detail' transaction.order.order_id %}">#{{ transaction.order.order_code }}</a>
+<div class="max-w-3xl mx-auto my-10 p-8 bg-white rounded-xl shadow-lg border border-gray-200">
+    <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-4 border-blue-600 pb-2">Transaction Details</h2>
+
+    <div class="space-y-4">
+        <p class="flex">
+            <span class="w-40 font-semibold text-gray-700">Transaction ID:</span>
+            <span class="text-gray-900 break-words">{{ transaction.transaction_id }}</span>
+        </p>
+
+        <p class="flex">
+            <span class="w-40 font-semibold text-gray-700">User:</span>
+            <span class="text-gray-900 break-words">{{ transaction.user.email }}</span>
+        </p>
+
+        <p class="flex">
+            <span class="w-40 font-semibold text-gray-700">Type:</span>
+            <span class="text-gray-900">{{ transaction.get_transaction_type_display }}</span>
+        </p>
+
+        <p class="flex items-center">
+            <span class="w-40 font-semibold text-gray-700">Payment Status:</span>
+            {% if transaction.payment_status == 'Credit' %}
+                <span class="px-3 py-1 text-white bg-green-600 rounded-full font-semibold">{{ transaction.payment_status }}</span>
+            {% elif transaction.payment_status == 'Debit' %}
+                <span class="px-3 py-1 text-white bg-red-600 rounded-full font-semibold">{{ transaction.payment_status }}</span>
             {% else %}
-                No order linked
+                <span class="px-3 py-1 text-white bg-gray-500 rounded-full font-semibold">{{ transaction.payment_status }}</span>
             {% endif %}
-        </span>
-    </p>
-    <p><span class="transaction-label">Timestamp:</span><span class="transaction-value">{{ transaction.timestamp }}</span></p>
+        </p>
+
+        <p class="flex items-center">
+            <span class="w-40 font-semibold text-gray-700">Amount:</span>
+            {% if transaction.payment_status == 'Credit' %}
+                <span class="text-green-600 font-bold">+₹{{ transaction.amount }}</span>
+            {% elif transaction.payment_status == 'Debit' %}
+                <span class="text-red-600 font-bold">-₹{{ transaction.amount }}</span>
+            {% else %}
+                <span class="text-gray-600 font-bold">₹{{ transaction.amount }}</span>
+            {% endif %}
+        </p>
+
+        <p class="flex">
+            <span class="w-40 font-semibold text-gray-700">Description:</span>
+            <span class="text-gray-900 break-words">{{ transaction.description|linebreaksbr }}</span>
+        </p>
+
+        <p class="flex">
+            <span class="w-40 font-semibold text-gray-700">Order:</span>
+            <span class="text-blue-600 font-semibold">
+                {% if transaction.order %}
+                    <a href="{% url 'admin_order_detail' transaction.order.order_id %}">#{{ transaction.order.order_code }}</a>
+                {% else %}
+                    No order linked
+                {% endif %}
+            </span>
+        </p>
+
+        <p class="flex">
+            <span class="w-40 font-semibold text-gray-700">Timestamp:</span>
+            <span class="text-gray-900">{{ transaction.timestamp }}</span>
+        </p>
+    </div>
 </div>
 {% endblock content %}

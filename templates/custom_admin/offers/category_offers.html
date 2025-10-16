@@ -1,38 +1,57 @@
 {% extends "custom_admin/base.html" %}
 {% block content %}
-<h2>Category Offers</h2>
-<a href="{% url 'admin_add_category_offer' %}" class="btn btn-primary">+ Add Category Offer</a>
-<table class="table table-bordered mt-3">
-    <tr>
-        <th>Category</th>
-        <th>Discount %</th>
-        <th>Start</th>
-        <th>End</th>
-        <th>Active</th>
-        <th>Actions</th>
-    </tr>
-    {% for offer in offers %}
-    <tr>
-        <td>{{ offer.category.name }}</td>
-        <td>{{ offer.discount_percent }}%</td>
-        <td>{{ offer.start_date }}</td>
-        <td>{{ offer.end_date }}</td>
-        <td>
-            {% if offer.is_expired %}
-                <span class="badge bg-danger">Expired</span>
-            {% elif not offer.active %}
-                <span class="badge bg-danger">Blocked</span>
-            {% else %}
-                <span class="badge bg-success">Active</span>
-            {% endif %}
-        </td>
-        <td>
-            <a onclick="return confirm('Are you sure want to delete the offer');" href="{% url 'admin_delete_category_offer' offer.id %}" class="btn btn-danger btn-sm">Delete</a>
-            <a href="{% url 'admin_category_offer_edit' offer.category.id offer.start_date|date:'Y-m-d' %}" class="btn btn-warning btn-sm">Edit</a>
+<div class="max-w-5xl mx-auto my-6">
+    <div class="flex justify-between items-center mb-4">
+        <h2 class="text-2xl font-bold">Category Offers</h2>
+        <a href="{% url 'admin_add_category_offer' %}" 
+           class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-medium">
+           + Add Category Offer
+        </a>
+    </div>
 
-            
-        </td>
-    </tr>
-    {% endfor %}
-</table>
+    <div class="overflow-x-auto">
+        <table class="min-w-full border border-gray-200 rounded-lg">
+            <thead class="bg-gray-100">
+                <tr>
+                    <th class="px-4 py-2 text-left">Category</th>
+                    <th class="px-4 py-2 text-left">Discount %</th>
+                    <th class="px-4 py-2 text-left">Start</th>
+                    <th class="px-4 py-2 text-left">End</th>
+                    <th class="px-4 py-2 text-left">Status</th>
+                    <th class="px-4 py-2 text-left">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for offer in offers %}
+                <tr class="border-t hover:bg-gray-50">
+                    <td class="px-4 py-2">{{ offer.category.name }}</td>
+                    <td class="px-4 py-2">{{ offer.discount_percent }}%</td>
+                    <td class="px-4 py-2">{{ offer.start_date }}</td>
+                    <td class="px-4 py-2">{{ offer.end_date }}</td>
+                    <td class="px-4 py-2">
+                        {% if offer.is_expired %}
+                            <span class="inline-block bg-red-500 text-white px-2 py-1 rounded text-sm">Expired</span>
+                        {% elif not offer.active %}
+                            <span class="inline-block bg-gray-500 text-white px-2 py-1 rounded text-sm">Blocked</span>
+                        {% else %}
+                            <span class="inline-block bg-green-500 text-white px-2 py-1 rounded text-sm">Active</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-2 space-x-2">
+                        <a href="{% url 'admin_delete_category_offer' offer.id %}" 
+                           onclick="return confirm('Are you sure want to delete the offer');"
+                           class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm">Delete</a>
+                        <a href="{% url 'admin_category_offer_edit' offer.category.id offer.start_date|date:'Y-m-d' %}" 
+                           class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm">Edit</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-4 text-gray-500">No category offers found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 {% endblock %}

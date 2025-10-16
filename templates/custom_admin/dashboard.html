@@ -1,152 +1,117 @@
 {% extends "custom_admin/base.html" %}
-{% block title %}
-Admin Dashboard
-{% endblock title %}
+{% block title %}Admin Dashboard{% endblock title %}
 
 {% block content %}
-<style>
-  #sales-chart {
-    max-width: 1200px; /* Adjust width as needed */
-    height: 600px;    /* Adjust height as needed */
-    margin: 0 auto;   /* Center align horizontally */
-  }
-  .hi {
-    min-height: 400px; /* Or any desired fixed height */
-    display: flex;
-    flex-direction: column;
-  }
-
-  .card-body {
-    flex-grow: 1;  /* Makes body fill the card height */
-    max-height: 640px; /* Adjust if needed */
-    overflow-y: auto;  /* Enables vertical scroll if content overflows */
-  }
-</style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/chartist.js/latest/chartist.min.css">
 
-<main class="col-md-10">
-  <div class="mb-3 mt-2">
-    <a href="{% url 'download_sales_report_pdf' %}" class="btn btn-sm btn-outline-primary">
-        Download Sales Report (PDF)
+<main class="p-6 space-y-8">
+  <!-- Download Report -->
+  <div>
+    <a href="{% url 'download_sales_report_pdf' %}"
+       class="inline-block px-4 py-2 text-sm font-medium text-blue-600 border border-blue-500 rounded-md hover:bg-blue-50 transition">
+      Download Sales Report (PDF)
     </a>
   </div>
-  <div class="dashboard-header">
-    <h3>Welcome, {{ user.username | title }}</h3>
-    <p class="text-muted">Here's what's happening today</p>
+
+  <!-- Header -->
+  <div>
+    <h3 class="text-2xl font-semibold text-gray-800">Welcome, {{ user.username|title }}</h3>
+    <p class="text-gray-500">Here's what's happening today</p>
   </div>
-  <div class="container mt-4">
-    <div class="row g-4">
-      <!-- Orders Widget -->
-      <div class="col-md-3">
-        <div class="card text-white bg-primary">
-          <div class="card-body">
-            <h5 class="card-title">Total Orders</h5>
-            <p class="card-text">{{ total_orders }}</p>
-          </div>
-        </div>
-      </div>
-      <!-- Sales Widget -->
-      <div class="col-md-3">
-        <div class="card text-white bg-success">
-          <div class="card-body">
-            <h5 class="card-title">Total Sales</h5>
-            <p class="card-text">₹{{ total_sales }}</p>
-          </div>
-        </div>
-      </div>
-      <!-- Completed Orders Widget -->
-      <div class="col-md-3">
-        <div class="card text-white bg-warning">
-          <div class="card-body">
-            <h5 class="card-title">Completed Orders</h5>
-            <p class="card-text">{{ completed_orders }}</p>
-          </div>
-        </div>
-      </div>
-      <!-- Pending Orders Widget -->
-      <div class="col-md-3">
-        <div class="card text-white bg-danger">
-          <div class="card-body">
-            <h5 class="card-title">Pending Orders</h5>
-            <p class="card-text">{{ pending_orders }}</p>
-          </div>
-        </div>
+
+  <!-- Stats Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+    <div class="bg-blue-600 text-white p-5 rounded-xl shadow-md">
+      <h5 class="text-sm uppercase font-semibold opacity-80">Total Orders</h5>
+      <p class="text-3xl font-bold mt-2">{{ total_orders }}</p>
+    </div>
+    <div class="bg-green-600 text-white p-5 rounded-xl shadow-md">
+      <h5 class="text-sm uppercase font-semibold opacity-80">Total Sales</h5>
+      <p class="text-3xl font-bold mt-2">₹{{ total_sales }}</p>
+    </div>
+    <div class="bg-yellow-500 text-white p-5 rounded-xl shadow-md">
+      <h5 class="text-sm uppercase font-semibold opacity-80">Completed Orders</h5>
+      <p class="text-3xl font-bold mt-2">{{ completed_orders }}</p>
+    </div>
+    <div class="bg-red-600 text-white p-5 rounded-xl shadow-md">
+      <h5 class="text-sm uppercase font-semibold opacity-80">Pending Orders</h5>
+      <p class="text-3xl font-bold mt-2">{{ pending_orders }}</p>
+    </div>
+  </div>
+
+  <!-- Top Lists -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <!-- Top Products -->
+    <div class="bg-white rounded-xl shadow-md">
+      <div class="border-b px-5 py-3 font-semibold text-gray-800">Top 10 Products</div>
+      <div class="p-4 max-h-[400px] overflow-y-auto">
+        <ul class="divide-y divide-gray-100">
+          {% for prod in top_products %}
+            <li class="flex justify-between items-center py-2">
+              <span>{{ prod.variant__product__name }}</span>
+              <span class="bg-blue-100 text-blue-700 text-xs font-medium px-3 py-1 rounded-full">
+                {{ prod.quantity_sold }}
+              </span>
+            </li>
+          {% endfor %}
+        </ul>
       </div>
     </div>
 
-    <!-- Three Top Lists -->
-    <div class="row mt-5">
-      <!-- Top Products -->
-      <div class="col-md-4">
-        <div class="card">
-          <div class="card-header">Top 10 Products</div>
-          <div class="card-body">
-            <ul class="list-group">
-              {% for prod in top_products %}
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                  {{ prod.variant__product__name }}
-                  <span class="badge bg-primary rounded-pill">{{ prod.quantity_sold }}</span>
-                </li>
-              {% endfor %}
-            </ul>
-          </div>
-        </div>
-      </div>
-      <!-- Top Categories -->
-      <div class="col-md-4">
-        <div class="card">
-          <div class="card-header">Top 10 Categories</div>
-          <div class="card-body">
-            <ul class="list-group">
-              {% for cat in top_categories %}
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                  {{ cat.variant__product__category__name }}
-                  <span class="badge bg-success rounded-pill">{{ cat.quantity_sold }}</span>
-                </li>
-              {% endfor %}
-            </ul>
-          </div>
-        </div>
-      </div>
-      <!-- Top Brands -->
-      <div class="col-md-4">
-        <div class="card">
-          <div class="card-header">Top 10 Brands</div>
-          <div class="card-body">
-            <ul class="list-group">
-              {% for brand in top_brands %}
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                  {{ brand.variant__product__brand }}
-                  <span class="badge bg-warning rounded-pill">{{ brand.quantity_sold }}</span>
-                </li>
-              {% endfor %}
-            </ul>
-          </div>
-        </div>
+    <!-- Top Categories -->
+    <div class="bg-white rounded-xl shadow-md">
+      <div class="border-b px-5 py-3 font-semibold text-gray-800">Top 10 Categories</div>
+      <div class="p-4 max-h-[400px] overflow-y-auto">
+        <ul class="divide-y divide-gray-100">
+          {% for cat in top_categories %}
+            <li class="flex justify-between items-center py-2">
+              <span>{{ cat.variant__product__category__name }}</span>
+              <span class="bg-green-100 text-green-700 text-xs font-medium px-3 py-1 rounded-full">
+                {{ cat.quantity_sold }}
+              </span>
+            </li>
+          {% endfor %}
+        </ul>
       </div>
     </div>
 
-    <!-- Chart Section -->
-    <div class="row mt-5">
-      <form method="get" action="" class="d-flex align-items-center mb-3">
-        <select name="filter" id="chart-filter" class="form-select me-2" style="width:auto;">
-          <option value="daily" {% if selected_filter == "daily" %}selected{% endif %}>Daily</option>
-          <option value="monthly" {% if selected_filter == "monthly" %}selected{% endif %}>Monthly</option>
-          <option value="yearly" {% if selected_filter == "yearly" %}selected{% endif %}>Yearly</option>
-        </select>
-        <button type="submit" class="btn btn-primary btn-sm">Update Chart</button>
-      </form>
-
-      <div class="col-md-12">
-        <div class="card">
-          <div class="card-header d-flex justify-content-between align-items-center">
-            <span>Sales Chart</span>
-          </div>
-          <div class="card-body h-50 hello">
-            <div id="sales-chart" class="ct-chart ct-perfect-fourth"></div>
-          </div>
-        </div>
+    <!-- Top Brands -->
+    <div class="bg-white rounded-xl shadow-md">
+      <div class="border-b px-5 py-3 font-semibold text-gray-800">Top 10 Brands</div>
+      <div class="p-4 max-h-[400px] overflow-y-auto">
+        <ul class="divide-y divide-gray-100">
+          {% for brand in top_brands %}
+            <li class="flex justify-between items-center py-2">
+              <span>{{ brand.variant__product__brand }}</span>
+              <span class="bg-yellow-100 text-yellow-700 text-xs font-medium px-3 py-1 rounded-full">
+                {{ brand.quantity_sold }}
+              </span>
+            </li>
+          {% endfor %}
+        </ul>
       </div>
+    </div>
+  </div>
+
+  <!-- Chart Section -->
+  <div class="bg-white rounded-xl shadow-md p-6">
+    <form method="get" action="" class="flex items-center gap-3 mb-4" id="chart-filter-form">
+      <select name="filter"
+              class="border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500"
+              style="width: auto;">
+        <option value="daily" {% if selected_filter == "daily" %}selected{% endif %}>Daily</option>
+        <option value="monthly" {% if selected_filter == "monthly" %}selected{% endif %}>Monthly</option>
+        <option value="yearly" {% if selected_filter == "yearly" %}selected{% endif %}>Yearly</option>
+      </select>
+      <button type="submit"
+              class="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition">
+        Update Chart
+      </button>
+    </form>
+
+    <div>
+      <h4 class="font-semibold text-gray-800 mb-2">Sales Chart</h4>
+      <div id="sales-chart" class="ct-chart h-[500px]"></div>
     </div>
   </div>
 </main>
@@ -154,51 +119,39 @@ Admin Dashboard
 <script src="https://cdn.jsdelivr.net/chartist.js/latest/chartist.min.js"></script>
 
 <script>
-// Initial data from Django context (daily by default)
-const initialLabels = [{% for day in daily_sales %}'{{ day.date }}',{% endfor %}];
-const initialSeries = [{% for day in daily_sales %}{{ day.sales }},{% endfor %}];
+  const initialLabels = [{% for day in daily_sales %}'{{ day.date }}',{% endfor %}];
+  const initialSeries = [{% for day in daily_sales %}{{ day.sales }},{% endfor %}];
 
-// Variable to hold the current chart instance
-let chartInstance = null;
+  let chartInstance = null;
 
-function drawChart(labels, series) {
-  // Detach existing chart if present
-  if (chartInstance) {
-    chartInstance.detach();
+  function drawChart(labels, series) {
+    if (chartInstance) chartInstance.detach();
+
+    chartInstance = new Chartist.Line('#sales-chart', {
+      labels: labels,
+      series: [series]
+    }, {
+      showArea: true,
+      lineSmooth: false,
+      fullWidth: true,
+      chartPadding: { right: 40 },
+      axisY: { onlyInteger: true, offset: 20, low: 0, scaleMinSpace: 15 }
+    });
   }
-  chartInstance = new Chartist.Line('#sales-chart', {
-    labels: labels,
-    series: [series]
-  }, {
-    showArea: true,
-    lineSmooth: false,
-    fullWidth: true,
-    chartPadding: { right: 40 },
-    axisY: { onlyInteger: true, offset: 20, low: 0, scaleMinSpace: 15 }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    drawChart(initialLabels, initialSeries);
+
+    const form = document.getElementById('chart-filter-form');
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      const filter = this.elements['filter'].value;
+
+      fetch(`/custom/admin/sales/chart/data/?filter=${filter}`)
+        .then(res => res.json())
+        .then(data => drawChart(data.labels, data.sales))
+        .catch(err => console.error('Error loading chart data:', err));
+    });
   });
-}
-
-document.addEventListener('DOMContentLoaded', function () {
-  drawChart(initialLabels, initialSeries);
-
-  document.getElementById('chart-filter-form').addEventListener('submit', function (event) {
-    event.preventDefault();
-    const filter = this.elements['filter'].value;
-
-    fetch(`/custom/admin/sales/chart/data/?filter=${filter}`)
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-        return response.json();
-      })
-      .then(data => drawChart(data.labels, data.sales))
-      .catch(error => {
-        console.error('Error fetching or rendering chart data:', error);
-        // Optionally, display a user-friendly error message here
-      });
-  });
-});
 </script>
-
 {% endblock content %}

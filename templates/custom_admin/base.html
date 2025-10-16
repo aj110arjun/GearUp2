@@ -5,117 +5,64 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{% block title %}Admin Dashboard - GearUp{% endblock title %}</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
   
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link  href="https://unpkg.com/cropperjs/dist/cropper.min.css" rel="stylesheet"/>
-  <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dhpo5iq3m/image/upload/guide_mar3hq.png ">
+  <!-- Cropper.js -->
+  <link rel="stylesheet" href="https://unpkg.com/cropperjs/dist/cropper.min.css" />
   <script src="https://unpkg.com/cropperjs"></script>
+
+  <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dhpo5iq3m/image/upload/guide_mar3hq.png">
+
   <style>
-    .sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 100vh; /* full viewport height */
-    width: 16.6667%; /* equal to Bootstrap col-md-2 */
-    background-color: #343a40; /* or your desired bg color */
-    padding: 20px;
-    overflow-y: auto; /* vertical scroll if content exceeds viewport */
-    z-index: 1030; /* above other content */
-}
-body {
-      background-color: #f8f9fa;
-      font-family: 'Segoe UI', sans-serif;
+    body {
+      font-family: 'Inter', 'Segoe UI', sans-serif;
     }
-
-    .sidebar {
-      min-height: 100vh;
-      background-color: #343a40;
-      color: white;
-      padding: 1.5rem 1rem;
+    .active-link {
+      @apply bg-gray-700 text-white;
     }
-
-    .sidebar h4 {
-      font-weight: 600;
-      margin-bottom: 2rem;
-    }
-
-    .sidebar a {
-      color: #adb5bd;
-      display: block;
-      padding: 0.6rem 1rem;
-      text-decoration: none;
-      border-radius: 8px;
-      transition: 0.3s ease;
-      font-weight: 500;
-    }
-
-    .sidebar a:hover,
-    .sidebar a.active {
-      background-color: #495057;
-      color: #fff;
-    }
-
-    .dashboard-header {
-      padding: 1rem 2rem;
-      background-color: #fff;
-      border-bottom: 1px solid #dee2e6;
-      font-size: 1.25rem;
-      font-weight: 500;
-    }
-
-    .main-content {
-      padding: 2rem;
-    }
-
-    .card {
-      border: none;
-      border-radius: 1rem;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-    }
-
-    @media (max-width: 768px) {
-      .sidebar {
-        min-height: auto;
-      }
-    }
-
   </style>
-
 </head>
 
-<body>
-  <div class="container-fluid ">
-    <div class="row">
-      <!-- Sidebar -->
-      <nav class="col-md-2 d-none d-md-block sidebar p-fixed">
-        <h4 class="text-white">GearUp</h4>
-        <a href="{% url 'dashboard' %}" >Dashboard</a>
-         <a href="{% url 'admin_product_list' %}">Products</a>
-         <a href="{% url 'user_list' %}">User List</a>
-         <a href="{% url 'category_list' %}">Categories</a>
-         <a href="{% url 'admin_order_list' %}">Orders</a>
-         <a href="{% url 'admin_transaction_list' %}">Transactions</a>
-         <a href="{% url 'admin_coupon_list' %}">Coupons</a>
-         <a href="{% url 'admin_product_offers' %}">Product Offers</a>
-         <a href="{% url 'admin_category_offers' %}">Category Offers</a>
-         <a href="{% url 'admin_cancellation_requests' %}">Cancel Requests</a> 
-         <a href="{% url 'admin_return_requests' %}">Return Requests</a>
-         <a class="btn btn-outline-danger mt-5" href="{% url 'admin_logout' %}">Logout</a>
-      </nav>
+<body class="bg-gray-100 text-gray-900">
 
-      <!-- Main Content -->
-      <main class="col-md-10 ms-sm-auto col-lg-10 px-md-4">
-        <div class="main-content">
-          {% block content %}
-          <!-- Admin content goes here -->
-          {% endblock content %}
-        </div>
-      </main>
-    </div>
-  </div>
-<script src="https://cdn.jsdelivr.net/npm/cropperjs@1.5.13/dist/cropper.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+  <!-- Sidebar -->
+  <aside class="fixed top-0 left-0 h-full w-64 bg-gray-900 text-gray-300 flex flex-col p-5">
+    <h2 class="text-2xl font-semibold text-white mb-8 tracking-wide">GearUp</h2>
 
+    <nav class="flex-1 space-y-2 overflow-y-auto">
+      <a href="{% url 'dashboard' %}" class="block px-4 py-2 rounded-lg hover:bg-gray-700 hover:text-white transition">Dashboard</a>
+      <a href="{% url 'admin_product_list' %}" class="block px-4 py-2 rounded-lg hover:bg-gray-700 hover:text-white transition">Products</a>
+      <a href="{% url 'user_list' %}" class="block px-4 py-2 rounded-lg hover:bg-gray-700 hover:text-white transition">User List</a>
+      <a href="{% url 'category_list' %}" class="block px-4 py-2 rounded-lg hover:bg-gray-700 hover:text-white transition">Categories</a>
+      <a href="{% url 'admin_order_list' %}" class="block px-4 py-2 rounded-lg hover:bg-gray-700 hover:text-white transition">Orders</a>
+      <a href="{% url 'admin_transaction_list' %}" class="block px-4 py-2 rounded-lg hover:bg-gray-700 hover:text-white transition">Transactions</a>
+      <a href="{% url 'admin_coupon_list' %}" class="block px-4 py-2 rounded-lg hover:bg-gray-700 hover:text-white transition">Coupons</a>
+      <a href="{% url 'admin_product_offers' %}" class="block px-4 py-2 rounded-lg hover:bg-gray-700 hover:text-white transition">Product Offers</a>
+      <a href="{% url 'admin_category_offers' %}" class="block px-4 py-2 rounded-lg hover:bg-gray-700 hover:text-white transition">Category Offers</a>
+      <a href="{% url 'admin_cancellation_requests' %}" class="block px-4 py-2 rounded-lg hover:bg-gray-700 hover:text-white transition">Cancel Requests</a>
+      <a href="{% url 'admin_return_requests' %}" class="block px-4 py-2 rounded-lg hover:bg-gray-700 hover:text-white transition">Return Requests</a>
+    </nav>
+
+    <a href="{% url 'admin_logout' %}" class="mt-8 text-center py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium transition">Logout</a>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="flex-1 ml-64 flex flex-col min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm py-4 px-6 flex justify-between items-center sticky top-0 z-10">
+      <h1 class="text-xl font-semibold text-gray-700">Admin Dashboard</h1>
+    </header>
+
+    <!-- Content -->
+    <section class="flex-1 p-6 overflow-auto">
+      {% block content %}
+      <!-- Admin content goes here -->
+      {% endblock content %}
+    </section>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.5.13/dist/cropper.min.js"></script>
 
 </body>
 </html>

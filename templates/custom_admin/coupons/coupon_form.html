@@ -3,45 +3,69 @@
 {% block title %}{{ action }} Coupon{% endblock %}
 
 {% block content %}
-<h2>{{ action }} Coupon</h2>
+<div class="max-w-lg mx-auto my-6 p-6 bg-white rounded-lg shadow-md">
+    <h2 class="text-2xl font-bold mb-4">{{ action }} Coupon</h2>
 
-<form method="post" class="mt-3" novalidate>
-    {% csrf_token %}
-    <div class="mb-3">
-        <label class="form-label">Coupon Code</label>
-        <input type="text" name="code" class="form-control" value="{{ coupon.code|default:'' }}" required>
-        {% if error.code %}
-            <span class="text-danger">{{error.code}}</span>
-        {% endif %}
-    </div>
-    <div class="mb-3">
-        <label class="form-label">Discount (%)</label>
-        <input type="number" name="discount" class="form-control" value="{{ coupon.discount|default:'' }}" step="0.01" required>
-        {% if error.discount %}
-            <span class="text-danger">{{error.discount}}</span>
-        {% endif %}
-    </div>
-    <div class="mb-3">
-        <label class="form-label">Valid From</label>
-        <input type="date" name="valid_from" class="form-control" 
-            value="{{ coupon.valid_from|date:'Y-m-d'|default:'' }}">
-        {% if error.valid_from %}
-            <span class="text-danger">{{error.valid_from}}</span>
-        {% endif %}
-    </div>
-    <div class="mb-3">
-        <label class="form-label">Valid To</label>
-        <input type="date" name="valid_to" class="form-control" 
-            value="{{ coupon.valid_to|date:'Y-m-d'|default:'' }}">
-        {% if error.valid_to %}
-            <span class="text-danger">{{error.valid_to}}</span>
-        {% endif %}
-    </div>
-    <div class="form-check mb-3">
-        <input type="checkbox" name="active" class="form-check-input" {% if coupon.active or coupon is not defined %}checked{% endif %}>
-        <label class="form-check-label">Active</label>
-    </div>
-    <button type="submit" class="btn btn-primary">{{ action }} Coupon</button>
-    <a href="{% url 'admin_coupon_list' %}" class="btn btn-secondary">Cancel</a>
-</form>
+    <form method="post" class="space-y-4" novalidate>
+        {% csrf_token %}
+
+        <!-- Coupon Code -->
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Coupon Code</label>
+            <input type="text" name="code" value="{{ coupon.code|default:'' }}"
+                   class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 {% if error.code %}border-red-500{% endif %}">
+            {% if error.code %}
+                <p class="text-red-600 text-sm mt-1">{{ error.code }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Discount -->
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Discount (%)</label>
+            <input type="number" name="discount" step="0.01" value="{{ coupon.discount|default:'' }}"
+                   class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 {% if error.discount %}border-red-500{% endif %}">
+            {% if error.discount %}
+                <p class="text-red-600 text-sm mt-1">{{ error.discount }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Valid From -->
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Valid From</label>
+            <input type="date" name="valid_from" value="{{ coupon.valid_from|date:'Y-m-d'|default:'' }}"
+                   class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 {% if error.valid_from %}border-red-500{% endif %}">
+            {% if error.valid_from %}
+                <p class="text-red-600 text-sm mt-1">{{ error.valid_from }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Valid To -->
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Valid To</label>
+            <input type="date" name="valid_to" value="{{ coupon.valid_to|date:'Y-m-d'|default:'' }}"
+                   class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 {% if error.valid_to %}border-red-500{% endif %}">
+            {% if error.valid_to %}
+                <p class="text-red-600 text-sm mt-1">{{ error.valid_to }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Active Checkbox -->
+        <div class="flex items-center">
+            <input type="checkbox" name="active" id="active" 
+                   class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                   {% if coupon.active or coupon is not defined %}checked{% endif %}>
+            <label for="active" class="ml-2 block text-sm text-gray-700">Active</label>
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex space-x-2">
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-medium">
+                {{ action }} Coupon
+            </button>
+            <a href="{% url 'admin_coupon_list' %}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded font-medium">
+                Cancel
+            </a>
+        </div>
+    </form>
+</div>
 {% endblock %}

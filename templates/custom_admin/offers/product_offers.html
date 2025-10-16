@@ -1,37 +1,57 @@
 {% extends "custom_admin/base.html" %}
 {% block content %}
-<h2>Product Offers</h2>
-<a href="{% url 'admin_add_product_offer' %}" class="btn btn-primary">+ Add Product Offer</a>
-<table class="table table-bordered mt-3">
-    <tr>
-        <th>Product</th>
-        <th>Discount %</th>
-        <th>Start</th>
-        <th>End</th>
-        <th>Status</th>
-        <th>Actions</th>
-    </tr>
-    {% now "Y-m-d" as today_str %}
-    {% for offer in offers %}
-    <tr>
-        <td>{{ offer.product.name }}</td>
-        <td>{{ offer.discount_percent }}%</td>
-        <td>{{ offer.start_date }}</td>
-        <td>{{ offer.end_date }}</td>
-        <td>
-            {% if offer.is_expired %}
-                <span class="badge bg-warning">Expired</span>
-            {% elif not offer.active %}
-                <span class="badge bg-danger">Blocked</span>
-            {% else %}
-                <span class="badge bg-success">Active</span>
-            {% endif %}
-        </td>
-        <td>
-            <a onclick="return confirm('Are you sure you want to delete this offer?');" href="{% url 'admin_delete_product_offer' offer.id %}" class="btn btn-danger btn-sm">Delete</a>
-            <a href="{% url 'admin_product_offer_edit' offer.id %}" class="btn btn-warning btn-sm">Edit</a>
-        </td>
-    </tr>
-    {% endfor %}
-</table>
+<div class="max-w-6xl mx-auto my-6">
+    <div class="flex justify-between items-center mb-4">
+        <h2 class="text-2xl font-bold">Product Offers</h2>
+        <a href="{% url 'admin_add_product_offer' %}" 
+           class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-medium">
+           + Add Product Offer
+        </a>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="min-w-full bg-white border border-gray-200 rounded-lg shadow-sm">
+            <thead class="bg-gray-100">
+                <tr>
+                    <th class="py-2 px-4 border-b text-left">Product</th>
+                    <th class="py-2 px-4 border-b text-left">Discount %</th>
+                    <th class="py-2 px-4 border-b text-left">Start</th>
+                    <th class="py-2 px-4 border-b text-left">End</th>
+                    <th class="py-2 px-4 border-b text-left">Status</th>
+                    <th class="py-2 px-4 border-b text-left">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for offer in offers %}
+                <tr class="hover:bg-gray-50">
+                    <td class="py-2 px-4 border-b">{{ offer.product.name }}</td>
+                    <td class="py-2 px-4 border-b">{{ offer.discount_percent }}%</td>
+                    <td class="py-2 px-4 border-b">{{ offer.start_date }}</td>
+                    <td class="py-2 px-4 border-b">{{ offer.end_date }}</td>
+                    <td class="py-2 px-4 border-b">
+                        {% if offer.is_expired %}
+                            <span class="inline-block px-3 py-1 rounded-full bg-yellow-400 text-white text-sm">Expired</span>
+                        {% elif not offer.active %}
+                            <span class="inline-block px-3 py-1 rounded-full bg-red-500 text-white text-sm">Blocked</span>
+                        {% else %}
+                            <span class="inline-block px-3 py-1 rounded-full bg-green-600 text-white text-sm">Active</span>
+                        {% endif %}
+                    </td>
+                    <td class="py-2 px-4 border-b space-x-2">
+                        <a href="{% url 'admin_delete_product_offer' offer.id %}" 
+                           onclick="return confirm('Are you sure you want to delete this offer?');"
+                           class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm">Delete</a>
+                        <a href="{% url 'admin_product_offer_edit' offer.id %}" 
+                           class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm">Edit</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-4 text-gray-500">No offers available.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 {% endblock %}
