@@ -143,6 +143,26 @@
         </div>
       </div>
 
+      <!-- Coupon Section -->
+      <div>
+        <h5 class="text-lg font-semibold mb-2">Have a Coupon?</h5>
+        <div class="flex gap-2">
+          <input type="text" id="coupon_code" name="coupon_code"
+                 placeholder="Enter coupon code"
+                 class="flex-grow border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                 value="{{ coupon.code|default_if_none:'' }}">
+          <button type="button" id="applyCouponBtn"
+                  class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+            Apply
+          </button>
+        </div>
+        <p id="couponMessage" class="mt-2 text-sm">
+          {% if coupon %}
+            <span class="text-green-700">Coupon "{{ coupon.code }}" Applied: -₹{{ discount }}</span>
+          {% endif %}
+        </p>
+      </div>
+
       <!-- Order Summary -->
       <div>
         <h5 class="text-lg font-semibold mb-2">Order Summary</h5>
@@ -160,12 +180,6 @@
             </li>
           {% endfor %}
         </ul>
-        {% if coupon %}
-          <div class="my-3 p-2 bg-blue-50 border-l-4 border-blue-400 rounded text-blue-900">
-            <strong>Coupon "{{ coupon.code }}" Applied:</strong>
-            <span class="text-green-700">-₹{{ discount }}</span>
-          </div>
-        {% endif %}
         <div class="flex justify-between my-1 text-gray-700">
           <span>Delivery Charges:</span>
           <span>₹{{ delivery_charge }}</span>
@@ -180,7 +194,7 @@
         </div>
       </div>
 
-      <button type="submit"
+      <button type="submit" onclick="return confirm('hi')"
         class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg shadow mt-4 transition">
         Place Order
       </button>
@@ -189,15 +203,54 @@
 </div>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const skeleton = document.getElementById('skeleton-checkout');
-    const realForm = document.getElementById('real-checkout-form');
-    skeleton.classList.remove('hidden');
-    realForm.classList.add('hidden');
-    setTimeout(() => {
-      skeleton.classList.add('hidden');
-      realForm.classList.remove('hidden');
-    }, 1000);
+document.addEventListener('DOMContentLoaded', function() {
+  // Skeleton loading
+  const skeleton = document.getElementById('skeleton-checkout');
+  const realForm = document.getElementById('real-checkout-form');
+  skeleton.classList.remove('hidden');
+  realForm.classList.add('hidden');
+  setTimeout(() => {
+    skeleton.classList.add('hidden');
+    realForm.classList.remove('hidden');
+  }, 1000);
+
+  // Apply coupon via AJAX without submitting order
+  const applyBtn = document.getElementById('applyCouponBtn');
+  const couponInput = document.getElementById('coupon_code');
+  const couponMessage = document.getElementById('couponMessage');
+
+  applyBtn.addEventListener('click', async () => {
+    const code = couponInput.value.trim();
+    if (!code) return;
+
+    try {
+      const response = await fetch("{% url 'apply_coupon' %}?code=" + code, {
+        method: 'GET',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        credentials: 'same-origin'
+      });
+      const data = await response.json();
+
+      if (data.success) {
+        // Update coupon message
+        couponMessage.innerHTML = `<span class="text-green-700">Coupon "${data.code}" Applied: -₹${data.discount}</span>`;
+        
+        // Update grand total dynamically
+        const totalElem = document.querySelector('.flex.justify-between.my-1.text-lg.font-bold span:last-child');
+        if (totalElem) {
+          totalElem.textContent = "₹" + data.new_total;
+        }
+      } else {
+        couponMessage.innerHTML = `<span class="text-red-600">${data.message}</span>`;
+      }
+    } catch (error) {
+      console.error(error);
+      couponMessage.innerHTML = `<span class="text-red-600">Error applying coupon.</span>`;
+    }
   });
+});
 </script>
+
+
+
 {% endblock %}

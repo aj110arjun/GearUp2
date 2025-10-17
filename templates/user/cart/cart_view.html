@@ -9,23 +9,23 @@
   <h2 class="text-2xl font-bold mb-4">🛒 My Cart</h2>
   <hr class="mb-8">
 
-  <!-- Skeleton Loader (optional to show during loading) -->
-  <div id="cart-skeleton" class="space-y-4 hidden">
-    <div class="flex items-center space-x-4">
-      <div class="w-16 h-16 bg-gray-300 rounded animate-pulse"></div>
-      <div class="flex-1 space-y-2">
-        <div class="h-4 bg-gray-300 rounded w-3/5 animate-pulse"></div>
-        <div class="h-3 bg-gray-300 rounded w-2/5 animate-pulse"></div>
-      </div>
-    </div>
-    <div class="flex items-center space-x-4">
-      <div class="w-16 h-16 bg-gray-300 rounded animate-pulse"></div>
-      <div class="flex-1 space-y-2">
-        <div class="h-4 bg-gray-300 rounded w-4/5 animate-pulse"></div>
-        <div class="h-3 bg-gray-300 rounded w-1/2 animate-pulse"></div>
-      </div>
+  <!-- Skeleton Loader -->
+<div id="cart-skeleton" class="space-y-4">
+  <div class="flex items-center space-x-4">
+    <div class="w-16 h-16 bg-gray-300 rounded animate-pulse"></div>
+    <div class="flex-1 space-y-2">
+      <div class="h-4 bg-gray-300 rounded w-3/5 animate-pulse"></div>
+      <div class="h-3 bg-gray-300 rounded w-2/5 animate-pulse"></div>
     </div>
   </div>
+  <div class="flex items-center space-x-4">
+    <div class="w-16 h-16 bg-gray-300 rounded animate-pulse"></div>
+    <div class="flex-1 space-y-2">
+      <div class="h-4 bg-gray-300 rounded w-4/5 animate-pulse"></div>
+      <div class="h-3 bg-gray-300 rounded w-1/2 animate-pulse"></div>
+    </div>
+  </div>
+</div>
 
   <!-- Actual Cart Content -->
   <div id="cart-content">
@@ -85,24 +85,6 @@
       </tbody>
     </table>
 
-    <div class="mt-4 p-4 border border-gray-200 rounded-lg shadow bg-gray-50">
-      <h5 class="mb-3 text-blue-600">Apply Coupon</h5>
-      <form method="post" action="{% url 'apply_coupon' %}" class="flex items-center space-x-2 mb-3">
-        {% csrf_token %}
-        <input type="text" name="code" class="flex-1 border border-gray-300 rounded px-2 py-1 text-sm" placeholder="Enter coupon code" value="{{ coupon.code|default_if_none:'' }}">
-        <button type="submit" class="bg-blue-600 text-white rounded px-4 py-2 hover:bg-blue-700">Apply</button>
-      </form>
-      {% if coupon %}
-        <a href="{% url 'remove_coupon' %}" class="text-red-600 hover:underline">Remove Coupon</a>
-      {% endif %}
-      {% if error.coupon %}
-        <div class="text-red-600 text-sm mt-1">{{ error.coupon }}</div>
-      {% endif %}
-      {% if coupon and not error.coupon %}
-        <div class="text-green-600 text-sm mt-1">Coupon "<strong>{{ coupon.code }}</strong>" applied! Discount: ₹{{ discount }}</div>
-      {% endif %}
-    </div>
-
     {% if error.cart %}
     <div class="text-red-600 text-sm">{{ error.cart }}</div>
     {% endif %}
@@ -121,6 +103,21 @@
 </div>
 
 <script>
+  document.addEventListener('DOMContentLoaded', () => {
+  const skeleton = document.getElementById('cart-skeleton');
+  const content = document.getElementById('cart-content');
+
+  // Show skeleton immediately
+  skeleton.classList.remove('hidden');
+  content.classList.add('hidden');
+
+  // Simulate loading delay (replace with real AJAX if needed)
+  setTimeout(() => {
+    skeleton.classList.add('hidden');
+    content.classList.remove('hidden');
+  }, 800); // 0.8s delay
+});
+
   document.addEventListener('DOMContentLoaded', () => {
     // Simulate loading time
     setTimeout(() => {
