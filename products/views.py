@@ -38,7 +38,9 @@ def product_list(request):
         products = products.filter(
             Q(name__icontains=filters['search']) |
             Q(description__icontains=filters['search']) |
-            Q(category__name__icontains=filters['search'])
+            Q(category__name__icontains=filters['search'])|
+            Q(brand__icontains=filters['search'])
+
         )
 
     # Sorting

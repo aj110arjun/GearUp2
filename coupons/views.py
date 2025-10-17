@@ -1,234 +1,220 @@
-from django.utils.dateparse import parse_datetime
-from django.contrib import messages
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.admin.views.decorators import staff_member_required
-from django.shortcuts import redirect, get_object_or_404, render
-from django.utils import timezone
-from django.utils.timezone import now
 from django.contrib.auth.decorators import login_required
-from django.utils.dateparse import parse_date
+from django.contrib import messages
 from django.views.decorators.cache import never_cache
-
+from django.utils.dateparse import parse_date
+from django.http import JsonResponse
+from django.db.models import Q
+from django.views.decorators.http import require_GET
 from decimal import Decimal
-from decimal import Decimal
-from datetime import datetime
 
-from cart.models import CartItem
-from .models import Coupon
+from coupons.models import Coupon
 
 
-@login_required(login_url="login")
-@never_cache
-def apply_coupon(request):
-    error = {}
-    items = CartItem.objects.filter(user=request.user).select_related("variant__product")
-    subtotal = sum(item.quantity * item.variant.price for item in items)
-
-    coupon = None
-    discount = Decimal("0.00")
-
-    if request.method == "POST":
-        code = request.POST.get("code", "").strip()
-        if not code:
-            error["coupon"] = "Please enter a coupon code."
-        else:
-            try:
-                coupon = Coupon.objects.get(code__iexact=code, active=True)
-                now = timezone.now()
-                if (coupon.valid_from and coupon.valid_from > now) or (coupon.valid_to and coupon.valid_to < now):
-                    error["coupon"] = "This coupon is expired or not yet valid."
-                    request.session.pop("coupon_id", None)
-                    coupon = None
-
-                elif coupon.min_purchase and subtotal < coupon.min_purchase:
-                    error["coupon"] = f"Coupon requires minimum purchase of ₹{coupon.min_purchase}."
-                    request.session.pop("coupon_id", None)
-                    coupon = None
-                else:
-                    discount = subtotal * Decimal(coupon.discount) / 100
-                    request.session["coupon_id"] = coupon.code
-
-            except Coupon.DoesNotExist:
-                error["coupon"] = "Invalid or expired coupon code."
-                request.session.pop("coupon_id", None)
-
-    total = subtotal - discount
-
-    return render(
-        request,
-        "user/cart/cart_view.html",
-        {
-            "items": items,
-            "subtotal": subtotal,
-            "discount": discount,
-            "total": total,
-            "coupon": coupon,
-            "error": error,   # ✅ directly passed to template
-        },
-    )
-
-
-def remove_coupon(request):
-    request.session.pop("coupon_id", None)
-    return redirect("cart_view")
-
-@staff_member_required(login_url='admin_login')
+# ----------------- Admin: List Coupons -----------------
+@staff_member_required(login_url="admin_login")
 @never_cache
 def admin_coupon_list(request):
-    coupons = Coupon.objects.all().order_by('-valid_from')  # Order by latest
-    for coupon in coupons:
-        coupon.is_expired = coupon.valid_to and coupon.valid_to < now()
-    context = {
-        'coupons': coupons,
-    }
-    return render(request, 'custom_admin/coupons/coupon_list.html', context)
+    coupons = Coupon.objects.all().order_by("-valid_from")
+    return render(request, "custom_admin/coupons/coupon_list.html", {"coupons": coupons})
 
-@staff_member_required(login_url='admin_login')
+
+# ----------------- Admin: Add Coupon -----------------
+@staff_member_required(login_url="admin_login")
 @never_cache
 def admin_coupon_add(request):
-    error = {}
-    form_data = {
-        "code": "",
-        "discount": "",
-        "active": False,
-        "valid_from": "",
-        "valid_to": "",
-    }
+    errors = {}
+    if request.method == "POST":
+        # Get form data
+        code = request.POST.get("code", "").strip().upper()
+        discount_value = request.POST.get("discount_value")
+        active = request.POST.get("active") == "on"
+        valid_from_str = request.POST.get("valid_from")
+        valid_to_str = request.POST.get("valid_to")
+        usage_limit_total = request.POST.get("usage_limit_total") or 0
+        usage_limit_per_user = request.POST.get("usage_limit_per_user") or 0
+
+        # Validation
+        if not code:
+            errors["code"] = "Coupon code is required."
+        if not discount_value:
+            errors["discount_value"] = "Discount value is required."
+        if not valid_from_str:
+            errors["valid_from"] = "Start date is required."
+        if not valid_to_str:
+            errors["valid_to"] = "End date is required."
+        if int(usage_limit_per_user) < 0:
+            errors["usage_limit_per_user"] = "Usage limit per user cannot be negative."
+        if int(usage_limit_total) < 0:
+            errors["usage_limit_total"] = "Total usage limit cannot be negative."
+        if Coupon.objects.filter(code=code).exists():
+            errors["code"] = "Coupon code must be unique."
+
+        # Numeric and range validation
+        try:
+            discount_value_num = float(discount_value)
+            if discount_value_num <= 0:
+                errors["discount_value"] = "Discount value must be greater than 0."
+        except (TypeError, ValueError):
+            errors["discount_value"] = "Discount value must be a valid number."
+
+        # Date parsing
+        valid_from = parse_date(valid_from_str) if valid_from_str else None
+        valid_to = parse_date(valid_to_str) if valid_to_str else None
+
+        if valid_from and valid_to and valid_to < valid_from:
+            errors['valid_to'] = "End date cannot be before start date."
+
+        if errors:
+            coupon_data = {
+                "code": code,
+                "discount_value": discount_value,
+                "active": active,
+                "valid_from": valid_from,
+                "valid_to": valid_to,
+                "usage_limit_total": usage_limit_total,
+                "usage_limit_per_user": usage_limit_per_user,
+            }
+            context = {
+                "action": "Add",
+                "coupon": coupon_data,
+                "error": errors,
+            }
+            return render(request, "custom_admin/coupons/coupon_form.html", context)
+
+        # Create coupon
+        coupon = Coupon.objects.create(
+            code=code,
+            discount_value=discount_value,
+            active=active,
+            valid_from=valid_from,
+            valid_to=valid_to,
+            usage_limit_total=usage_limit_total,
+            usage_limit_per_user=usage_limit_per_user
+        )
+
+        messages.success(request, f"Coupon '{coupon.code}' created successfully.")
+        return redirect("admin_coupon_list")
+
+    return render(request, "custom_admin/coupons/coupon_form.html", {"action": "Add"})
+
+
+# ----------------- Admin: Edit Coupon -----------------
+@staff_member_required(login_url="admin_login")
+@never_cache
+def admin_coupon_edit(request, coupon_id):
+    coupon = get_object_or_404(Coupon, id=coupon_id)
 
     if request.method == "POST":
-        code = request.POST.get("code", "").strip()
-        discount = request.POST.get("discount", "")
+        code = request.POST.get("code", "").strip().upper()
+        discount_value = request.POST.get("discount_value")
         active = request.POST.get("active") == "on"
-        valid_from_str = request.POST.get("valid_from", "")
-        valid_to_str = request.POST.get("valid_to", "")
+        valid_from_str = request.POST.get("valid_from")
+        valid_to_str = request.POST.get("valid_to")
+        usage_limit_total = request.POST.get("usage_limit_total") or 0
+        usage_limit_per_user = request.POST.get("usage_limit_per_user") or 0
 
-        form_data.update({
-            "code": code,
-            "discount": discount,
-            "active": active,
-            "valid_from": valid_from_str,
-            "valid_to": valid_to_str,
-        })
-
-        valid_from = parse_datetime(valid_from_str) if valid_from_str else None
-        valid_to = parse_datetime(valid_to_str) if valid_to_str else None
-
-        # --- Validations ---
+        # Validation
+        errors = {}
         if not code:
-            error["code"] = "Coupon code is required"
-        elif Coupon.objects.filter(code=code).exists():
-            error["code"] = "Coupon code already exists"
+            errors["code"] = "Coupon code is required."
+        if not discount_value:
+            errors["discount_value"] = "Discount value is required."
+        if not valid_from_str:
+            errors["valid_from"] = "Start date is required."
+        if not valid_to_str:
+            errors["valid_to"] = "End date is required."
 
-        if not discount:
-            error["discount"] = "Discount is required"
-        else:
-            try:
-                disc_val = int(discount)
-                if disc_val < 10 or disc_val > 90:
-                    error["discount"] = "Discount must be between 10 and 90"
-            except ValueError:
-                error["discount"] = "Discount must be a valid number"
+        try:
+            discount_value_num = float(discount_value)
+            if discount_value_num <= 0:
+                errors["discount_value"] = "Discount value must be greater than 0."
+        except (TypeError, ValueError):
+            errors["discount_value"] = "Discount value must be a valid number."
 
-        if not valid_from:
-            error["valid_from"] = "Valid from date/time is required"
-        if not valid_to:
-            error["valid_to"] = "Valid to date/time is required"
+        valid_from = parse_date(valid_from_str) if valid_from_str else None
+        valid_to = parse_date(valid_to_str) if valid_to_str else None
 
-        if valid_from and valid_to:
-            if valid_from >= valid_to:
-                error["valid_to"] = "'Valid to' must be later than 'Valid from'"
+        if valid_from and valid_to and valid_to < valid_from:
+            errors['valid_to'] = "End date cannot be before start date."
 
-        # --- Save coupon if no errors ---
-        if not error:
-            Coupon.objects.create(
-                code=code,
-                discount=Decimal(discount),
-                active=active,
-                valid_from=valid_from,
-                valid_to=valid_to
-            )
-            return redirect("admin_coupon_list")
+        if errors:
+            context = {
+                "action": "Edit",
+                "coupon": request.POST,
+                "error": errors,
+                "coupon_id": coupon_id
+            }
+            return render(request, "custom_admin/coupons/coupon_form.html", context)
+
+        # Save updated coupon
+        coupon.code = code
+        coupon.discount_value = discount_value
+        coupon.active = active
+        coupon.valid_from = valid_from
+        coupon.valid_to = valid_to
+        coupon.usage_limit_total = usage_limit_total
+        coupon.usage_limit_per_user = usage_limit_per_user
+        coupon.save()
+
+        messages.success(request, f"Coupon '{coupon.code}' updated successfully.")
+        return redirect("admin_coupon_list")
 
     return render(request, "custom_admin/coupons/coupon_form.html", {
-        "action": "Add",
-        "error": error,
-        "form_data": form_data,
+        "action": "Edit",
+        "coupon": coupon
     })
 
 
-@staff_member_required(login_url='admin_login')
+# ----------------- Admin: Delete Coupon -----------------
+@staff_member_required(login_url="admin_login")
 @never_cache
-def admin_coupon_edit(request, id):
-    error = {}
-    coupon = get_object_or_404(Coupon, id=id)
-
-    if request.method == "POST":
-        code = request.POST.get("code", "").strip()
-        discount = request.POST.get("discount")
-        min_purchase = request.POST.get("min_purchase")
-        valid_from = request.POST.get("valid_from")
-        valid_to = request.POST.get("valid_to")
-        active = request.POST.get("active") == "on"
-
-        # --- Code Validation ---
-        if not code:
-            error["code"] = "Coupon code is required"
-        elif Coupon.objects.filter(code=code).exclude(id=coupon.id).exists():
-            error["code"] = "Coupon code already exists"
-
-        # --- Discount Validation ---
-        if not discount:
-            error["discount"] = "Discount is required"
-        else:
-            try:
-                discount_val = int(discount)
-                if discount_val < 10 or discount_val > 90:
-                    error["discount"] = "Discount must be between 10 and 90"
-            except ValueError:
-                error["discount"] = "Invalid discount value"
-
-        # --- Min Purchase Validation ---
-        if not min_purchase:
-            error["min_purchase"] = "Minimum purchase amount is required"
-        else:
-            try:
-                min_purchase_val = float(min_purchase)
-                if min_purchase_val < 100:
-                    error["min_purchase"] = "Minimum purchase must be at least 100"
-            except ValueError:
-                error["min_purchase"] = "Invalid minimum purchase value"
-
-        # --- Valid From & Valid To ---
-        valid_from_dt = parse_datetime(valid_from) if valid_from else None
-        valid_to_dt = parse_datetime(valid_to) if valid_to else None
-
-        if valid_from and not valid_from_dt:
-            error["valid_from"] = "Invalid date format"
-        if valid_to and not valid_to_dt:
-            error["valid_to"] = "Invalid date format"
-        if valid_from_dt and valid_to_dt and valid_from_dt >= valid_to_dt:
-            error["valid_to"] = "Valid To must be after Valid From"
-
-        # --- Save if no errors ---
-        if not error:
-            coupon.code = code
-            coupon.discount = Decimal(discount)
-            coupon.min_purchase = Decimal(min_purchase)
-            coupon.valid_from = valid_from_dt
-            coupon.valid_to = valid_to_dt
-            coupon.active = active
-            coupon.save()
-            return redirect("admin_coupon_list")
-
-    return render(
-        request,
-        "custom_admin/coupons/coupon_form.html",
-        {"coupon": coupon, "action": "Edit", "error": error},
-    )
-
-@staff_member_required(login_url='admin_login')
-@never_cache
-def admin_coupon_delete(request, id):
-    coupon = get_object_or_404(Coupon, id=id)
+def admin_coupon_delete(request, coupon_id):
+    coupon = get_object_or_404(Coupon, id=coupon_id)
     coupon.delete()
-    messages.success(request, f'Coupon "{coupon.code}" deleted successfully!')
+    messages.success(request, f"Coupon {coupon.code} deleted successfully.")
     return redirect("admin_coupon_list")
+
+
+# ----------------- User: Apply Coupon -----------------
+@login_required(login_url="login")
+@never_cache
+def apply_coupon(request):
+    code = request.GET.get("code", "").strip().upper()
+    
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        try:
+            coupon = Coupon.objects.get(code=code, active=True)
+
+            if coupon.can_user_use(request.user):
+                # Save coupon code in session
+                request.session["coupon_id"] = coupon.code
+
+                # Calculate discount
+                cart_items = request.user.cart_items.select_related("variant__product")
+                subtotal = sum(item.variant.get_discounted_price() * item.quantity for item in cart_items)
+                discount = coupon.discount_amount
+                grand_total = max(subtotal - discount, 0)
+
+                return JsonResponse({
+                    "success": True,
+                    "code": coupon.code,
+                    "discount": discount,
+                    "new_total": grand_total
+                })
+            else:
+                return JsonResponse({"success": False, "message": "Coupon is invalid or already used."})
+        except Coupon.DoesNotExist:
+            return JsonResponse({"success": False, "message": "Coupon does not exist."})
+    return JsonResponse({"success": False, "message": "Invalid request."})
+
+
+# ----------------- User: Remove Coupon -----------------
+@login_required(login_url="login")
+@never_cache
+def remove_coupon(request):
+    if "coupon_id" in request.session:
+        del request.session["coupon_id"]
+        messages.success(request, "Coupon removed successfully.")
+    return redirect("checkout")
