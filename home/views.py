@@ -5,7 +5,7 @@ from django.views.decorators.cache import cache_control
 from django.contrib.admin.views.decorators import staff_member_required
 from products.models import ProductVariant, Product
 from django.db.models import OuterRef, Subquery, Sum, F, Count
-from orders.models import Order, OrderItem
+from orders.models import Order
 from datetime import date, timedelta
 from django.http import HttpResponse
 from reportlab.lib.pagesizes import A4
@@ -99,31 +99,31 @@ def dashboard(request):
     # Order Stats
     total_orders = Order.objects.count()
     completed_orders = Order.objects.filter(payment_status="Paid").count()
-    pending_orders = OrderItem.objects.filter(status="pending").count()
+    # pending_orders = Order.objects.filter(status="pending").count()
     total_sales_decimal = Order.objects.filter(payment_status="Paid") \
         .aggregate(total=Sum("total_price"))["total"] or 0
     total_sales = int(total_sales_decimal)
 
     # Top 10 Products
-    top_products = (
-        OrderItem.objects.values("variant__product__name")
-        .annotate(quantity_sold=Sum("quantity"))
-        .order_by("-quantity_sold")[:10]
-    )
+    # top_products = (
+    #     # OrderItem.objects.values("variant__product__name")
+    #     .annotate(quantity_sold=Sum("quantity"))
+    #     .order_by("-quantity_sold")[:10]
+    # )
 
     # Top 10 Categories
-    top_categories = (
-        OrderItem.objects.values("variant__product__category__name")
-        .annotate(quantity_sold=Sum("quantity"))
-        .order_by("-quantity_sold")[:10]
-    )
+    # top_categories = (
+    #     OrderItem.objects.values("variant__product__category__name")
+    #     .annotate(quantity_sold=Sum("quantity"))
+    #     .order_by("-quantity_sold")[:10]
+    # )
 
     # Top 10 Brands
-    top_brands = (
-        OrderItem.objects.values("variant__product__brand")
-        .annotate(quantity_sold=Sum("quantity"))
-        .order_by("-quantity_sold")[:10]
-    )
+    # top_brands = (
+    #     OrderItem.objects.values("variant__product__brand")
+    #     .annotate(quantity_sold=Sum("quantity"))
+    #     .order_by("-quantity_sold")[:10]
+    # )
 
     today = date.today()
 
@@ -180,11 +180,11 @@ def dashboard(request):
     context = {
         "total_orders": total_orders,
         "completed_orders": completed_orders,
-        "pending_orders": pending_orders,
+        # "pending_orders": pending_orders,
         "total_sales": total_sales,
-        "top_products": top_products,
-        "top_categories": top_categories,
-        "top_brands": top_brands,
+        # "top_products": top_products,
+        # "top_categories": top_categories,
+        # "top_brands": top_brands,
         "daily_sales": sales_data,  # dynamic sales data by filter
         "selected_filter": selected_filter,
     }

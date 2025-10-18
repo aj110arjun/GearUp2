@@ -12,7 +12,6 @@ from decimal import Decimal
 from django.urls import reverse
 
 from .models import Wallet, WalletTransaction
-from orders.models import OrderItem
 
 
 @login_required

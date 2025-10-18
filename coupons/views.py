@@ -8,6 +8,7 @@ from django.http import JsonResponse
 from django.db.models import Q
 from django.views.decorators.http import require_GET
 from decimal import Decimal
+from products.models import Product
 
 from coupons.models import Coupon
 
@@ -25,6 +26,8 @@ def admin_coupon_list(request):
 @never_cache
 def admin_coupon_add(request):
     errors = {}
+    products = Product.objects.all()  # <-- Pass all products
+
     if request.method == "POST":
         # Get form data
         code = request.POST.get("code", "").strip().upper()
@@ -34,6 +37,7 @@ def admin_coupon_add(request):
         valid_to_str = request.POST.get("valid_to")
         usage_limit_total = request.POST.get("usage_limit_total") or 0
         usage_limit_per_user = request.POST.get("usage_limit_per_user") or 0
+        selected_products = request.POST.getlist("products")  # <-- Get selected products
 
         # Validation
         if not code:
@@ -51,7 +55,6 @@ def admin_coupon_add(request):
         if Coupon.objects.filter(code=code).exists():
             errors["code"] = "Coupon code must be unique."
 
-        # Numeric and range validation
         try:
             discount_value_num = float(discount_value)
             if discount_value_num <= 0:
@@ -75,11 +78,13 @@ def admin_coupon_add(request):
                 "valid_to": valid_to,
                 "usage_limit_total": usage_limit_total,
                 "usage_limit_per_user": usage_limit_per_user,
+                "products": [int(pid) for pid in selected_products],  # Keep selected products
             }
             context = {
                 "action": "Add",
                 "coupon": coupon_data,
                 "error": errors,
+                "products": products,
             }
             return render(request, "custom_admin/coupons/coupon_form.html", context)
 
@@ -94,10 +99,18 @@ def admin_coupon_add(request):
             usage_limit_per_user=usage_limit_per_user
         )
 
+        # Assign selected products
+        if selected_products:
+            coupon.products.set(selected_products)
+
         messages.success(request, f"Coupon '{coupon.code}' created successfully.")
         return redirect("admin_coupon_list")
 
-    return render(request, "custom_admin/coupons/coupon_form.html", {"action": "Add"})
+    context = {
+        "action": "Add",
+        "products": products  # Pass products for initial form
+    }
+    return render(request, "custom_admin/coupons/coupon_form.html", context)
 
 
 # ----------------- Admin: Edit Coupon -----------------
@@ -194,7 +207,7 @@ def apply_coupon(request):
                 # Calculate discount
                 cart_items = request.user.cart_items.select_related("variant__product")
                 subtotal = sum(item.variant.get_discounted_price() * item.quantity for item in cart_items)
-                discount = coupon.discount_amount
+                discount = coupon.discount_value
                 grand_total = max(subtotal - discount, 0)
 
                 return JsonResponse({

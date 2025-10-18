@@ -1,13 +1,14 @@
 {% extends "user/base.html" %}
-{% block title %}Cancel Order Item{% endblock title %}
+{% block title %}Cancel Order{% endblock title %}
 
 {% block content %}
 <div class="max-w-2xl mx-auto my-10 px-4">
 
-  <h3 class="text-2xl font-semibold mb-4">Cancel Order Item</h3>
-  <p class="mb-4"><span class="font-semibold">Product:</span> {{ item.variant.product.name }}</p>
+  <h3 class="text-2xl font-semibold mb-4">Cancel Order</h3>
+  <p class="mb-4"><span class="font-semibold">Product:</span> {{ order.product.product.name }}</p>
+  <p class="mb-4"><span class="font-semibold">Quantity:</span> {{ order.quantity }}</p>
 
-  <form method="post" class="space-y-4">
+  <form action="{% url 'request_cancel_order_item' order.order_id %}" method="post" class="space-y-4">
     {% csrf_token %}
 
     <div>
@@ -21,7 +22,7 @@
               class="bg-red-600 hover:bg-red-700 text-white font-medium px-6 py-2 rounded-lg transition">
         Submit Cancellation
       </button>
-      <a href="{% url 'order_detail' item.order.order_id %}" 
+      <a href="{% url 'order_detail' order.order_id %}" 
          class="bg-gray-400 hover:bg-gray-500 text-white font-medium px-6 py-2 rounded-lg transition">
         Back
       </a>

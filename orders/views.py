@@ -6,7 +6,6 @@ from django.http import JsonResponse
 from django.conf import settings
 from django.urls import reverse
 from cart.models import CartItem
-from .models import Order, OrderItem
 from django.contrib.admin.views.decorators import staff_member_required
 from address.models import Address
 from django.contrib import messages
@@ -22,7 +21,7 @@ from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse, HttpResponseBadRequest
 from django.core.paginator import Paginator
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from django.db.models import Sum
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
@@ -38,124 +37,211 @@ from django.views.decorators.cache import never_cache
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from decouple import config
-from orders.models import Order, OrderItem, Coupon, Address
+from orders.models import Order, Coupon, Address
+from types import SimpleNamespace
 from wallet.models import Wallet, WalletTransaction
-from transaction.models import Transaction  # Import your Transaction model accordingly
+from transaction.models import Transaction  
+from coupons.models import CouponRedemption
+from django.db import transaction
 
+# Helper to round to 2 decimal places
+def q2(value):
+    return round(value, 2)
 
 @login_required(login_url="login")
 @never_cache
 def checkout(request):
-    error = {}
+    # Fetch cart items
     cart_items = CartItem.objects.filter(user=request.user).select_related("variant__product")
-
     if not cart_items.exists():
+        messages.info(request, "Your cart is empty.")
         return redirect("cart_view")
 
-    # --- Calculate subtotal and tax ---
+    # Tax & Delivery from .env
+    tax_rate = Decimal(config("TAX_RATE", 0.18))
+    delivery_charge = Decimal(config("DELIVERY_CHARGE", 50))
+
+    # User wallet
+    wallet, _ = Wallet.objects.get_or_create(user=request.user)
+
+    # Initialize totals for display
     subtotal = Decimal("0.00")
     total_tax = Decimal("0.00")
-    tax_rate = Decimal(config("TAX_RATE"))
-    delivery_charge = Decimal(config("DELIVERY_CHARGE"))
+    grand_total = Decimal("0.00")
+    discount = Decimal("0.00")
 
+    # Compute totals for GET
     for item in cart_items:
         price = Decimal(item.variant.get_discounted_price())
         subtotal += price * item.quantity
-        total_tax += price * item.quantity * tax_rate
+    total_tax = q2(subtotal * tax_rate)
+    grand_total = q2(subtotal + total_tax + delivery_charge)
 
-    # --- Handle coupon from session ---
-    coupon = None
-    discount = Decimal("0.00")
+    # Apply coupon if any
     coupon_code = request.session.get("coupon_id")
+    coupon = None
     if coupon_code:
         try:
             coupon = Coupon.objects.get(code=coupon_code, active=True)
-            discount = coupon.discount_value
+            if hasattr(coupon, "is_valid") and coupon.is_valid():
+                discount = q2(min(coupon.discount_value, subtotal))
+                grand_total -= discount
+            else:
+                request.session.pop("coupon_id", None)
+                coupon = None
+                discount = Decimal("0.00")
         except Coupon.DoesNotExist:
             request.session.pop("coupon_id", None)
+            coupon = None
+            discount = Decimal("0.00")
 
-    total = subtotal
-    grand_total = max(total + total_tax + delivery_charge - discount, 0)
-
-    wallet, _ = Wallet.objects.get_or_create(user=request.user)
-
+    # Handle POST: create orders
     if request.method == "POST":
         payment_method = request.POST.get("payment_method", "COD")
         address_id = request.POST.get("address")
         address = Address.objects.filter(user=request.user, id=address_id).first()
-
         if not address:
-            messages.error(request, "Please select an address.")
+            messages.error(request, "Please select a shipping address.")
             return redirect("checkout")
 
-        if payment_method == "WALLET" and wallet.balance < grand_total:
-            messages.error(request, "Insufficient wallet balance.")
-            return redirect("checkout")
+        created_orders = []
 
-        # --- Create Order ---
-        order = Order.objects.create(
-            user=request.user,
-            address=address,
-            total_price=grand_total,
-            discount=discount,
-            coupon=coupon,
-            payment_method=payment_method,
-            payment_status="Paid" if payment_method == "WALLET" else "Pending",
-        )
+        with transaction.atomic():
+            for cart_item in cart_items:
+                price = Decimal(cart_item.variant.get_discounted_price())
+                item_subtotal = q2(price * cart_item.quantity)
+                item_tax = q2(item_subtotal * tax_rate)
+                item_total = q2(item_subtotal + item_tax + delivery_charge - discount)
 
-        # --- Create Order Items ---
-        for item in cart_items:
-            price = Decimal(item.variant.get_discounted_price())
-            item_tax = price * item.quantity * tax_rate
-            OrderItem.objects.create(
-                order=order,
-                variant=item.variant,
-                quantity=item.quantity,
-                price=price,
-                tax=item_tax
-            )
-            item.variant.stock -= item.quantity
-            item.variant.save()
+                # Wallet check
+                if payment_method == "WALLET" and wallet.balance < item_total:
+                    messages.error(request, f"Insufficient wallet balance for {cart_item.variant.product.name}.")
+                    return redirect("checkout")
 
+                # Create Order
+                order = Order.objects.create(
+                    user=request.user,
+                    product=cart_item.variant,
+                    address=address,
+                    quantity=cart_item.quantity,
+                    price=price,
+                    tax=item_tax,
+                    total_price=item_total,
+                    discount=discount,
+                    coupon=coupon,
+                    payment_method=payment_method,
+                    payment_status="Paid" if payment_method == "WALLET" else "Pending"
+                )
+                created_orders.append(order)
+
+                # Reduce stock
+                cart_item.variant.stock -= cart_item.quantity
+                cart_item.variant.save()
+
+                # Wallet payment
+                if payment_method == "WALLET":
+                    wallet.balance -= item_total
+                    wallet.balance = q2(wallet.balance)
+                    wallet.save()
+                    WalletTransaction.objects.create(
+                        wallet=wallet,
+                        amount=item_total,
+                        transaction_type="DEBIT",
+                        description=f"Order #{order.order_code} Payment"
+                    )
+                    Transaction.objects.create(
+                        user=request.user,
+                        transaction_type="WALLET_DEBIT",
+                        payment_status="Credit",
+                        amount=item_total,
+                        description=f"Order Payment for Order #{order.order_code} via Wallet",
+                        order=order
+                    )
+
+                # Coupon usage
+                if coupon:
+                    try:
+                        coupon.increment_usage(request.user, order)
+                    except Exception:
+                        pass
+
+        # Clear cart after orders created
         cart_items.delete()
 
-        # Deduct wallet if used
-        if payment_method == "WALLET":
-            wallet.balance -= grand_total
-            wallet.save()
+        # Redirect to order complete or payment page
+        first_order = created_orders[0]
+        if payment_method in ["WALLET", "COD"]:
+            return redirect("order_complete", order_id=first_order.order_id)
+        else:
+            return redirect("start_payment", order_id=first_order.order_id)
 
-        # Clear coupon session
-        if coupon:
-            request.session.pop("coupon_id", None)
-
-        # Redirect to order complete / payment
-        if payment_method == "COD" or payment_method == "WALLET":
-            return redirect("order_complete", order_id=order.order_id)
-        return redirect("start_payment", order_id=order.order_id)
-
+    # GET: render checkout page
     addresses = Address.objects.filter(user=request.user)
     context = {
         "cart_items": cart_items,
         "addresses": addresses,
-        "subtotal": subtotal,
-        "total": total,
-        "tax": total_tax,
-        "delivery_charge": delivery_charge,
-        "grand_total": grand_total,
         "wallet": wallet,
-        "coupon": coupon,
+        "delivery_charge": delivery_charge,
+        "tax_rate": tax_rate,
+        "subtotal": subtotal,
+        "total_tax": total_tax,
+        "grand_total": grand_total,
         "discount": discount,
-        "error": error
     }
     return render(request, "user/orders/checkout.html", context)
 
 
-@login_required(login_url="login")
-@never_cache
 def order_complete(request, order_id):
     order = get_object_or_404(Order, order_id=order_id, user=request.user)
-    items = order.items.select_related("variant__product")
-    return render(request, "user/orders/order_complete.html", {"order": order, "items": items})
+    subtotal = order.total_price
+    discount = order.discount or 0
+    total_after_discount = subtotal - discount
+    delivery_charge = Decimal(config("DELIVERY_CHARGE"))
+    tax_rate = Decimal(config("TAX_RATE"))
+    total_tax = q2(total_after_discount * tax_rate)
+    grand_total = q2(total_after_discount + total_tax + delivery_charge)
+
+    context = {
+        "order": order,
+        "subtotal": subtotal,
+        "discount": discount,
+        "total_tax": total_tax,
+        "delivery_charge": delivery_charge,
+        "grand_total": grand_total,
+    }
+    return render(request, "user/orders/order_complete.html", context)
+
+@login_required(login_url='login')
+@never_cache
+def order_success(request, order_id):
+    # All orders created in a single checkout share a purchase_id (you can generate a UUID when user checks out)
+    orders = Order.objects.filter(user=request.user, order_id=order_id)
+
+    if not orders.exists():
+        return redirect("order_list")
+
+    # Calculate combined totals
+    subtotal = sum(order.total_price for order in orders)
+    discount = sum(order.discount or 0 for order in orders)
+    delivery_charge = Decimal(config("DELIVERY_CHARGE"))
+    tax_rate = Decimal(config("TAX_RATE"))
+    total_after_discount = subtotal - discount
+    total_tax = total_after_discount * tax_rate
+    grand_total = total_after_discount + total_tax + delivery_charge
+
+    context = {
+        "orders": orders,
+        "order_id": order_id,
+        "subtotal": subtotal,
+        "discount": discount,
+        "total_tax": total_tax,
+        "delivery_charge": delivery_charge,
+        "grand_total": grand_total,
+    }
+
+    return render(request, "user/orders/order_success.html", context)
+
+
 
 @login_required(login_url="login")
 @never_cache
@@ -183,12 +269,14 @@ def order_list(request):
 @never_cache
 def order_detail(request, order_id):
     order = get_object_or_404(Order, order_id=order_id, user=request.user)
-    grand_total = order.total_price - order.discount
-    items = order.items.select_related('variant__product')  
 
-    total_tax = sum(item.tax for item in items)
-    subtotal = sum(item.price * item.quantity for item in items)
-    grand_total = subtotal + total_tax + Decimal(config("DELIVERY_CHARGE")) - order.discount
+    product = order.product
+    quantity = order.quantity
+    unit_price = order.price
+    tax = order.tax
+    delivery_charge = Decimal(config("DELIVERY_CHARGE"))
+    subtotal = unit_price * quantity
+    grand_total = subtotal + tax + delivery_charge - order.discount
 
     breadcrumbs = [
         ("Home", reverse("home")),
@@ -199,16 +287,20 @@ def order_detail(request, order_id):
 
     context = {
         'order': order,
-        'items': items,
-        'grand_total': grand_total,
-        'delivery_charge': config("DELIVERY_CHARGE"),
+        'product': product,
+        'quantity': quantity,
+        'unit_price': unit_price,
         'subtotal': subtotal,
-        'total_tax': total_tax,
+        'tax': order.tax,
+        'grand_total': grand_total,
+        'delivery_charge': delivery_charge,
         'discount': order.discount,
         'breadcrumbs': breadcrumbs,
-
     }
+
     return render(request, 'user/orders/order_detail.html', context)
+
+
 
 @login_required(login_url="login")
 @never_cache
@@ -251,137 +343,221 @@ def admin_order_list(request):
 @never_cache
 def admin_order_detail(request, order_id):
     order = get_object_or_404(Order, order_id=order_id)
-    items = OrderItem.objects.filter(order=order).select_related("variant__product")
+    # No OrderItem model in this project; adapt the Order into an OrderItem-like object
+    adapter = SimpleNamespace(
+        variant=getattr(order, "product", None),
+        product=getattr(order, "product", None),
+        quantity=getattr(order, "quantity", None),
+        price=getattr(order, "price", None),
+        status=(getattr(order, "order_status", "") or "").lower(),
+        order_status=getattr(order, "order_status", None),
+        # Provide both order_id and item_id so templates using either won't fail
+        order_id=getattr(order, "order_id", None),
+        item_id=getattr(order, "order_id", None),
+    )
+    items = [adapter]
     return render(request, "custom_admin/orders/order_detail.html", {"order": order, "items": items})
 
 
 @staff_member_required(login_url="admin_login")
 @never_cache
 def admin_update_order_item_status(request, item_id):
-    order_item = get_object_or_404(OrderItem, item_id=item_id)
-
-    status_order = ["pending", "shipped", "delivered", "cancelled"]
+    # The project does not use an OrderItem model. Try updating an Order's status instead.
+    # If an OrderItem model is present in globals(), the code could be extended, but here
+    # we treat `item_id` as an Order.order_id and update that Order.
+    status_order = [s for s, _ in Order.ORDER_STATUS]
 
     if request.method == "POST":
         new_status = request.POST.get("status")
-        if new_status and new_status.lower() in status_order:
-            current_index = status_order.index(order_item.status)
-            new_index = status_order.index(new_status.lower())
+        if not new_status:
+            return redirect("admin_order_list")
+
+        # Normalize incoming status to match model choices (e.g. "Pending", "Shipped")
+        normalized = new_status.strip()
+
+        if normalized not in status_order:
+            # Try title-casing (in case form used 'pending' etc.)
+            normalized = new_status.strip().title()
+
+        if normalized in status_order:
+            # Locate order by UUID order_id
+            order = get_object_or_404(Order, order_id=item_id)
+            try:
+                current_index = status_order.index(order.order_status)
+            except ValueError:
+                current_index = 0
+            new_index = status_order.index(normalized)
 
             if new_index >= current_index:
-                if new_status.lower() in ["pending", "shipped"]:
-                    order_item.cancellation_requested = False
-                    order_item.cancellation_reason = ""
-                    order_item.cancellation_approved = None
+                # If moving back to earlier states, clear cancellation flags
+                if normalized in ["Pending", "Processing"]:
+                    order.cancellation_requested = False
+                    order.cancellation_reason = ""
+                    order.cancellation_approved = None
 
-                order_item.status = new_status.lower()
-                order_item.save()
+                order.order_status = normalized
+                order.save(update_fields=["order_status", "cancellation_requested", "cancellation_reason", "cancellation_approved"]) if hasattr(order, 'cancellation_requested') else order.save()
 
-                # Handle COD delivered payments
-                if new_status.lower() == "delivered" and order_item.order.payment_method == "COD":
+                # Handle COD delivered payments similar to previous logic
+                if normalized == "Delivered" and order.payment_method == "COD":
                     existing_txn = Transaction.objects.filter(
-                        order=order_item.order,
+                        order=order,
                         transaction_type="COD",
-                        description__icontains=f"OrderItem #{order_item.item_id}"
+                        description__icontains=f"Order #{order.order_code}"
                     ).exists()
 
                     if not existing_txn:
-                        item_price_total = Decimal(order_item.variant.price) * order_item.quantity
+                        item_price_total = Decimal(order.price) * order.quantity
                         amount = item_price_total + Decimal(settings.DELIVERY_CHARGE)
 
                         Transaction.objects.create(
-                            user=order_item.order.user,
+                            user=order.user,
                             transaction_type="COD",
                             payment_status="Credit",
                             amount=amount,
-                            description=f"COD Payment recorded for delivered OrderItem #{order_item.item_id} (Order #{order_item.order.order_code})",
-                            order=order_item.order,
+                            description=f"COD Payment recorded for delivered Order (Order #{order.order_code})",
+                            order=order,
                         )
 
-    return redirect("admin_order_detail", order_id=order_item.order.order_id)
+            return redirect("admin_order_detail", order_id=order.order_id)
+
+    # If GET or invalid, redirect to admin order list
+    return redirect("admin_order_list")
 
 # views.py
 @login_required(login_url="login")
 @never_cache
-def request_cancel_order_item(request, item_id):
-    item = get_object_or_404(OrderItem, item_id=item_id, order__user=request.user)
-    if item.status not in ["pending", "shipped"]:
-        return redirect("order_detail", order_id=item.order.order_id)
+def request_cancel_order_item(request, order_id):
+    order = get_object_or_404(Order, order_id=order_id, user=request.user)
+
+    cancellable_statuses = {"Pending", "Processing", "Shipped", "Out For Delivery"}  # choose policy
+
+    if order.order_status not in cancellable_statuses:
+        messages.warning(request, f"Cannot cancel order with status {order.order_status}.")
+        return redirect("order_detail", order_id=order.order_id)
 
     if request.method == "POST":
-        reason = request.POST.get("reason", "").strip()
-        if reason:
-            item.cancellation_requested = True
-            item.cancellation_reason = reason
-            item.cancellation_approved = None
-            item.save()
-    return redirect("order_detail", order_id=item.order.order_id)
+        reason = (request.POST.get("reason") or "").strip()
+        if not reason:
+            messages.error(request, "Please provide a reason for cancellation.")
+            return redirect("order_detail", order_id=order.order_id)
+
+        if order.cancellation_requested:
+            messages.info(request, "Cancellation has already been requested for this order.")
+            return redirect("order_detail", order_id=order.order_id)
+
+        order.cancellation_requested = True
+        order.cancellation_reason = reason
+        order.cancellation_approved = None
+        order.save(update_fields=["cancellation_requested", "cancellation_reason", "cancellation_approved"])
+        messages.success(request, "Cancellation request submitted successfully.")
+
+    return redirect("order_detail", order_id=order.order_id)
+
+@login_required(login_url="login")
+@never_cache
+def cancel_order_page(request, order_id):
+    order = get_object_or_404(Order, order_id=order_id, user=request.user)
+
+    cancellable_statuses = {"Pending", "Processing", "Shipped", "Out For Delivery"}
+    if order.order_status not in cancellable_statuses:
+        messages.warning(request, f"Cannot cancel this order as its status is '{order.order_status}'.")
+        return redirect("order_detail", order_id=order.order_id or order.id)
+
+    if request.method == "POST":
+        reason = (request.POST.get("reason") or "").strip()
+        if not reason:
+            messages.error(request, "Please provide a reason for cancellation.")
+            return redirect("order_detail", order_id=order.order_id or order.id)
+
+        if order.cancellation_requested:
+            messages.info(request, "A cancellation has already been requested for this order.")
+            return redirect("order_detail", order_id=order.order_id or order.id)
+
+        order.cancellation_requested = True
+        order.cancellation_reason = reason
+        order.cancellation_approved = None
+        order.save(update_fields=["cancellation_requested", "cancellation_reason", "cancellation_approved"])
+        messages.success(request, "Cancellation request submitted successfully.")
+        return redirect("order_detail", order_id=order.order_id or order.id)
+
+    return render(request, "user/orders/cancel_request.html", {"order": order})
     
 @staff_member_required(login_url="admin_login")
 @never_cache
 def admin_cancellation_requests(request):
-    items = OrderItem.objects.filter(cancellation_requested=True, cancellation_approved__isnull=True) \
-                             .select_related("order", "variant__product", "order__user")
-    return render(request, "custom_admin/orders/cancellation_request.html", {"items": items})
+    orders = Order.objects.filter(
+        cancellation_requested=True,
+        cancellation_approved__isnull=True
+    ).select_related("user", "product", "address")
+    
+    return render(request, "custom_admin/orders/cancellation_request.html", {"orders": orders})
+
 
 
 @staff_member_required(login_url="admin_login")
 @never_cache
-def admin_approve_reject_cancellation(request, item_id, action):
-    item = get_object_or_404(OrderItem, item_id=item_id)
+def admin_approve_reject_cancellation(request, order_id, action):
+    order = get_object_or_404(Order, order_id=order_id)
 
-    if action == "approve" and item.status != "cancelled":
-        item.status = "cancelled"
-        item.cancellation_approved = True
+    if action == "approve" and order.order_status != "Cancelled":
+        order.order_status = "Cancelled"
+        # mark as approved for cancellation
+        order.cancellation_approved = True
+        order.save(update_fields=["order_status", "cancellation_approved"])
 
-        # Restock
-        item.variant.stock += item.quantity
-        item.variant.save()
+        # --- Refund base amount (price + tax) ---
+        refund_amount = order.total_price + getattr(order, "tax", Decimal("0.00"))
 
-        # Refund for online/wallet payments
-        order = item.order
-        if order.payment_method in ["ONLINE", "RAZORPAY", "WALLET"]:
-            refund_exists = Transaction.objects.filter(
-                order=order,
+        # --- Proportional coupon refund ---
+        coupon_refund = Decimal("0.00")
+        if order.coupon and order.discount > 0 and not order.coupon_refunded:
+            coupon_refund = order.discount
+            refund_amount += coupon_refund
+
+        # --- Refund to wallet ---
+        wallet, _ = Wallet.objects.get_or_create(user=order.user)
+
+        # Prevent duplicate refund
+        existing_refund = WalletTransaction.objects.filter(
+            wallet=wallet,
+            description__icontains=f"Refund for cancelled order '{order.product.product.name}' (x{order.quantity})"
+        ).exists()
+
+        if not existing_refund:
+            wallet.balance += refund_amount
+            wallet.save()
+
+            WalletTransaction.objects.create(
+                wallet=wallet,
+                amount=refund_amount,
+                transaction_type="CREDIT",
+                description=f"Refund for cancelled order '{order.product.product.name}' (x{order.quantity})"
+            )
+
+            Transaction.objects.create(
+                user=order.user,
                 transaction_type="WALLET_CREDIT",
-                description__icontains=f"Refund for OrderItem #{item.item_id}"
-            ).exists()
+                payment_status="Debit",
+                amount=refund_amount,
+                description=f"Refund for Order #{order.order_code}",
+                order=order,
+            )
 
-            if not refund_exists:
-                item_price_total = Decimal(item.price) * item.quantity
-                item_tax = getattr(item, "tax", Decimal("0.00"))
-                refund_amount = (item_price_total + item_tax).quantize(Decimal("0.01"))
-
-                remaining_items = order.items.exclude(status="cancelled").exclude(item_id=item.item_id)
-                if not remaining_items.exists():
-                    refund_amount += Decimal(settings.DELIVERY_CHARGE)
-
-                # Credit wallet
-                wallet, _ = Wallet.objects.get_or_create(user=order.user)
-                wallet.balance += refund_amount
-                wallet.save()
-
-                WalletTransaction.objects.create(
-                    wallet=wallet,
-                    amount=refund_amount,
-                    transaction_type="CREDIT",
-                    description=f"Refund for cancelled product '{item.variant.product.name}' (x{item.quantity})"
-                )
-
-                Transaction.objects.create(
-                    user=order.user,
-                    transaction_type="WALLET_CREDIT",
-                    payment_status="Debit",
-                    amount=refund_amount,
-                    description=f"Refund for OrderItem #{item.item_id} (Order #{order.order_code})",
-                    order=order,
-                )
+        # --- Mark coupon as refunded ---
+        if order.coupon and not order.coupon_refunded:
+            order.coupon_refunded = True
+            order.save()
+            CouponRedemption.objects.filter(order=order, coupon=order.coupon).update(refunded=True)
 
     elif action == "reject":
-        item.cancellation_approved = False
+        # Mark the cancellation as rejected
+        order.cancellation_approved = False
+        order.save(update_fields=["cancellation_approved"])
 
-    item.save()
     return redirect("admin_cancellation_requests")
+
+
 
 
 
@@ -392,8 +568,8 @@ def admin_cancellation_request_view(request, item_id):
 
     if request.method == "POST":
         action = request.POST.get("action")
-        # Redirect to the approval function
-        return redirect("admin_approve_reject_cancellation", item_id=item.item_id, action=action)
+        # Redirect to the approval function using the order's order_id
+        return redirect("admin_approve_reject_cancellation", order_id=item.order.order_id, action=action)
 
     return render(
         request,
@@ -607,21 +783,6 @@ def download_invoice(request, order_code):
     return response
 
 
-@login_required(login_url="login")
-@never_cache
-def cancel_order_item_page(request, item_id):
-    item = get_object_or_404(OrderItem, item_id=item_id, order__user=request.user)
-
-    if request.method == "POST":
-        reason = request.POST.get("reason")
-        item.cancellation_requested = True
-        item.cancellation_reason = reason
-        item.save()
-        messages.success(request, "Cancellation request submitted.")
-        return redirect("order_detail", order_id=item.order.order_id)
-
-    return render(request, "user/orders/cancel_request.html", {"item": item})
-
 
 @login_required(login_url="login")
 @never_cache
@@ -668,14 +829,6 @@ def start_payment(request, order_id):
         "amount": order.total_price,
         "currency": "INR",
     })
-
-
-@login_required(login_url='login')
-@never_cache
-def order_success(request, order_id):
-    order = get_object_or_404(Order, order_id=order_id, user=request.user)
-    return render(request, "user/orders/order_success.html", {"order": order})
-
 
 
 @csrf_exempt
