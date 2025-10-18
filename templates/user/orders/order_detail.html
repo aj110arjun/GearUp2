@@ -71,7 +71,7 @@
                 Cancel Order
               </a>
             {% endif %}
-          {% else %}
+          {% elif order.cancellation_requested and not order.order_status == "Cancelled" %}
             <span class="inline-block text-yellow-800 px-3 py-2 rounded-full text-sm font-semibold">Cancellation Requested</span>
           {% endif %}
 

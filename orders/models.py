@@ -48,7 +48,7 @@ class Order(models.Model):
     payment_method = models.CharField(max_length=20, choices=PAYMENT_METHODS, default="COD")
     payment_status = models.CharField(
         max_length=20,
-        choices=[("Pending", "Pending"), ("Paid", "Paid"), ("Failed", "Failed")],
+        choices=[("Pending", "Pending"), ("Paid", "Paid"), ("Failed", "Failed"),("Refund", "Refund")],
         default="Pending"
     )
 
@@ -69,6 +69,10 @@ class Order(models.Model):
     cancellation_requested = models.BooleanField(default=False)
     cancellation_reason = models.TextField(blank=True, null=True)
     cancellation_approved = models.BooleanField(null=True, blank=True)
+    # Return fields (when OrderItem model is not used)
+    return_requested = models.BooleanField(default=False)
+    return_reason = models.TextField(blank=True, null=True)
+    return_approved = models.BooleanField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
         if not self.order_code:

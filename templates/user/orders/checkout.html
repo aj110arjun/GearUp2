@@ -83,12 +83,12 @@
       <h5 class="text-lg font-semibold mb-2">Order Summary</h5>
       <ul class="divide-y divide-gray-200 bg-white rounded shadow">
         {% for item in cart_items %}
-          {% with price=item.variant.get_discounted_price|floatformat:2 %}
+          {% with unit_price=item.variant.get_discounted_price %}
           <li class="flex justify-between items-center p-2">
             <span>
               {{ item.variant.product.name }} ({{ item.variant.color }}/{{ item.variant.size }}) x{{ item.quantity }}
             </span>
-            <span class="font-semibold text-green-700">₹{{ price|floatformat:2|floatformat:2|add:"0"|floatformat:2|floatformat:2|floatformat:2|floatformat:2|mul:item.quantity }}</span>
+            <span class="font-semibold text-green-700">₹{{ unit_price|mul:item.quantity|floatformat:2 }}</span>
           </li>
           {% endwith %}
         {% endfor %}

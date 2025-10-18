@@ -196,7 +196,7 @@ def order_complete(request, order_id):
     subtotal = order.total_price
     discount = order.discount or 0
     total_after_discount = subtotal - discount
-    delivery_charge = Decimal(config("DELIVERY_CHARGE"))
+    delivery_charge = Decimal(getattr(order, 'delivery_charge', None) or config("DELIVERY_CHARGE"))
     tax_rate = Decimal(config("TAX_RATE"))
     total_tax = q2(total_after_discount * tax_rate)
     grand_total = q2(total_after_discount + total_tax + delivery_charge)
@@ -305,20 +305,41 @@ def order_detail(request, order_id):
 @login_required(login_url="login")
 @never_cache
 def request_return_order_item(request, item_id):
-    item = get_object_or_404(OrderItem, item_id=item_id, order__user=request.user)
-    if item.status != "delivered":
+    # Support both OrderItem (per-item) and Order (single-item) setups
+    try:
+        from .models import OrderItem as _OrderItem
+    except Exception:
+        _OrderItem = None
+
+    if _OrderItem:
+        item = get_object_or_404(_OrderItem, item_id=item_id, order__user=request.user)
+        parent_order = item.order
+        status_field = getattr(item, "status", "")
+    else:
+        # treat item_id as an order_id
+        parent_order = get_object_or_404(Order, order_id=item_id, user=request.user)
+        # ensure delivered
+        status_field = getattr(parent_order, "order_status", "")
+
+    if status_field.lower() != "delivered":
         messages.error(request, "You can only return delivered items.")
-        return redirect("order_detail", order_id=item.order.order_id)
+        return redirect("order_detail", order_id=getattr(parent_order, "order_id", parent_order.id))
 
     if request.method == "POST":
         reason = request.POST.get("reason", "").strip()
         if reason:
-            item.return_requested = True
-            item.return_reason = reason
-            item.return_approved = None
-            item.save()
+            if _OrderItem and 'item' in locals():
+                item.return_requested = True
+                item.return_reason = reason
+                item.return_approved = None
+                item.save()
+            else:
+                parent_order.return_requested = True
+                parent_order.return_reason = reason
+                parent_order.return_approved = None
+                parent_order.save(update_fields=["return_requested", "return_reason", "return_approved"])
             messages.success(request, "Return request sent. Admin will review it.")
-    return redirect("order_detail", order_id=item.order.order_id)
+    return redirect("order_detail", order_id=getattr(parent_order, "order_id", parent_order.id))
 
 @staff_member_required(login_url="admin_login")
 @never_cache
@@ -395,8 +416,19 @@ def admin_update_order_item_status(request, item_id):
                     order.cancellation_reason = ""
                     order.cancellation_approved = None
 
+                # If marking Delivered for a COD order, ensure payment_status is set to Paid
+                if normalized == "Delivered" and getattr(order, 'payment_method', '') == 'COD':
+                    order.payment_status = 'Paid'
+
                 order.order_status = normalized
-                order.save(update_fields=["order_status", "cancellation_requested", "cancellation_reason", "cancellation_approved"]) if hasattr(order, 'cancellation_requested') else order.save()
+                # Build update_fields list to avoid saving unrelated fields
+                save_fields = ["order_status"]
+                if hasattr(order, 'cancellation_requested'):
+                    save_fields += ["cancellation_requested", "cancellation_reason", "cancellation_approved"]
+                if getattr(order, 'payment_method', '') == 'COD' and normalized == 'Delivered':
+                    save_fields.append('payment_status')
+
+                order.save(update_fields=save_fields) if save_fields else order.save()
 
                 # Handle COD delivered payments similar to previous logic
                 if normalized == "Delivered" and order.payment_method == "COD":
@@ -408,7 +440,8 @@ def admin_update_order_item_status(request, item_id):
 
                     if not existing_txn:
                         item_price_total = Decimal(order.price) * order.quantity
-                        amount = item_price_total + Decimal(settings.DELIVERY_CHARGE)
+                        delivery_val = getattr(order, 'delivery_charge', None) or getattr(settings, 'DELIVERY_CHARGE', 0)
+                        amount = item_price_total + Decimal(str(delivery_val))
 
                         Transaction.objects.create(
                             user=order.user,
@@ -564,6 +597,12 @@ def admin_approve_reject_cancellation(request, order_id, action):
                     description=f"Refund for Order #{order.order_code}",
                     order=order,
                 )
+                # Mark the order as refunded for UI/reporting
+                try:
+                    order.payment_status = 'Refund'
+                    order.save(update_fields=['payment_status'])
+                except Exception:
+                    pass
         else:
             # Order not paid yet -- refund should be processed when/if payment arrives or handled manually.
             pass
@@ -588,18 +627,26 @@ def admin_approve_reject_cancellation(request, order_id, action):
 @staff_member_required(login_url="admin_login")
 @never_cache
 def admin_cancellation_request_view(request, item_id):
-    item = get_object_or_404(OrderItem, item_id=item_id, cancellation_requested=True)
+    # Try to import OrderItem; if it doesn't exist, treat item_id as an Order.order_id
+    try:
+        from .models import OrderItem as _OrderItem
+    except Exception:
+        _OrderItem = None
 
-    if request.method == "POST":
-        action = request.POST.get("action")
-        # Redirect to the approval function using the order's order_id
-        return redirect("admin_approve_reject_cancellation", order_id=item.order.order_id, action=action)
-
-    return render(
-        request,
-        "custom_admin/orders/cancellation_request_view.html",
-        {"item": item}
-    )
+    if _OrderItem:
+        item = get_object_or_404(_OrderItem, item_id=item_id, cancellation_requested=True)
+        if request.method == "POST":
+            action = request.POST.get("action")
+            return redirect("admin_approve_reject_cancellation", order_id=item.order.order_id, action=action)
+        return render(request, "custom_admin/orders/cancellation_request_view.html", {"item": item})
+    else:
+        # Fallback: fetch Order by order_id and adapt to the template
+        order = get_object_or_404(Order, order_id=item_id, cancellation_requested=True)
+        adapter = SimpleNamespace(order=order, variant=getattr(order, 'product', None), item_id=getattr(order, 'order_id', None), return_reason=getattr(order, 'cancellation_reason', ''))
+        if request.method == "POST":
+            action = request.POST.get("action")
+            return redirect("admin_approve_reject_cancellation", order_id=order.order_id, action=action)
+        return render(request, "custom_admin/orders/cancellation_request_view.html", {"item": adapter})
 
 
 
@@ -607,8 +654,22 @@ def admin_cancellation_request_view(request, item_id):
 @staff_member_required(login_url="admin_login")
 @never_cache
 def admin_return_requests(request):
-    items = OrderItem.objects.filter(return_requested=True, return_approved__isnull=True) \
+    # Support both OrderItem-based and Order-based returns
+    try:
+        from .models import OrderItem as _OrderItem
+    except Exception:
+        _OrderItem = None
+
+    if _OrderItem:
+        items = _OrderItem.objects.filter(return_requested=True, return_approved__isnull=True) \
                              .select_related("order", "variant__product", "order__user")
+    else:
+        # Adapt Orders into item-like objects for the template
+        orders = Order.objects.filter(return_requested=True, return_approved__isnull=True).select_related("user", "product", "address")
+        items = []
+        for o in orders:
+            items.append(SimpleNamespace(order=o, variant=getattr(o, "product", None), quantity=getattr(o, "quantity", 1), return_reason=getattr(o, "return_reason", ""), item_id=getattr(o, "order_id", None)))
+
     return render(request, "custom_admin/orders/return_request.html", {"items": items})
 
 
@@ -616,57 +677,108 @@ def admin_return_requests(request):
 @staff_member_required(login_url="admin_login")
 @never_cache
 def admin_approve_reject_return(request, item_id, action):
-    item = get_object_or_404(OrderItem, item_id=item_id)
-    order = item.order
+    # Support both per-item and whole-order return flows
+    try:
+        from .models import OrderItem as _OrderItem
+    except Exception:
+        _OrderItem = None
+
+    if _OrderItem:
+        item = get_object_or_404(_OrderItem, item_id=item_id)
+        order = item.order
+        variant = getattr(item, "variant", None)
+        qty = getattr(item, "quantity", 1)
+        item_tax = getattr(item, "tax", Decimal("0.00"))
+        is_item = True
+    else:
+        # treat item_id as order_id
+        order = get_object_or_404(Order, order_id=item_id)
+        variant = getattr(order, "product", None)
+        qty = getattr(order, "quantity", 1)
+        item_tax = getattr(order, "tax", Decimal("0.00"))
+        is_item = False
+
     wallet, _ = Wallet.objects.get_or_create(user=order.user)
 
     # Calculate refund
-    item_price_total = Decimal(item.price) * item.quantity
-    refund_amount = item_price_total
-    if hasattr(item, "tax"):
-        refund_amount += item.tax
-    total_items = order.items.count()
-    returned_items = order.items.filter(return_approved=True).count()
-    if returned_items + 1 == total_items:
-        refund_amount += Decimal(settings.DELIVERY_CHARGE)
+    item_price_total = Decimal(getattr(variant, "price", order.price)) * qty
+    refund_amount = item_price_total + Decimal(item_tax or 0)
+
+    # Determine if this is the final returned item (for per-item Orders this uses order.items, else assume single-item order)
+    if is_item and hasattr(order, 'items'):
+        total_items = order.items.count()
+        returned_items = order.items.filter(return_approved=True).count()
+        if returned_items + 1 == total_items:
+            refund_amount += Decimal(config("DELIVERY_CHARGE", 0))
+    else:
+        # single-order: include delivery charge
+        refund_amount += Decimal(config("DELIVERY_CHARGE", 0))
+
     refund_amount = refund_amount.quantize(Decimal("0.01"))
 
-    if action == "approve" and item.status == "delivered" and not item.return_approved:
-        item.status = "returned"
-        item.return_approved = True
-        item.variant.stock += item.quantity
-        item.variant.save()
+    if _OrderItem and is_item:
+        # per-item approval/rejection
+        if action == "approve" and getattr(item, "status", "").lower() == "delivered" and not getattr(item, "return_approved", False):
+            item.status = "returned"
+            item.return_approved = True
+            if hasattr(item, 'variant') and item.variant:
+                item.variant.stock += item.quantity
+                item.variant.save()
 
-        if not getattr(item, "refund_done", False):
-            wallet.balance += refund_amount
-            wallet.save()
+            if not getattr(item, "refund_done", False) and refund_amount > Decimal("0.00"):
+                wallet.credit(refund_amount, description=f"Refund for returned product '{item.variant.product.name}' (x{item.quantity})")
 
-            WalletTransaction.objects.create(
-                wallet=wallet,
-                amount=refund_amount,
-                transaction_type="CREDIT",
-                description=f"Refund for returned product '{item.variant.product.name}' (x{item.quantity})"
-            )
+                Transaction.objects.create(
+                    user=order.user,
+                    transaction_type="WALLET_CREDIT",
+                    payment_status="Debit",
+                    amount=refund_amount,
+                    description=f"Refund for returned product '{item.variant.product.name}' (Order #{order.order_code})",
+                    order=order,
+                )
+                # Mark order as refunded (partial refund) for visibility
+                try:
+                    order.payment_status = 'Refund'
+                    order.save(update_fields=['payment_status'])
+                except Exception:
+                    pass
+        elif action == "reject":
+            item.return_approved = False
 
-            Transaction.objects.create(
-                user=order.user,
-                transaction_type="WALLET_CREDIT",
-                payment_status="Debit",
-                amount=refund_amount,
-                description=f"Refund for returned product '{item.variant.product.name}' (Order #{order.order_code})",
-                order=order,
-            )
+        # save changes for per-item flows
+        save_fields = ["status", "return_approved"]
+        if hasattr(item, "refund_done"):
+            save_fields.append("refund_done")
+        item.save(update_fields=save_fields)
+    else:
+        # single-order approval/rejection
+        if action == "approve" and getattr(order, "order_status", "").lower() == "delivered" and not getattr(order, "return_approved", False):
+            order.order_status = "Returned"
+            order.return_approved = True
+            order.save(update_fields=["order_status", "return_approved"])
 
-            item.refund_done = True
-    elif action == "reject":
-        item.return_approved = False
+            if refund_amount > Decimal("0.00"):
+                wallet.credit(refund_amount, description=f"Refund for returned order (Order #{order.order_code})")
 
-    save_fields = ["status", "return_approved"]
-    if hasattr(item, "refund_done"):
-        save_fields.append("refund_done")
-    item.save(update_fields=save_fields)
+                Transaction.objects.create(
+                    user=order.user,
+                    transaction_type="WALLET_CREDIT",
+                    payment_status="Debit",
+                    amount=refund_amount,
+                    description=f"Refund for returned order (Order #{order.order_code})",
+                    order=order,
+                )
+                # Mark the order as refunded
+                try:
+                    order.payment_status = 'Refund'
+                    order.save(update_fields=['payment_status'])
+                except Exception:
+                    pass
+        elif action == "reject":
+            order.return_approved = False
+            order.save(update_fields=["return_approved"])
 
-    return render(request, "custom_admin/orders/return_request.html", {"item": item})
+    return redirect("admin_return_requests")
 
 
 @login_required(login_url="login")
@@ -738,18 +850,57 @@ def download_invoice(request, order_code):
     subtotal = Decimal("0.00")
     total_tax = Decimal("0.00")
 
-    for item in order.items.all():
-        item_subtotal = item.price * item.quantity
+    # Support both multi-item orders (order.items) and single-item orders (fields on Order)
+    if hasattr(order, "items") and hasattr(order.items, "all"):
+        items_iterable = order.items.all()
+        multi_item = True
+    else:
+        # Construct a pseudo-item from Order fields
+        items_iterable = [SimpleNamespace(
+            variant=getattr(order, "product", None),
+            quantity=getattr(order, "quantity", 1),
+            price=getattr(order, "price", Decimal("0.00")),
+            tax=getattr(order, "tax", Decimal("0.00")),
+            status=getattr(order, "order_status", "")
+        )]
+        multi_item = False
+
+    for item in items_iterable:
+        item_price = Decimal(getattr(item, "price", 0) or 0)
+        item_quantity = int(getattr(item, "quantity", 1) or 1)
+        item_tax = Decimal(getattr(item, "tax", 0) or 0)
+
+        item_subtotal = item_price * item_quantity
         subtotal += item_subtotal
-        total_tax += item.tax or Decimal("0.00")
+        total_tax += item_tax
+
+        product_name = getattr(getattr(item, "variant", None), "product", None)
+        if product_name:
+            product_name = getattr(product_name, "name", str(product_name))
+        else:
+            product_name = getattr(order, "product", None)
+            if product_name:
+                product_name = getattr(product_name, "product", None)
+                if product_name:
+                    product_name = getattr(product_name, "name", str(product_name))
+                else:
+                    product_name = str(getattr(order, "product", order))
+            else:
+                product_name = "Product"
+
+        status_display = getattr(item, "get_status_display", None)
+        if callable(status_display):
+            status = status_display()
+        else:
+            status = str(getattr(item, "status", getattr(order, "order_status", "")))
 
         data.append([
-            item.variant.product.name,
-            str(item.quantity),
-            f"Rs. {item.price:.2f}",
-            f"Rs. {item.tax:.2f}",
+            product_name,
+            str(item_quantity),
+            f"Rs. {item_price:.2f}",
+            f"Rs. {item_tax:.2f}",
             f"Rs. {item_subtotal:.2f}",
-            item.get_status_display(),
+            status,
         ])
 
     table = Table(data, hAlign="LEFT", colWidths=[140, 40, 70, 70, 80, 80])
@@ -767,7 +918,7 @@ def download_invoice(request, order_code):
     elements.append(Spacer(1, 15))
 
     # --- Summary Section ---
-    delivery_charge = Decimal(str(config("DELIVERY_CHARGE") or 0))
+    delivery_charge = Decimal(str(getattr(order, 'delivery_charge', None) or config("DELIVERY_CHARGE") or 0))
     discount = Decimal(str(order.discount or 0))
     grand_total = subtotal + total_tax + delivery_charge - discount
 
@@ -811,23 +962,59 @@ def download_invoice(request, order_code):
 @login_required(login_url="login")
 @never_cache
 def return_order_item_page(request, item_id):
-    item = get_object_or_404(OrderItem, item_id=item_id, order__user=request.user)
+    # Support both OrderItem-based projects and Order-only projects
+    try:
+        from .models import OrderItem as _OrderItem
+    except Exception:
+        _OrderItem = None
 
-    if request.method == "POST":
-        reason = request.POST.get("reason")
-        item.return_requested = True
-        item.return_reason = reason
-        item.save()
-        messages.success(request, "Return request submitted.")
-        return redirect("order_detail", order_id=item.order.order_id)
+    if _OrderItem:
+        item = get_object_or_404(_OrderItem, item_id=item_id, order__user=request.user)
+        if request.method == "POST":
+            reason = request.POST.get("reason")
+            item.return_requested = True
+            item.return_reason = reason
+            item.save()
+            messages.success(request, "Return request submitted.")
+            return redirect("order_detail", order_id=item.order.order_id)
+        return render(request, "user/orders/return_request.html", {"item": item})
+    else:
+        # treat item_id as an order_id
+        order = get_object_or_404(Order, order_id=item_id, user=request.user)
+        if request.method == "POST":
+            reason = request.POST.get("reason")
+            order.return_requested = True
+            order.return_reason = reason
+            order.return_approved = None
+            order.save(update_fields=["return_requested", "return_reason", "return_approved"])
+            messages.success(request, "Return request submitted.")
+            return redirect("order_detail", order_id=order.order_id)
 
-    return render(request, "user/orders/return_request.html", {"item": item})
+        # Adapter that the template expects (has .variant and .order)
+        adapter = SimpleNamespace(variant=getattr(order, 'product', None), order=order)
+        return render(request, "user/orders/return_request.html", {"item": adapter})
 
 @staff_member_required(login_url='admin_login')
 @never_cache
 def admin_view_return_reason(request, item_id):
-    item = get_object_or_404(OrderItem, item_id=item_id)
-    return render(request, "custom_admin/orders/view_return_reason.html", {"item": item})
+    try:
+        from .models import OrderItem as _OrderItem
+    except Exception:
+        _OrderItem = None
+
+    if _OrderItem:
+        item = get_object_or_404(_OrderItem, item_id=item_id)
+        return render(request, "custom_admin/orders/view_return_reason.html", {"item": item})
+    else:
+        order = get_object_or_404(Order, order_id=item_id)
+        adapter = SimpleNamespace(
+            order=order,
+            return_reason=getattr(order, 'return_reason', ''),
+            item_id=getattr(order, 'order_id', None),
+            variant=getattr(order, 'product', None),
+            quantity=getattr(order, 'quantity', 1),
+        )
+        return render(request, "custom_admin/orders/view_return_reason.html", {"item": adapter})
 
 @login_required
 @never_cache

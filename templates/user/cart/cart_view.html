@@ -60,11 +60,13 @@
             </form>
           </td>
           <td class="px-6 py-4 text-sm">
-            {% with offer=item.variant.product.get_active_product_offer %}
-              {% if offer %}
+            {% with discount=item.variant.product.get_best_offer best_offer_obj=item.variant.product.get_best_offer_obj %}
+              {% if discount and discount|floatformat:0 != '0' %}
                 <p class="text-gray-400 line-through">₹{{ item.variant.price|floatformat:2 }}</p>
-                <p class="font-bold text-green-600 mb-0">₹{{ item.variant.get_discounted_price|floatformat:2 }} <span class="bg-red-500 text-white text-xs rounded px-1">{{ offer.discount_percent }}%</span></p>
-                <small class="text-xs text-blue-600">{{ offer }}</small>
+                <p class="font-bold text-green-600 mb-0">₹{{ item.variant.get_discounted_price|floatformat:2 }} <span class="bg-red-500 text-white text-xs rounded px-1">-{{ discount }}%</span></p>
+                {% if best_offer_obj %}
+                  <small class="text-xs text-blue-600">{{ best_offer_obj }}</small>
+                {% endif %}
               {% else %}
                 <p class="font-bold">₹{{ item.variant.price|floatformat:2 }}</p>
               {% endif %}
