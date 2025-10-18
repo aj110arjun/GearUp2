@@ -64,11 +64,15 @@
              Download Invoice
           </a>
 
-          {% if order.order_status != "Out For Delivery" and order.order_status != "Cancelled" and order.order_status != "Delivered" and order.order_status != "Returned" %}
-            <a href="{% url 'cancel_order_page' order.order_id %}" 
-              class="inline-block bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition">
-              Cancel Order
-            </a>
+          {% if not order.cancellation_requested %}
+            {% if order.order_status != "Out For Delivery" and order.order_status != "Cancelled" and order.order_status != "Delivered" and order.order_status != "Returned" %}
+              <a href="{% url 'cancel_order_page' order.order_id %}" 
+                class="inline-block bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition">
+                Cancel Order
+              </a>
+            {% endif %}
+          {% else %}
+            <span class="inline-block text-yellow-800 px-3 py-2 rounded-full text-sm font-semibold">Cancellation Requested</span>
           {% endif %}
 
           {% if order.order_status == "Delivered" %}

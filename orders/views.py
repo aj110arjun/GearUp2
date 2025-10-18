@@ -506,48 +506,72 @@ def admin_approve_reject_cancellation(request, order_id, action):
         order.cancellation_approved = True
         order.save(update_fields=["order_status", "cancellation_approved"])
 
-        # --- Refund base amount (price + tax) ---
-        refund_amount = order.total_price + getattr(order, "tax", Decimal("0.00"))
+        # --- Compute refund amount ---
+        # Prefer using stored total_price if it represents charged amount; fall back to price*quantity.
+        base_total = getattr(order, "total_price", None)
+        try:
+            base_total = Decimal(base_total)
+        except Exception:
+            base_total = Decimal(order.price) * Decimal(order.quantity)
 
-        # --- Proportional coupon refund ---
-        coupon_refund = Decimal("0.00")
-        if order.coupon and order.discount > 0 and not order.coupon_refunded:
-            coupon_refund = order.discount
-            refund_amount += coupon_refund
+        tax_amount = getattr(order, "tax", Decimal("0.00")) or Decimal("0.00")
+        delivery_charge = Decimal(config("DELIVERY_CHARGE", 0))
+        discount_amount = Decimal(getattr(order, "discount", 0) or 0)
 
-        # --- Refund to wallet ---
-        wallet, _ = Wallet.objects.get_or_create(user=order.user)
+        # Expected total based on components (price*qty + tax + delivery - discount)
+        expected_total = (Decimal(order.price) * Decimal(order.quantity)) + Decimal(tax_amount) + delivery_charge - discount_amount
 
-        # Prevent duplicate refund
-        existing_refund = WalletTransaction.objects.filter(
-            wallet=wallet,
-            description__icontains=f"Refund for cancelled order '{order.product.product.name}' (x{order.quantity})"
-        ).exists()
+        # Use the larger of stored base_total and expected_total to ensure delivery charge is included
+        refund_amount = max(base_total, expected_total)
 
-        if not existing_refund:
-            wallet.balance += refund_amount
-            wallet.save()
+        # Quantize to 2 decimals
+        refund_amount = Decimal(refund_amount).quantize(Decimal("0.01"))
 
-            WalletTransaction.objects.create(
-                wallet=wallet,
-                amount=refund_amount,
-                transaction_type="CREDIT",
-                description=f"Refund for cancelled order '{order.product.product.name}' (x{order.quantity})"
-            )
+        # --- Refund to wallet ONLY if the order was paid ---
+        if getattr(order, 'payment_status', None) == 'Paid':
+            wallet, _ = Wallet.objects.get_or_create(user=order.user)
 
-            Transaction.objects.create(
+            # Prevent duplicate refund: check Transaction for an existing refund for this order
+            existing_refund_txn = Transaction.objects.filter(
                 user=order.user,
-                transaction_type="WALLET_CREDIT",
-                payment_status="Debit",
+                transaction_type='WALLET_CREDIT',
                 amount=refund_amount,
-                description=f"Refund for Order #{order.order_code}",
                 order=order,
-            )
+                description__icontains=f"Refund for Order #{order.order_code}"
+            ).exists()
+
+            if not existing_refund_txn and refund_amount > Decimal("0.00"):
+                # Use Wallet.credit() helper so WalletTransaction is created consistently
+                desc = f"Refund for cancelled order (Order #{order.order_code})"
+                try:
+                    wallet.credit(refund_amount, description=desc)
+                except Exception:
+                    # Fallback to manual credit if helper fails
+                    wallet.balance += refund_amount
+                    wallet.save()
+                    WalletTransaction.objects.create(
+                        wallet=wallet,
+                        amount=refund_amount,
+                        transaction_type="CREDIT",
+                        description=desc
+                    )
+
+                Transaction.objects.create(
+                    user=order.user,
+                    transaction_type="WALLET_CREDIT",
+                    payment_status="Debit",
+                    amount=refund_amount,
+                    description=f"Refund for Order #{order.order_code}",
+                    order=order,
+                )
+        else:
+            # Order not paid yet -- refund should be processed when/if payment arrives or handled manually.
+            pass
 
         # --- Mark coupon as refunded ---
         if order.coupon and not order.coupon_refunded:
             order.coupon_refunded = True
-            order.save()
+            order.save(update_fields=["coupon_refunded"])
             CouponRedemption.objects.filter(order=order, coupon=order.coupon).update(refunded=True)
 
     elif action == "reject":
