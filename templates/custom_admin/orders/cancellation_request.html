@@ -3,7 +3,7 @@
 <div class="max-w-5xl mx-auto my-6">
     <h2 class="text-2xl font-bold mb-6">Pending Cancellation Requests</h2>
 
-    {% if items %}
+    {% if orders %}
     <div class="overflow-x-auto bg-white shadow rounded-lg">
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-800 text-white">
@@ -13,22 +13,49 @@
                     <th class="px-4 py-2 text-left text-sm font-medium">Product</th>
                     <th class="px-4 py-2 text-left text-sm font-medium">Variant</th>
                     <th class="px-4 py-2 text-left text-sm font-medium">Quantity</th>
+                    <th class="px-4 py-2 text-left text-sm font-medium">Reason</th>
                     <th class="px-4 py-2 text-left text-sm font-medium">Action</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200">
-                {% for item in items %}
+                {% for order in orders %}
                 <tr class="hover:bg-gray-50">
-                    <td class="px-4 py-2 text-sm">#{{ item.order.order_code }}</td>
-                    <td class="px-4 py-2 text-sm">{{ item.order.user.email }}</td>
-                    <td class="px-4 py-2 text-sm">{{ item.variant.product.name }}</td>
-                    <td class="px-4 py-2 text-sm">{{ item.variant.color }} / {{ item.variant.size }}</td>
-                    <td class="px-4 py-2 text-sm">{{ item.quantity }}</td>
+                    <td class="px-4 py-2 text-sm">#{{ order.order_code }}</td>
+                    <td class="px-4 py-2 text-sm">{{ order.user.email }}</td>
+                    <td class="px-4 py-2 text-sm">{{ order.product.product.name }}</td>
+                    <td class="px-4 py-2 text-sm">{{ order.product.color }} / {{ order.product.size }}</td>
+                    <td class="px-4 py-2 text-sm">{{ order.quantity }}</td>
+                    <td>
+                        {% if order.cancellation_reason or order.cancellation_requested %}
+                            <div class="inline-block mt-2">
+                                <button type="button" onclick="return confirm('Cancel Reason - {{ order.cancellation_reason }}')" 
+                                        class="inline-block bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-sm font-medium">
+                                    View
+                                </button>
+                            </div>
+                        {% endif %}
+                    </td>
                     <td class="px-4 py-2 text-sm">
-                        <a href="{% url 'admin_cancellation_request_view' item.item_id %}" 
-                           class="inline-block bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm font-medium">
-                           View
-                        </a>
+                        {% if order.cancellation_approved is not None %}
+                            {% if order.cancellation_approved %}
+                                <span class="inline-block bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold">Approved</span>
+                            {% else %}
+                                <span class="inline-block bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-semibold">Rejected</span>
+                            {% endif %}
+                        {% else %}
+                            <div class="space-x-2">
+                                <a href="{% url 'admin_approve_reject_cancellation' order.order_id 'approve' %}" 
+                                    onclick="return confirm('Are You Sure want to approve the cancel?')"
+                                    class="inline-block bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm font-medium">
+                                    Approve
+                                </a>
+                                <a href="{% url 'admin_approve_reject_cancellation' order.order_id 'reject' %}" 
+                                    onclick="return confirm('Are You Sure want to reject the cancel?')"
+                                    class="inline-block bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm font-medium">
+                                    Reject
+                                </a>
+                            </div>
+                        {% endif %}                                      
                     </td>
                 </tr>
                 {% endfor %}

@@ -55,16 +55,12 @@ def toggle_cart(request):
 @login_required(login_url="login")
 @never_cache
 def cart_view(request):
-    error = {}
     items = CartItem.objects.filter(user=request.user).select_related("variant__product")
 
-    subtotal = Decimal("0.00")       # after applying offers
-    offer_savings = Decimal("0.00")  # total savings from product offers
-    discount = Decimal("0.00")       # coupon discount
-    item_qnt_price = Decimal("0.00")
-    coupon = None
+    subtotal = Decimal("0.00")
+    offer_savings = Decimal("0.00")
 
-    # 🧮 Validate item quantities and stock
+    # Validate item quantities and stock
     for item in items:
         max_limit = min(5, item.variant.stock)
         if item.quantity > max_limit:
@@ -75,38 +71,16 @@ def cart_view(request):
             item.delete()
             continue
 
-    # 🧮 Calculate subtotal & offer savings
+    # Calculate subtotal & offer savings
     for item in items:
-        item_qnt_price += item.variant.price * item.quantity
-
         original_price = item.variant.price
-        discounted_price = item.variant.get_discounted_price()
+        discounted_price = Decimal(item.variant.get_discounted_price())
 
+        subtotal += discounted_price * item.quantity
         if discounted_price < original_price:
             offer_savings += (original_price - discounted_price) * item.quantity
 
-        subtotal += discounted_price * item.quantity
-
-    # 🎟️ Apply coupon (if present)
-    coupon_code = request.session.get("coupon_id")
-    if coupon_code:
-        try:
-            coupon = Coupon.objects.get(code=coupon_code, active=True)
-            if coupon.is_valid():
-                discount = (subtotal * Decimal(coupon.discount)) / 100
-            else:
-                error["coupon"] = "Coupon is expired or inactive."
-                request.session.pop("coupon_id", None)
-                coupon = None
-        except Coupon.DoesNotExist:
-            error["coupon"] = "Invalid coupon code."
-            request.session.pop("coupon_id", None)
-            coupon = None
-
-    # 💰 Final total
-    total = subtotal - discount
-    if total < 0:
-        total = Decimal("0.00")
+    total = subtotal  # no coupon applied in cart
 
     breadcrumbs = [
         ("Home", reverse("home")),
@@ -117,11 +91,7 @@ def cart_view(request):
         "items": items,
         "subtotal": subtotal,
         "offer_savings": offer_savings,
-        "discount": discount,
         "total": total,
-        "coupon": coupon,
-        "error": error,
-        "item_qnt_price": item_qnt_price,
         "breadcrumbs": breadcrumbs,
     }
 

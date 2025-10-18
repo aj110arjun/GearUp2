@@ -1,206 +1,132 @@
 {% extends "user/base.html" %}
-{% load custom_filters %}
+{% load static %}
 {% block title %}Order Details{% endblock title %}
+
 {% block content %}
-<style>
-  /* Skeleton Loading Styles */
-  .skeleton-bg {
-    @apply bg-gray-300 rounded animate-pulse;
-  }
-  .skeleton-line {
-    @apply h-5 my-2 rounded;
-  }
-  .skeleton-img {
-    @apply w-12 h-12 rounded;
-  }
-  .skeleton-badge {
-    @apply w-20 h-5 rounded-full;
-  }
-</style>
+<div class="max-w-4xl mx-auto p-6 select-none">
 
-<div class="max-w-7xl mx-auto p-4 select-none">
-
-  <!-- Skeleton order detail -->
-  <div id="skeleton-order-detail" class="block space-y-6">
-    <div class="space-y-2">
-      <div class="skeleton-bg skeleton-line w-72 h-8"></div>
-      <div class="skeleton-bg skeleton-line w-48 h-5"></div>
-    </div>
-
-    <div class="flex flex-col md:flex-row md:space-x-6">
-      <div class="md:flex-1 bg-white p-4 rounded-md shadow">
-        <div class="skeleton-bg skeleton-line w-36 h-6 mb-6"></div>
-        <table class="w-full table-fixed border-collapse">
-          <thead>
-            <tr>
-              {% for _ in "1234567" %}
-              <th><div class="skeleton-bg skeleton-line w-20 h-4"></div></th>
-              {% endfor %}
-            </tr>
-          </thead>
-          <tbody>
-            {% for _ in "1234" %}
-            <tr class="h-10">
-              <td><div class="skeleton-bg skeleton-img"></div></td>
-              <td><div class="skeleton-bg skeleton-line w-32"></div></td>
-              <td><div class="skeleton-bg skeleton-line w-12"></div></td>
-              <td><div class="skeleton-bg skeleton-line w-6"></div></td>
-              <td><div class="skeleton-bg skeleton-line w-12"></div></td>
-              <td><div class="skeleton-bg skeleton-badge"></div></td>
-              <td><div class="skeleton-bg skeleton-line w-20"></div></td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
+  <!-- Header -->
+  <div class="mb-8 text-center">
+    <h2 class="text-3xl font-bold text-gray-800">
+      Order <span class="text-blue-600">#{{ order.order_code }}</span>
+    </h2>
+    <p class="text-gray-500 text-sm mt-2">
+      Placed on {{ order.created_at|date:"d M Y, H:i" }}
+    </p>
   </div>
 
-  <!-- Real order detail -->
-  <div id="real-order-detail" class="hidden">
+  <!-- Order Card -->
+  <div class="bg-white rounded-lg shadow-md overflow-hidden border border-gray-100">
+    <div class="flex flex-col md:flex-row">
 
-    <div class="space-y-6">
-      <!-- Header -->
-      <div>
-        <h2 class="text-2xl font-bold">
-          Order Details <span class="text-blue-600">#{{ order.order_code }}</span>
-        </h2>
-        <p class="text-gray-600">Placed on: {{ order.created_at|date:"d M Y, H:i" }}</p>
+      <!-- Product Image -->
+      <div class="md:w-1/3 bg-gray-50 flex items-center justify-center p-5">
+        {% if order.product.product.image %}
+          <img src="{{ order.product.product.image.url }}" 
+               alt="{{ order.product.product.name }}"
+               class="w-40 h-40 object-cover rounded-md border" />
+        {% else %}
+          <img src="{% static 'images/no-image.png' %}" 
+               class="w-40 h-40 object-cover rounded-md border" />
+        {% endif %}
       </div>
 
-      <div class="flex flex-col md:flex-row md:space-x-6">
-        
-        <!-- Left Section: Order Items -->
-        <div class="md:flex-1 bg-white rounded-md shadow p-5">
-          <div class="flex justify-between items-center mb-6 border-b pb-3">
-            <h3 class="text-lg font-semibold">Items in Your Order</h3>
-            <a href="{% url 'download_invoice' order.order_code %}"
-              class="text-green-600 border border-green-600 px-3 py-1 rounded hover:bg-green-600 hover:text-white transition">
-              <i class="bi bi-file-earmark-arrow-down"></i> Invoice
+      <!-- Product Info -->
+      <div class="md:w-2/3 p-6 space-y-3">
+        <h3 class="text-xl font-semibold">{{ order.product.product.name }}</h3>
+        <p class="text-gray-600">Variant: {{ order.product.color }} / {{ order.product.size }}</p>
+        <p class="text-gray-600">Quantity: {{ order.quantity }}</p>
+        <p class="text-gray-800 font-semibold text-lg">₹{{ order.price|floatformat:2 }}</p>
+
+        <!-- Status Badge -->
+        <div class="mt-4">
+          {% if order.order_status == "Pending" %}
+            <span class="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-semibold">{{ order.order_status }}</span>
+          {% elif order.order_status == "Processing" %}
+            <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-semibold">{{ order.order_status }}</span>
+          {% elif order.order_status == "Shipped" %}
+            <span class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-sm font-semibold">{{ order.order_status }}</span>
+          {% elif order.order_status == "Out For Delivery" %}
+            <span class="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-semibold">{{ order.order_status }}</span>
+          {% elif order.order_status == "Delivered" %}
+            <span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold">{{ order.order_status }}</span>
+          {% elif order.order_status == "Cancelled" %}
+            <span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-semibold">{{ order.order_status }}</span>
+          {% elif order.order_status == "Returned" %}
+            <span class="bg-pink-100 text-pink-700 px-3 py-1 rounded-full text-sm font-semibold">{{ order.order_status }}</span>
+          {% endif %}
+        </div>
+
+        <!-- Invoice & Cancel Buttons -->
+        <div class="mt-4 flex gap-3">
+          <a href="{% url 'download_invoice' order.order_code %}"
+             class="inline-block border border-green-600 text-green-600 px-4 py-2 rounded-md hover:bg-green-600 hover:text-white transition">
+             Download Invoice
+          </a>
+
+          {% if order.order_status != "Out For Delivery" and order.order_status != "Cancelled" and order.order_status != "Delivered" and order.order_status != "Returned" %}
+            <a href="{% url 'cancel_order_page' order.order_id %}" 
+              class="inline-block bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition">
+              Cancel Order
             </a>
-          </div>
+          {% endif %}
 
-          <div class="overflow-x-auto">
-            <table class="w-full text-sm border-collapse">
-              <thead class="bg-gray-100 text-gray-700">
-                <tr>
-                  <th class="p-3 text-left border">Product</th>
-                  <th class="p-3 text-left border">Variant</th>
-                  <th class="p-3 text-center border">Price</th>
-                  <th class="p-3 text-center border">Qty</th>
-                  <th class="p-3 text-center border">Tax</th>
-                  <th class="p-3 text-center border">Status</th>
-                  <th class="p-3 text-center border">Action</th>
-                </tr>
-              </thead>
-              <tbody class="text-gray-800">
-                {% for item in items %}
-                <tr class="border-b hover:bg-gray-50 transition">
-                  <td class="p-3 flex items-center gap-3">
-                    {% if item.variant.product.image %}
-                    <img src="{{ item.variant.product.image.url }}" alt="{{ item.variant.product.name }}"
-                      class="w-12 h-12 rounded object-cover border" />
-                    {% endif %}
-                    <span class="font-medium">{{ item.variant.product.name }}</span>
-                  </td>
-                  <td class="p-3">{{ item.variant.color }} - {{ item.variant.size }}</td>
-                  <td class="p-3 text-center">₹{{ item.price }}</td>
-                  <td class="p-3 text-center">{{ item.quantity }}</td>
-                  <td class="p-3 text-center">₹{{ item.tax }}</td>
-
-                  <td class="p-3 text-center">
-                    {% if item.status == 'delivered' %}
-                      <span class="px-2 py-1 rounded text-xs text-white bg-green-600">{{ item.status|title }}</span>
-                    {% elif item.status == 'shipped' %}
-                      <span class="px-2 py-1 rounded text-xs text-white bg-blue-600">{{ item.status|title }}</span>
-                    {% elif item.status == 'pending' %}
-                      <span class="px-2 py-1 rounded text-xs text-gray-800 bg-yellow-400">{{ item.status|title }}</span>
-                    {% elif item.status == 'cancelled' %}
-                      <span class="px-2 py-1 rounded text-xs text-white bg-red-600">{{ item.status|title }}</span>
-                    {% else %}
-                      <span class="px-2 py-1 rounded text-xs text-white bg-gray-500">{{ item.status|title }}</span>
-                    {% endif %}
-                  </td>
-
-                  <td class="p-3 text-center">
-                    {% if item.status == "delivered" and not item.return_requested %}
-                      <a href="{% url 'return_order_item_page' item.item_id %}"
-                        class="bg-gray-700 hover:bg-gray-800 text-white rounded px-2 py-1 text-xs">
-                        Return
-                      </a>
-                    {% elif item.status == "pending" or item.status == "shipped" %}
-                      {% if item.cancellation_requested %}
-                        <span class="text-gray-500 text-sm">Cancel Requested</span>
-                      {% else %}
-                        <a href="{% url 'cancel_order_item_page' item.item_id %}"
-                          class="bg-red-600 hover:bg-red-700 text-white rounded px-2 py-1 text-xs">
-                          Cancel
-                        </a>
-                      {% endif %}
-                    {% else %}
-                      <span class="text-gray-500 text-sm">N/A</span>
-                    {% endif %}
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Right Section: Summary, Address, Payment -->
-        <div class="md:w-1/3 space-y-6 mt-6 md:mt-0">
-          <!-- Summary -->
-          <div class="bg-white rounded-md shadow p-5">
-            <h5 class="font-semibold mb-3">Order Summary</h5>
-            <ul class="text-sm space-y-2">
-              <li class="flex justify-between">
-                <span>Subtotal</span><span>₹{{ subtotal }}</span>
-              </li>
-              <li class="flex justify-between">
-                <span>Total Tax</span><span>₹{{ total_tax }}</span>
-              </li>
-              <li class="flex justify-between">
-                <span>Delivery Charge</span><span>₹{{ delivery_charge }}</span>
-              </li>
-              {% if order.discount %}
-              <li class="flex justify-between text-green-600 font-semibold">
-                <span>Discount</span><span>-₹{{ order.discount }}</span>
-              </li>
-              {% endif %}
-              <li class="flex justify-between font-bold bg-gray-100 p-2 rounded">
-                <span>Grand Total</span><span>₹{{ grand_total }}</span>
-              </li>
-            </ul>
-          </div>
-
-          <!-- Shipping -->
-          <div class="bg-white rounded-md shadow p-5">
-            <h5 class="font-semibold mb-3">Shipping Address</h5>
-            <p>{{ order.address.full_name }}</p>
-            <p>{{ order.address.address_line_1 }}{% if order.address.address_line_2 %}, {{ order.address.address_line_2 }}{% endif %}</p>
-            <p>{{ order.address.city }}, {{ order.address.state }} - {{ order.address.postal_code }}</p>
-            <p>Phone: {{ order.address.phone }}</p>
-          </div>
-
-          <!-- Payment -->
-          <div class="bg-white rounded-md shadow p-5">
-            <h5 class="font-semibold mb-3">Payment Information</h5>
-            <p><strong>Method:</strong> {{ order.payment_method }}</p>
-            <p><strong>Status:</strong> {{ order.payment_status }}</p>
-          </div>
+          {% if order.order_status == "Delivered" %}
+            <a href="{% url 'return_order_item_page' order.order_id %}" 
+              class="inline-block bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 transition">
+              Return Order
+            </a>
+          {% endif %}
         </div>
       </div>
     </div>
   </div>
 
-  <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      setTimeout(function () {
-        document.getElementById("skeleton-order-detail").classList.add("hidden");
-        document.getElementById("real-order-detail").classList.remove("hidden");
-      }, 1000);
-    });
-  </script>
+  <!-- Summary & Address -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+
+    <!-- Order Summary -->
+    <div class="bg-white rounded-lg shadow-md p-5">
+      <h4 class="font-semibold mb-3 text-gray-800">Order Summary</h4>
+      <ul class="text-sm space-y-2">
+        <li class="flex justify-between"><span>Subtotal</span><span>₹{{ subtotal|floatformat:2 }}</span></li>
+        <li class="flex justify-between"><span>Tax</span><span>₹{{ tax|floatformat:2 }}</span></li>
+        <li class="flex justify-between"><span>Delivery</span><span>₹{{ delivery_charge|floatformat:2 }}</span></li>
+        {% if order.discount %}
+          <li class="flex justify-between text-green-600 font-medium">
+            <span>Discount</span><span>-₹{{ order.discount|floatformat:2 }}</span>
+          </li>
+        {% endif %}
+        <li class="flex justify-between font-bold bg-gray-50 p-2 rounded">
+          <span>Grand Total</span><span>₹{{ grand_total|floatformat:2 }}</span>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Shipping & Payment -->
+    <div class="space-y-6">
+      <div class="bg-white rounded-lg shadow-md p-5">
+        <h4 class="font-semibold mb-3 text-gray-800">Shipping Address</h4>
+        <p>{{ order.address.full_name }}</p>
+        <p>{{ order.address.address_line_1 }}{% if order.address.address_line_2 %}, {{ order.address.address_line_2 }}{% endif %}</p>
+        <p>{{ order.address.city }}, {{ order.address.state }} - {{ order.address.postal_code }}</p>
+        <p>📞 {{ order.address.phone }}</p>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-md p-5">
+        <h4 class="font-semibold mb-3 text-gray-800">Payment Information</h4>
+        <p><strong>Method:</strong> {{ order.payment_method }}</p>
+        <p><strong>Status:</strong> {{ order.payment_status }}</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="text-center mt-10">
+    <a href="{% url 'product_list' %}" 
+       class="inline-block bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition">
+       Continue Shopping
+    </a>
+  </div>
+
 </div>
 {% endblock %}
