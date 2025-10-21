@@ -759,34 +759,54 @@ def admin_return_requests(request):
 @staff_member_required(login_url="admin_login")
 @never_cache
 def admin_approve_reject_return(request, item_id, action):
-    # Support both per-item and whole-order return flows
-    try:
-        from .models import OrderItem as _OrderItem
-    except Exception:
-        _OrderItem = None
+    """Approve or reject product return requests with proper refund (including offers and coupons)."""
 
-    if _OrderItem:
-        item = get_object_or_404(_OrderItem, item_id=item_id)
+    from decimal import Decimal
+    from django.shortcuts import get_object_or_404, redirect
+    from decouple import config
+
+    # Identify OrderItem or Order
+    try:
+        from .models import OrderItem
+    except Exception:
+        OrderItem = None
+
+    if OrderItem:
+        item = get_object_or_404(OrderItem, item_id=item_id)
         order = item.order
         variant = getattr(item, "variant", None)
         qty = getattr(item, "quantity", 1)
         item_tax = getattr(item, "tax", Decimal("0.00"))
         is_item = True
     else:
-        # treat item_id as order_id
         order = get_object_or_404(Order, order_id=item_id)
         variant = getattr(order, "product", None)
         qty = getattr(order, "quantity", 1)
         item_tax = getattr(order, "tax", Decimal("0.00"))
         is_item = False
 
+    # --- Wallet setup ---
     wallet, _ = Wallet.objects.get_or_create(user=order.user)
 
-    # Calculate refund
-    item_price_total = Decimal(getattr(variant, "price", order.price)) * qty
+    # --- Step 1: Offer price (after offer discount) ---
+    if variant:
+        offer_price = Decimal(variant.get_discounted_price())
+    else:
+        offer_price = Decimal(order.price)
+
+    item_price_total = offer_price * qty
     refund_amount = item_price_total + Decimal(item_tax or 0)
 
-    # Determine delivery to include: prefer per-order stored delivery_charge, else use config
+    # --- Step 2: Handle coupon discount ---
+    # Assuming `order` has a field `coupon_discount` or similar
+    coupon_discount = Decimal(getattr(order, "coupon_discount", 0))
+    if coupon_discount > 0:
+        # Divide coupon discount among items equally
+        total_items = order.items.count() if hasattr(order, "items") else 1
+        per_item_coupon = coupon_discount / Decimal(total_items)
+        refund_amount += per_item_coupon  # Add back proportional coupon refund
+
+    # --- Step 3: Include delivery charge if last item ---
     delivery_val = getattr(order, 'delivery_charge', None)
     if delivery_val is None:
         try:
@@ -794,27 +814,31 @@ def admin_approve_reject_return(request, item_id, action):
         except Exception:
             delivery_val = Decimal("0.00")
 
-    # Determine if this is the final returned item (for per-item Orders this uses order.items, else assume single-item order)
     if is_item and hasattr(order, 'items'):
         total_items = order.items.count()
         returned_items = order.items.filter(return_approved=True).count()
         if returned_items + 1 == total_items:
             refund_amount += Decimal(delivery_val)
     else:
-        # single-order: include delivery charge
         refund_amount += Decimal(delivery_val)
 
     refund_amount = refund_amount.quantize(Decimal("0.01"))
+    if refund_amount < 0:
+        refund_amount = Decimal("0.00")
 
-    if _OrderItem and is_item:
-        # per-item approval/rejection
+    # --- Step 4: Approve or reject ---
+    if OrderItem and is_item:
+        # Item-level return
         if action == "approve" and getattr(item, "status", "").lower() == "delivered" and not getattr(item, "return_approved", False):
             item.status = "returned"
             item.return_approved = True
+
+            # Restock variant
             if hasattr(item, 'variant') and item.variant:
                 item.variant.stock += item.quantity
                 item.variant.save()
 
+            # Refund logic
             if not getattr(item, "refund_done", False) and refund_amount > Decimal("0.00"):
                 wallet.credit(refund_amount, description=f"Refund for returned product '{item.variant.product.name}' (x{item.quantity})")
 
@@ -826,22 +850,18 @@ def admin_approve_reject_return(request, item_id, action):
                     description=f"Refund for returned product '{item.variant.product.name}' (Order #{order.order_code})",
                     order=order,
                 )
-                # Mark order as refunded (partial refund) for visibility
-                try:
-                    order.payment_status = 'Refund'
-                    order.save(update_fields=['payment_status'])
-                except Exception:
-                    pass
+                order.payment_status = 'Refund'
+                order.save(update_fields=['payment_status'])
         elif action == "reject":
             item.return_approved = False
 
-        # save changes for per-item flows
         save_fields = ["status", "return_approved"]
         if hasattr(item, "refund_done"):
             save_fields.append("refund_done")
         item.save(update_fields=save_fields)
+
     else:
-        # single-order approval/rejection
+        # Whole-order return
         if action == "approve" and getattr(order, "order_status", "").lower() == "delivered" and not getattr(order, "return_approved", False):
             order.order_status = "Returned"
             order.return_approved = True
@@ -858,17 +878,15 @@ def admin_approve_reject_return(request, item_id, action):
                     description=f"Refund for returned order (Order #{order.order_code})",
                     order=order,
                 )
-                # Mark the order as refunded
-                try:
-                    order.payment_status = 'Refund'
-                    order.save(update_fields=['payment_status'])
-                except Exception:
-                    pass
+                order.payment_status = 'Refund'
+                order.save(update_fields=['payment_status'])
         elif action == "reject":
             order.return_approved = False
             order.save(update_fields=["return_approved"])
 
     return redirect("admin_return_requests")
+
+
 
 
 @login_required(login_url="login")
