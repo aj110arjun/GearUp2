@@ -14,9 +14,6 @@ class Coupon(models.Model):
     active = models.BooleanField(default=True)
     valid_from = models.DateTimeField()
     valid_to = models.DateTimeField()
-    usage_limit_per_user = models.PositiveIntegerField(default=1, help_text="Max times a user can use this coupon")
-    usage_limit_total = models.PositiveIntegerField(default=0, help_text="Max total uses (0 = unlimited)")
-    total_uses = models.PositiveIntegerField(default=0, editable=False)
 
     class Meta:
         ordering = ['-valid_to']
@@ -26,16 +23,8 @@ class Coupon(models.Model):
         now = timezone.now()
         if not self.active or now < self.valid_from or now > self.valid_to:
             return False
-        if self.usage_limit_total and self.total_uses >= self.usage_limit_total:
-            return False
         return True
 
-    def can_user_use(self, user):
-        """Check if user can still use this coupon."""
-        if not self.is_valid():
-            return False
-        user_usage_count = CouponRedemption.objects.filter(user=user, coupon=self, refunded=False).count()
-        return user_usage_count < self.usage_limit_per_user
 
     def increment_usage(self, user, order):
         """Record usage of coupon."""

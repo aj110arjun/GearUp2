@@ -102,19 +102,37 @@ def cart_view(request):
 @login_required(login_url="login")
 @never_cache
 def update_cart(request, item_id):
+    """Update cart with stock validation"""
+    
     if request.headers.get('x-requested-with') != 'XMLHttpRequest':
         return redirect("cart_view")
 
-    cart_item = get_object_or_404(CartItem, id=item_id, user=request.user)
+    try:
+        cart_item = CartItem.objects.select_related('variant').get(
+            id=item_id, 
+            user=request.user
+        )
+    except CartItem.DoesNotExist:
+        return JsonResponse({
+            "success": False,
+            "error": {"cart": "Cart item not found."}
+        })
+    
     action = request.GET.get("action")
     error = {}
 
     if action == "increase":
-        if cart_item.quantity < cart_item.variant.stock:
+        # Check stock availability
+        if cart_item.variant.stock <= 0:
+            error['cart'] = "This item is out of stock."
+        elif cart_item.quantity >= cart_item.variant.stock:
+            error['cart'] = "Maximum available stock reached."
+        elif cart_item.quantity >= 5:
+            error['cart'] = "Maximum order quantity is 5."
+        else:
             cart_item.quantity += 1
             cart_item.save()
-        else:
-            error['cart'] = "Reached maximum stock limit."
+            
     elif action == "decrease":
         if cart_item.quantity > 1:
             cart_item.quantity -= 1
@@ -122,9 +140,11 @@ def update_cart(request, item_id):
         else:
             cart_item.delete()
             cart_item = None
+            
     else:
         error['cart'] = "Invalid action."
 
+    # Prepare response
     if not cart_item:
         quantity = 0
         subtotal_html = "₹0.00"
@@ -134,7 +154,6 @@ def update_cart(request, item_id):
         discounted_price = cart_item.variant.get_discounted_price()
         subtotal_amount = discounted_price * quantity
 
-        # Render subtotal HTML snippet
         best_discount = cart_item.variant.product.get_best_offer()
         subtotal_html = render_to_string("partials/cart_item_subtotal.html", {
             "subtotal": subtotal_amount,
@@ -143,23 +162,23 @@ def update_cart(request, item_id):
 
         max_quantity = min(5, cart_item.variant.stock)
 
-    # Calculate total cart amount considering discounted prices and quantities
-    cart_items = CartItem.objects.filter(user=request.user)
+    # Calculate cart total
     cart_total = Decimal('0.00')
-    for item in cart_items:
-        price = item.variant.get_discounted_price()
-        cart_total += price * item.quantity
+    try:
+        for item in CartItem.objects.filter(user=request.user):
+            price = item.variant.get_discounted_price()
+            cart_total += price * item.quantity
+    except Exception:
+        pass
 
-    response_data = {
+    return JsonResponse({
         "success": len(error) == 0,
         "error": error,
         "quantity": quantity,
         "subtotal_html": subtotal_html,
         "cart_total": float(cart_total),
         "max_quantity": max_quantity,
-    }
-
-    return JsonResponse(response_data)
+    })
 
 @login_required(login_url='login')
 def update_variant(request, item_id):
