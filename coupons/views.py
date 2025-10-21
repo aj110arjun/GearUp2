@@ -11,6 +11,13 @@ from decimal import Decimal
 from products.models import Product
 
 from coupons.models import Coupon
+from decouple import config
+
+def _format_money(val):
+    try:
+        return f"{Decimal(val):.2f}"
+    except Exception:
+        return f"{val}"
 
 
 # ----------------- Admin: List Coupons -----------------
@@ -206,15 +213,29 @@ def apply_coupon(request):
 
                 # Calculate discount
                 cart_items = request.user.cart_items.select_related("variant__product")
-                subtotal = sum(item.variant.get_discounted_price() * item.quantity for item in cart_items)
-                discount = coupon.discount_value
-                grand_total = max(subtotal - discount, 0)
+                subtotal = Decimal('0.00')
+                for item in cart_items:
+                    price = Decimal(str(item.variant.get_discounted_price()))
+                    subtotal += price * item.quantity
+
+                discount = Decimal(str(coupon.discount_value))
+
+                tax_rate = Decimal(str(config("TAX_RATE", 0.18)))
+                delivery_charge = Decimal(str(config("DELIVERY_CHARGE", 0)))
+
+                total_tax = (subtotal * tax_rate).quantize(Decimal("0.01"))
+                grand_total = (subtotal + total_tax + delivery_charge - discount)
+                if grand_total < 0:
+                    grand_total = Decimal('0.00')
 
                 return JsonResponse({
                     "success": True,
                     "code": coupon.code,
-                    "discount": discount,
-                    "new_total": grand_total
+                    "discount": _format_money(discount),
+                    "subtotal": _format_money(subtotal),
+                    "tax": _format_money(total_tax),
+                    "delivery": _format_money(delivery_charge),
+                    "new_total": _format_money(grand_total)
                 })
             else:
                 return JsonResponse({"success": False, "message": "Coupon is invalid or already used."})
@@ -227,6 +248,30 @@ def apply_coupon(request):
 @login_required(login_url="login")
 @never_cache
 def remove_coupon(request):
+    # Support AJAX removal so checkout page can update totals without refresh
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        if "coupon_id" in request.session:
+            del request.session["coupon_id"]
+        # Recompute totals for the current cart
+        cart_items = request.user.cart_items.select_related("variant__product")
+        subtotal = Decimal('0.00')
+        for item in cart_items:
+            price = Decimal(str(item.variant.get_discounted_price()))
+            subtotal += price * item.quantity
+
+        tax_rate = Decimal(str(config("TAX_RATE", 0.18)))
+        delivery_charge = Decimal(str(config("DELIVERY_CHARGE", 0)))
+        total_tax = (subtotal * tax_rate).quantize(Decimal("0.01"))
+        grand_total = (subtotal + total_tax + delivery_charge)
+
+        return JsonResponse({
+            "success": True,
+            "subtotal": f"{subtotal:.2f}",
+            "tax": f"{total_tax:.2f}",
+            "delivery": f"{delivery_charge:.2f}",
+            "new_total": f"{grand_total:.2f}",
+        })
+
     if "coupon_id" in request.session:
         del request.session["coupon_id"]
         messages.success(request, "Coupon removed successfully.")

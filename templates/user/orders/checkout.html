@@ -70,6 +70,11 @@
                 class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
           Apply
         </button>
+        {% if coupon %}
+        <button type="button" id="removeCouponBtn" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">
+          Remove
+        </button>
+        {% endif %}
       </div>
       <p id="couponMessage" class="mt-2 text-sm">
         {% if coupon %}
@@ -96,25 +101,25 @@
 
       <div class="flex justify-between my-1 text-gray-700">
         <span>Subtotal:</span>
-        <span>₹{{ subtotal|floatformat:2 }}</span>
+        <span id="subtotal">₹{{ subtotal|floatformat:2 }}</span>
       </div>
       <div class="flex justify-between my-1 text-gray-700">
         <span>Delivery Charges:</span>
-        <span>₹{{ delivery_charge|floatformat:2 }}</span>
+        <span id="delivery">₹{{ delivery_charge|floatformat:2 }}</span>
       </div>
       <div class="flex justify-between my-1 text-gray-700">
         <span>Tax:</span>
-        <span>₹{{ total_tax|floatformat:2 }}</span>
+        <span id="tax">₹{{ total_tax|floatformat:2 }}</span>
       </div>
       {% if discount %}
       <div class="flex justify-between my-1 text-green-700 font-semibold">
         <span>Discount:</span>
-        <span>-₹{{ discount|floatformat:2 }}</span>
+        <span id="discount">-₹{{ discount|floatformat:2 }}</span>
       </div>
       {% endif %}
       <div class="flex justify-between my-1 text-lg font-bold">
         <span>Total to Pay:</span>
-        <span>₹{{ grand_total|floatformat:2 }}</span>
+        <span id="grand_total">₹{{ grand_total|floatformat:2 }}</span>
       </div>
     </div>
 
@@ -145,8 +150,32 @@ document.addEventListener('DOMContentLoaded', function() {
 
       if (data.success) {
         couponMessage.innerHTML = `<span class="text-green-700">Coupon "${data.code}" Applied: -₹${data.discount}</span>`;
-        const totalElem = document.querySelector('.flex.justify-between.my-1.text-lg.font-bold span:last-child');
-        if (totalElem) totalElem.textContent = "₹" + data.new_total;
+        // Update detailed totals
+        const subtotalElem = document.getElementById('subtotal');
+        const taxElem = document.getElementById('tax');
+        const deliveryElem = document.getElementById('delivery');
+        const discountElem = document.getElementById('discount');
+        const grandElem = document.getElementById('grand_total');
+
+        if (subtotalElem && data.subtotal) subtotalElem.textContent = '₹' + data.subtotal;
+        if (taxElem && data.tax) taxElem.textContent = '₹' + data.tax;
+        if (deliveryElem && data.delivery) deliveryElem.textContent = '₹' + data.delivery;
+        if (discountElem && data.discount) discountElem.textContent = '-₹' + data.discount;
+        if (grandElem && data.new_total) grandElem.textContent = '₹' + data.new_total;
+
+        // If Remove button doesn't exist (coupon was applied client-side), create it and wire handler
+        let removeBtn = document.getElementById('removeCouponBtn');
+        if (!removeBtn) {
+          removeBtn = document.createElement('button');
+          removeBtn.type = 'button';
+          removeBtn.id = 'removeCouponBtn';
+          removeBtn.className = 'bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded';
+          removeBtn.textContent = 'Remove';
+          // append to the sibling of apply button
+          applyBtn.insertAdjacentElement('afterend', removeBtn);
+          // wire handler
+          removeBtn.addEventListener('click', removeCouponAjax);
+        }
       } else {
         couponMessage.innerHTML = `<span class="text-red-600">${data.message}</span>`;
       }
@@ -155,6 +184,45 @@ document.addEventListener('DOMContentLoaded', function() {
       couponMessage.innerHTML = `<span class="text-red-600">Error applying coupon.</span>`;
     }
   });
+
+    // Reusable remove coupon AJAX handler
+    async function removeCouponAjax() {
+      try {
+        const response = await fetch("{% url 'remove_coupon' %}", {
+          method: 'GET',
+          headers: { 'X-Requested-With': 'XMLHttpRequest' },
+          credentials: 'same-origin'
+        });
+        const data = await response.json();
+        if (data.success) {
+          couponMessage.innerHTML = `<span class="text-gray-700">Coupon removed.</span>`;
+          const subtotalElem = document.getElementById('subtotal');
+          const taxElem = document.getElementById('tax');
+          const deliveryElem = document.getElementById('delivery');
+          const discountElem = document.getElementById('discount');
+          const grandElem = document.getElementById('grand_total');
+
+          if (subtotalElem && data.subtotal) subtotalElem.textContent = '₹' + data.subtotal;
+          if (taxElem && data.tax) taxElem.textContent = '₹' + data.tax;
+          if (deliveryElem && data.delivery) deliveryElem.textContent = '₹' + data.delivery;
+          if (discountElem) discountElem.textContent = '-₹0.00';
+          if (grandElem && data.new_total) grandElem.textContent = '₹' + data.new_total;
+
+          // remove the Remove button if present
+          const existing = document.getElementById('removeCouponBtn');
+          if (existing) existing.remove();
+        } else {
+          couponMessage.innerHTML = `<span class="text-red-600">Failed to remove coupon.</span>`;
+        }
+      } catch (err) {
+        console.error(err);
+        couponMessage.innerHTML = `<span class="text-red-600">Error removing coupon.</span>`;
+      }
+    }
+
+    // Wire remove button if it exists on initial render
+    const removeBtnInit = document.getElementById('removeCouponBtn');
+    if (removeBtnInit) removeBtnInit.addEventListener('click', removeCouponAjax);
 });
 </script>
 

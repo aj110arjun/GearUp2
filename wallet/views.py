@@ -12,6 +12,8 @@ from decimal import Decimal
 from django.urls import reverse
 
 from .models import Wallet, WalletTransaction
+from orders.models import Order
+from coupons.models import CouponRedemption
 
 
 @login_required
@@ -20,31 +22,38 @@ def approve_return(request, order_item_id):
     """
     Admin view to approve or process a return for an order item.
     Refunds to wallet automatically for COD or ONLINE (Razorpay) payments.
-    Includes coupon discounts proportionally for the returned item.
+    Includes coupon discounts, tax, and delivery charges proportionally for the returned item.
     """
 
     errors = {}
     order_item = get_object_or_404(OrderItem, item_id=order_item_id)
-    user = order_item.order.user
+    order = order_item.order
+    user = order.user
 
     wallet, _ = Wallet.objects.get_or_create(user=user)
 
-    refund_amount = getattr(order_item, "total_price", None)
-    if refund_amount is None:
-        unit_price = getattr(order_item.variant, "price", order_item.price)
-        refund_amount = unit_price * order_item.quantity
-    refund_amount = Decimal(refund_amount)
+    # Use the item's total price as the base for refund calculation
+    item_price = Decimal(order_item.total_price)
 
-    coupon_discount = getattr(order_item.order, "coupon_discount", Decimal("0.00"))
+    # Calculate proportional tax for the item
+    order_subtotal = Decimal(order.sub_total_price or '0.00')
+    order_tax = Decimal(order.tax or '0.00')
+    item_tax = (item_price / order_subtotal) * order_tax if order_subtotal > 0 else Decimal('0.00')
 
-    order_total = sum([item.total_price for item in order_item.order.items.all()])
+    # Calculate proportional delivery charge for the item
+    order_delivery_charge = Decimal(order.delivery_charge or '0.00')
+    item_delivery_charge = (item_price / order_subtotal) * order_delivery_charge if order_subtotal > 0 else Decimal('0.00')
 
-    item_discount = Decimal("0.00")
-    if order_total > 0 and coupon_discount > 0:
-        item_discount = (refund_amount / order_total) * Decimal(coupon_discount)
-        refund_amount += item_discount  # Add coupon portion to refund
+    # Calculate proportional coupon discount for the item
+    order_coupon_discount = Decimal(order.coupon_discount or '0.00')
+    item_coupon_discount = (item_price / order_subtotal) * order_coupon_discount if order_subtotal > 0 else Decimal('0.00')
 
-    if order_item.status.lower() == "return_approved" and order_item.order.payment_method in ["COD", "ONLINE"]:
+    # Calculate final refund amount
+    refund_amount = (item_price + item_tax + item_delivery_charge) - item_coupon_discount
+    refund_amount = refund_amount.quantize(Decimal('0.01'))
+
+
+    if order_item.status.lower() == "return_approved" and order.payment_method in ["COD", "ONLINE"]:
         
         if getattr(order_item, "refund_done", False):
             errors['wallet'] = "Refund already processed for this item."
@@ -53,9 +62,7 @@ def approve_return(request, order_item_id):
             wallet.save()
 
             description = f"Refund for returned product '{order_item.variant.product.name}' (x{order_item.quantity})"
-            if item_discount > 0:
-                description += f" including ₹{item_discount:.2f} coupon discount"
-
+            
             wallet.transactions.create(
                 transaction_type="CREDIT",
                 amount=refund_amount,
@@ -64,6 +71,17 @@ def approve_return(request, order_item_id):
 
             order_item.refund_done = True
             order_item.save(update_fields=["refund_done"])
+
+            # Check if all items in the order are returned to refund the coupon
+            all_items_returned = all(item.status == 'Returned' for item in order.items.all())
+            if all_items_returned:
+                try:
+                    redemption = CouponRedemption.objects.get(order=order, user=user)
+                    if not redemption.refunded:
+                        redemption.refunded = True
+                        redemption.save(update_fields=['refunded'])
+                except CouponRedemption.DoesNotExist:
+                    pass # No coupon was used
 
             errors['wallet'] = f"Refund of ₹{refund_amount} credited to {user.username}'s wallet."
 
