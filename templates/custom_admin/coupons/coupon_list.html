@@ -23,7 +23,6 @@
                 <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Usage / User</th>
                 <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Total Limit</th>
                 <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Total Uses</th>
-                <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Products</th> <!-- New Column -->
                 <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Actions</th>
             </tr>
         </thead>
@@ -56,18 +55,6 @@
                 <td class="px-4 py-2">{{ coupon.usage_limit_per_user }}</td>
                 <td class="px-4 py-2">{{ coupon.usage_limit_total }}</td>
                 <td class="px-4 py-2">{{ coupon.total_uses }}</td>
-
-                <!-- Products -->
-                <td class="px-4 py-2">
-                    {% if coupon.products.exists %}
-                        {% for product in coupon.products.all %}
-                            <span class="inline-block px-2 py-1 mb-1 text-xs rounded bg-gray-200">{{ product.name }}</span>
-                        {% endfor %}
-                    {% else %}
-                        <span class="text-gray-500 text-sm">All Products</span>
-                    {% endif %}
-                </td>
-
                 <!-- Actions -->
                 <td class="px-4 py-2 flex space-x-2">
                     <a href="{% url 'admin_coupon_edit' coupon.id %}" 

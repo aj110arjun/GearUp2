@@ -105,20 +105,39 @@ def checkout(request):
             return redirect("checkout")
 
         created_orders = []
+        # We'll split the total coupon discount evenly across each created order (by cents)
+        cart_list = list(cart_items)
+        num_items = len(cart_list)
+
+        # Prepare per-order discount split (in cents) to avoid float rounding issues
+        total_discount = Decimal(discount or 0)
+        if total_discount > 0 and num_items > 0:
+            # convert to cents (int)
+            total_cents = int((total_discount * 100).quantize(Decimal('1')))
+            per_cents = total_cents // num_items
+            remainder = total_cents % num_items
+        else:
+            per_cents = 0
+            remainder = 0
 
         with transaction.atomic():
-            for cart_item in cart_items:
+            for idx, cart_item in enumerate(cart_list):
                 price = Decimal(cart_item.variant.get_discounted_price())
                 item_subtotal = q2(price * cart_item.quantity)
                 item_tax = q2(item_subtotal * tax_rate)
-                item_total = q2(item_subtotal + item_tax + delivery_charge - discount)
+
+                # determine this order's share of discount
+                this_cents = per_cents + (1 if idx < remainder else 0)
+                this_discount = Decimal(this_cents) / Decimal(100)
+
+                item_total = q2(item_subtotal + item_tax + delivery_charge - this_discount)
 
                 # Wallet check
                 if payment_method == "WALLET" and wallet.balance < item_total:
                     messages.error(request, f"Insufficient wallet balance for {cart_item.variant.product.name}.")
                     return redirect("checkout")
 
-                # Create Order
+                # Create Order with per-order discount
                 order = Order.objects.create(
                     user=request.user,
                     product=cart_item.variant,
@@ -127,7 +146,7 @@ def checkout(request):
                     price=price,
                     tax=item_tax,
                     total_price=item_total,
-                    discount=discount,
+                    discount=this_discount,
                     coupon=coupon,
                     payment_method=payment_method,
                     payment_status="Paid" if payment_method == "WALLET" else "Pending"
@@ -158,12 +177,17 @@ def checkout(request):
                         order=order
                     )
 
-                # Coupon usage
+                # Coupon usage (record per-order)
                 if coupon:
                     try:
                         coupon.increment_usage(request.user, order)
                     except Exception:
                         pass
+
+        # Save the created orders in session so the success page can show only
+        # the orders created during this checkout (a single purchase).
+        request.session['recent_purchase_order_ids'] = [str(o.order_id) for o in created_orders]
+        request.session.modified = True
 
         # Clear cart after orders created
         cart_items.delete()
@@ -171,8 +195,14 @@ def checkout(request):
         # Redirect to order complete or payment page
         first_order = created_orders[0]
         if payment_method in ["WALLET", "COD"]:
-            return redirect("order_complete", order_id=first_order.order_id)
+            # Redirect to order_success which will read `recent_purchase_order_ids`
+            # from session and display all orders created in this checkout.
+            return redirect("order_success", order_id=first_order.order_id)
         else:
+            # For ONLINE payments, save all created order_ids in session so we can
+            # charge a single combined amount and mark all orders as paid on success.
+            request.session['online_payment_order_ids'] = [str(o.order_id) for o in created_orders]
+            request.session.modified = True
             return redirect("start_payment", order_id=first_order.order_id)
 
     # GET: render checkout page
@@ -187,6 +217,7 @@ def checkout(request):
         "total_tax": total_tax,
         "grand_total": grand_total,
         "discount": discount,
+        "coupon": coupon,
     }
     return render(request, "user/orders/checkout.html", context)
 
@@ -214,20 +245,43 @@ def order_complete(request, order_id):
 @login_required(login_url='login')
 @never_cache
 def order_success(request, order_id):
-    # All orders created in a single checkout share a purchase_id (you can generate a UUID when user checks out)
-    orders = Order.objects.filter(user=request.user, order_id=order_id)
+    # Prefer orders created in the most recent checkout stored in session
+    recent_ids = request.session.pop('recent_purchase_order_ids', None)
+    if recent_ids:
+        orders = Order.objects.filter(order_id__in=recent_ids, user=request.user).order_by('-created_at')
+    else:
+        # Fallback to showing the current order (by order_id) if present
+        try:
+            orders = Order.objects.filter(order_id=order_id, user=request.user)
+        except Exception:
+            orders = Order.objects.filter(user=request.user).order_by('-created_at')
 
     if not orders.exists():
         return redirect("order_list")
 
-    # Calculate combined totals
-    subtotal = sum(order.total_price for order in orders)
-    discount = sum(order.discount or 0 for order in orders)
-    delivery_charge = Decimal(config("DELIVERY_CHARGE"))
-    tax_rate = Decimal(config("TAX_RATE"))
-    total_after_discount = subtotal - discount
-    total_tax = total_after_discount * tax_rate
-    grand_total = total_after_discount + total_tax + delivery_charge
+    # Calculate totals across all user orders
+    subtotal = sum((order.total_price or Decimal("0.00")) for order in orders)
+    discount = sum((order.discount or Decimal("0.00")) for order in orders)
+
+    # Sum per-order stored tax if available, else use TAX_RATE fallback
+    try:
+        total_tax = sum((order.tax or Decimal("0.00")) for order in orders)
+    except Exception:
+        tax_rate = Decimal(config("TAX_RATE"))
+        total_tax = (subtotal - discount) * tax_rate
+
+    # Sum per-order delivery charges where present, else use configured delivery per order
+    delivery_total = Decimal("0.00")
+    for order in orders:
+        delivery_val = getattr(order, 'delivery_charge', None)
+        if delivery_val is None:
+            try:
+                delivery_val = Decimal(config("DELIVERY_CHARGE"))
+            except Exception:
+                delivery_val = Decimal("0.00")
+        delivery_total += Decimal(delivery_val)
+
+    grand_total = (subtotal - discount) + total_tax + delivery_total
 
     context = {
         "orders": orders,
@@ -235,7 +289,7 @@ def order_success(request, order_id):
         "subtotal": subtotal,
         "discount": discount,
         "total_tax": total_tax,
-        "delivery_charge": delivery_charge,
+        "delivery_charge": delivery_total,
         "grand_total": grand_total,
     }
 
@@ -535,36 +589,32 @@ def admin_approve_reject_cancellation(request, order_id, action):
 
     if action == "approve" and order.order_status != "Cancelled":
         order.order_status = "Cancelled"
-        # mark as approved for cancellation
         order.cancellation_approved = True
         order.save(update_fields=["order_status", "cancellation_approved"])
 
-        # --- Compute refund amount ---
-        # Prefer using stored total_price if it represents charged amount; fall back to price*quantity.
-        base_total = getattr(order, "total_price", None)
+        # --- Compute refund amount (including tax and delivery) ---
         try:
-            base_total = Decimal(base_total)
-        except Exception:
+            tax_amount = getattr(order, "tax", Decimal("0.00")) or Decimal("0.00")
+            delivery_val = getattr(order, "delivery_charge", None)
+            if delivery_val is None:
+                try:
+                    delivery_val = Decimal(config("DELIVERY_CHARGE", 0))
+                except Exception:
+                    delivery_val = Decimal("0.00")
+            discount_amount = getattr(order, "discount", Decimal("0.00")) or Decimal("0.00")
+
             base_total = Decimal(order.price) * Decimal(order.quantity)
+            refund_amount = (base_total + tax_amount + delivery_val - discount_amount)
+            refund_amount = refund_amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        except Exception as e:
+            print(f"Error computing refund: {e}")
+            refund_amount = Decimal("0.00")
 
-        tax_amount = getattr(order, "tax", Decimal("0.00")) or Decimal("0.00")
-        delivery_charge = Decimal(config("DELIVERY_CHARGE", 0))
-        discount_amount = Decimal(getattr(order, "discount", 0) or 0)
-
-        # Expected total based on components (price*qty + tax + delivery - discount)
-        expected_total = (Decimal(order.price) * Decimal(order.quantity)) + Decimal(tax_amount) + delivery_charge - discount_amount
-
-        # Use the larger of stored base_total and expected_total to ensure delivery charge is included
-        refund_amount = max(base_total, expected_total)
-
-        # Quantize to 2 decimals
-        refund_amount = Decimal(refund_amount).quantize(Decimal("0.01"))
-
-        # --- Refund to wallet ONLY if the order was paid ---
+        # --- Refund to wallet ONLY if payment was made ---
         if getattr(order, 'payment_status', None) == 'Paid':
             wallet, _ = Wallet.objects.get_or_create(user=order.user)
 
-            # Prevent duplicate refund: check Transaction for an existing refund for this order
+            # Prevent duplicate refund transactions
             existing_refund_txn = Transaction.objects.filter(
                 user=order.user,
                 transaction_type='WALLET_CREDIT',
@@ -574,19 +624,17 @@ def admin_approve_reject_cancellation(request, order_id, action):
             ).exists()
 
             if not existing_refund_txn and refund_amount > Decimal("0.00"):
-                # Use Wallet.credit() helper so WalletTransaction is created consistently
-                desc = f"Refund for cancelled order (Order #{order.order_code})"
+                refund_desc = f"Refund for cancelled order (Order #{order.order_code})"
                 try:
-                    wallet.credit(refund_amount, description=desc)
+                    wallet.credit(refund_amount, description=refund_desc)
                 except Exception:
-                    # Fallback to manual credit if helper fails
                     wallet.balance += refund_amount
                     wallet.save()
                     WalletTransaction.objects.create(
                         wallet=wallet,
                         amount=refund_amount,
                         transaction_type="CREDIT",
-                        description=desc
+                        description=refund_desc
                     )
 
                 Transaction.objects.create(
@@ -597,24 +645,22 @@ def admin_approve_reject_cancellation(request, order_id, action):
                     description=f"Refund for Order #{order.order_code}",
                     order=order,
                 )
-                # Mark the order as refunded for UI/reporting
                 try:
                     order.payment_status = 'Refund'
                     order.save(update_fields=['payment_status'])
-                except Exception:
-                    pass
+                except Exception as e:
+                    print(f"Error updating payment status: {e}")
         else:
-            # Order not paid yet -- refund should be processed when/if payment arrives or handled manually.
+            # Order not paid yet — handle manually later
             pass
 
         # --- Mark coupon as refunded ---
-        if order.coupon and not order.coupon_refunded:
+        if order.coupon and not getattr(order, "coupon_refunded", False):
             order.coupon_refunded = True
             order.save(update_fields=["coupon_refunded"])
             CouponRedemption.objects.filter(order=order, coupon=order.coupon).update(refunded=True)
 
     elif action == "reject":
-        # Mark the cancellation as rejected
         order.cancellation_approved = False
         order.save(update_fields=["cancellation_approved"])
 
@@ -704,15 +750,23 @@ def admin_approve_reject_return(request, item_id, action):
     item_price_total = Decimal(getattr(variant, "price", order.price)) * qty
     refund_amount = item_price_total + Decimal(item_tax or 0)
 
+    # Determine delivery to include: prefer per-order stored delivery_charge, else use config
+    delivery_val = getattr(order, 'delivery_charge', None)
+    if delivery_val is None:
+        try:
+            delivery_val = Decimal(config("DELIVERY_CHARGE", 0))
+        except Exception:
+            delivery_val = Decimal("0.00")
+
     # Determine if this is the final returned item (for per-item Orders this uses order.items, else assume single-item order)
     if is_item and hasattr(order, 'items'):
         total_items = order.items.count()
         returned_items = order.items.filter(return_approved=True).count()
         if returned_items + 1 == total_items:
-            refund_amount += Decimal(config("DELIVERY_CHARGE", 0))
+            refund_amount += Decimal(delivery_val)
     else:
         # single-order: include delivery charge
-        refund_amount += Decimal(config("DELIVERY_CHARGE", 0))
+        refund_amount += Decimal(delivery_val)
 
     refund_amount = refund_amount.quantize(Decimal("0.01"))
 
@@ -1019,32 +1073,108 @@ def admin_view_return_reason(request, item_id):
 @login_required
 @never_cache
 def start_payment(request, order_id):
-    order = get_object_or_404(Order, order_id=order_id, user=request.user)
-
+    # Support multi-order online payments: if the session contains a list of
+    # order ids for online payment, charge the combined amount. Otherwise
+    # charge the single order passed in.
     client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
 
+    order_ids = request.session.get('online_payment_order_ids')
+    orders = []
+    if order_ids:
+        # fetch orders ensuring they belong to the user
+        orders = list(Order.objects.filter(order_id__in=order_ids, user=request.user))
+        if not orders:
+            # fallback to single order
+            orders = [get_object_or_404(Order, order_id=order_id, user=request.user)]
+    else:
+        orders = [get_object_or_404(Order, order_id=order_id, user=request.user)]
+
+    # Compute combined amount robustly from order components to ensure tax,
+    # delivery and discounts are included even if total_price is missing.
+    combined_amount = Decimal("0.00")
+    for o in orders:
+        try:
+            price = Decimal(getattr(o, 'price', 0) or 0)
+        except Exception:
+            price = Decimal(str(getattr(o, 'price', 0) or 0))
+        qty = Decimal(getattr(o, 'quantity', 1) or 1)
+        item_subtotal = q2(price * qty)
+
+        # Tax: prefer stored order.tax, else compute using TAX_RATE
+        tax_amount = getattr(o, 'tax', None)
+        if tax_amount is None:
+            try:
+                tax_rate = Decimal(config("TAX_RATE", 0.18))
+                tax_amount = q2(item_subtotal * tax_rate)
+            except Exception:
+                tax_amount = Decimal("0.00")
+        else:
+            try:
+                tax_amount = Decimal(tax_amount)
+            except Exception:
+                tax_amount = Decimal(str(tax_amount))
+
+        # Delivery: prefer stored order.delivery_charge, else use config
+        delivery_val = getattr(o, 'delivery_charge', None)
+        if delivery_val is None:
+            try:
+                delivery_val = Decimal(config("DELIVERY_CHARGE", 0))
+            except Exception:
+                delivery_val = Decimal("0.00")
+        else:
+            try:
+                delivery_val = Decimal(delivery_val)
+            except Exception:
+                delivery_val = Decimal(str(delivery_val))
+
+        # Discount
+        discount_amt = getattr(o, 'discount', None) or Decimal("0.00")
+        try:
+            discount_amt = Decimal(discount_amt)
+        except Exception:
+            discount_amt = Decimal(str(discount_amt))
+
+        order_total = q2(item_subtotal + tax_amount + Decimal(delivery_val) - discount_amt)
+        combined_amount += order_total
+
+    # Ensure combined_amount is quantized to 2 decimals
+    combined_amount = combined_amount.quantize(Decimal('0.01'))
+
     razorpay_order = client.order.create({
-        "amount": int(order.total_price * 100),  # in paise
+        "amount": int(combined_amount * 100),
         "currency": "INR",
         "payment_capture": 1,
     })
 
-    # Save order details
-    order.razorpay_order_id = razorpay_order["id"]
-    order.save()
+    # Save razorpay_order_id on each order so we can reconcile later
+    for o in orders:
+        o.razorpay_order_id = razorpay_order["id"]
+        o.save(update_fields=["razorpay_order_id"]) 
+
+    # If multiple orders exist, provide `orders` for display; also pick a single
+    # `order` for templates that expect a single order (URL reversing, etc.)
+    single_order = orders[0] if orders else None
+    # Amount in paise for the frontend
+    try:
+        amount_paise = int((combined_amount * 100).quantize(Decimal('1')))
+    except Exception:
+        amount_paise = int(Decimal(str(combined_amount or 0)) * 100)
 
     return render(request, "user/orders/payment.html", {
-        "order": order,
-        "razorpay_key": settings.RAZORPAY_KEY_ID,  # ✅ safe to expose only KEY_ID
+        "orders": orders,
+        "order": single_order,
+        "razorpay_key": settings.RAZORPAY_KEY_ID,
         "razorpay_order_id": razorpay_order["id"],
-        "amount": order.total_price,
+        "amount": combined_amount,
+        "amount_paise": amount_paise,
         "currency": "INR",
     })
 
 
 @csrf_exempt
 def payment_success(request, order_id):
-    order = get_object_or_404(Order, order_id=order_id)
+    # When paying multiple orders in one Razorpay transaction, the session
+    # stores 'online_payment_order_ids'. Prefer that list when marking paid.
     if request.method == "POST":
         payment_id = request.POST.get("razorpay_payment_id")
         razorpay_order_id = request.POST.get("razorpay_order_id")
@@ -1056,33 +1186,54 @@ def payment_success(request, order_id):
                 "razorpay_payment_id": payment_id,
                 "razorpay_signature": signature
             })
-            order.razorpay_payment_id = payment_id
-            order.razorpay_signature = signature
-            order.payment_status = "Paid"
-            order.save()
 
-            # Record transaction ONLY after payment succeeds:
-            Transaction.objects.create(
-                user=order.user,
-                transaction_type='ONLINE_PAYMENT',
-                payment_status='Credit',
-                amount=order.total_price,
-                description=f"Order Payment for Order #{order.order_code} via Razorpay",
-                order=order,
-            )
-            subject = "Your Order Has Been Placed Successfully"
-            html_message = render_to_string('emails/order_confirmation.html', {'order': order, 'user': request.user})
-            plain_message = strip_tags(html_message)
-            from_email = 'pythondjango110@gmail.com'
-            to_email = request.user.email
+            order_ids = request.session.get('online_payment_order_ids')
+            if order_ids:
+                orders = Order.objects.filter(order_id__in=order_ids, user=request.user)
+            else:
+                orders = Order.objects.filter(order_id=order_id, user=request.user)
 
-            send_mail(subject, plain_message, from_email, [to_email], html_message=html_message)
+            for order in orders:
+                order.razorpay_payment_id = payment_id
+                order.razorpay_signature = signature
+                order.payment_status = "Paid"
+                order.save(update_fields=["razorpay_payment_id", "razorpay_signature", "payment_status"])
 
-            return redirect("order_success", order_id=order.order_id)
+                Transaction.objects.create(
+                    user=order.user,
+                    transaction_type='ONLINE_PAYMENT',
+                    payment_status='Credit',
+                    amount=order.total_price,
+                    description=f"Order Payment for Order #{order.order_code} via Razorpay",
+                    order=order,
+                )
+
+            # Send confirmation for the first order (templates expect a single order)
+            first_order = orders.first()
+            if first_order:
+                subject = "Your Order Has Been Placed Successfully"
+                html_message = render_to_string('emails/order_confirmation.html', {'order': first_order, 'user': request.user})
+                plain_message = strip_tags(html_message)
+                from_email = 'pythondjango110@gmail.com'
+                to_email = request.user.email
+                send_mail(subject, plain_message, from_email, [to_email], html_message=html_message)
+
+            # Cleanup session
+            if 'online_payment_order_ids' in request.session:
+                del request.session['online_payment_order_ids']
+
+            return redirect("order_success", order_id=first_order.order_id if first_order else order_id)
         except Exception as e:
-            order.payment_status = "Failed"
-            order.save()
-            return redirect("order_failed", order_id=order.order_id)
+            # mark all orders failed if possible
+            try:
+                order_ids = request.session.get('online_payment_order_ids')
+                if order_ids:
+                    Order.objects.filter(order_id__in=order_ids, user=request.user).update(payment_status="Failed")
+                else:
+                    Order.objects.filter(order_id=order_id, user=request.user).update(payment_status="Failed")
+            except Exception:
+                pass
+            return redirect("order_failed", order_id=order_id)
 
         
 @login_required(login_url='login')

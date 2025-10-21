@@ -17,9 +17,6 @@ class Coupon(models.Model):
     usage_limit_per_user = models.PositiveIntegerField(default=1, help_text="Max times a user can use this coupon")
     usage_limit_total = models.PositiveIntegerField(default=0, help_text="Max total uses (0 = unlimited)")
     total_uses = models.PositiveIntegerField(default=0, editable=False)
-    products = models.ManyToManyField(Product, blank=True, related_name='coupons')
-
-    users_used = models.ManyToManyField(User, through='CouponRedemption', related_name='coupons_used', blank=True)
 
     class Meta:
         ordering = ['-valid_to']
