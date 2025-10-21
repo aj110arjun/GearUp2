@@ -20,9 +20,6 @@
                 <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Status</th>
                 <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Valid From</th>
                 <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Valid To</th>
-                <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Usage / User</th>
-                <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Total Limit</th>
-                <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Total Uses</th>
                 <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Actions</th>
             </tr>
         </thead>
@@ -52,9 +49,6 @@
 
                 <td class="px-4 py-2">{{ coupon.valid_from|date:"d M Y" }}</td>
                 <td class="px-4 py-2">{{ coupon.valid_to|date:"d M Y" }}</td>
-                <td class="px-4 py-2">{{ coupon.usage_limit_per_user }}</td>
-                <td class="px-4 py-2">{{ coupon.usage_limit_total }}</td>
-                <td class="px-4 py-2">{{ coupon.total_uses }}</td>
                 <!-- Actions -->
                 <td class="px-4 py-2 flex space-x-2">
                     <a href="{% url 'admin_coupon_edit' coupon.id %}" 

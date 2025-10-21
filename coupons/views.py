@@ -42,9 +42,6 @@ def admin_coupon_add(request):
         active = request.POST.get("active") == "on"
         valid_from_str = request.POST.get("valid_from")
         valid_to_str = request.POST.get("valid_to")
-        usage_limit_total = request.POST.get("usage_limit_total") or 0
-        usage_limit_per_user = request.POST.get("usage_limit_per_user") or 0
-        selected_products = request.POST.getlist("products")  # <-- Get selected products
 
         # Validation
         if not code:
@@ -55,10 +52,6 @@ def admin_coupon_add(request):
             errors["valid_from"] = "Start date is required."
         if not valid_to_str:
             errors["valid_to"] = "End date is required."
-        if int(usage_limit_per_user) < 0:
-            errors["usage_limit_per_user"] = "Usage limit per user cannot be negative."
-        if int(usage_limit_total) < 0:
-            errors["usage_limit_total"] = "Total usage limit cannot be negative."
         if Coupon.objects.filter(code=code).exists():
             errors["code"] = "Coupon code must be unique."
 
@@ -83,9 +76,6 @@ def admin_coupon_add(request):
                 "active": active,
                 "valid_from": valid_from,
                 "valid_to": valid_to,
-                "usage_limit_total": usage_limit_total,
-                "usage_limit_per_user": usage_limit_per_user,
-                "products": [int(pid) for pid in selected_products],  # Keep selected products
             }
             context = {
                 "action": "Add",
@@ -102,13 +92,7 @@ def admin_coupon_add(request):
             active=active,
             valid_from=valid_from,
             valid_to=valid_to,
-            usage_limit_total=usage_limit_total,
-            usage_limit_per_user=usage_limit_per_user
         )
-
-        # Assign selected products
-        if selected_products:
-            coupon.products.set(selected_products)
 
         messages.success(request, f"Coupon '{coupon.code}' created successfully.")
         return redirect("admin_coupon_list")
@@ -201,47 +185,77 @@ def admin_coupon_delete(request, coupon_id):
 @login_required(login_url="login")
 @never_cache
 def apply_coupon(request):
+    """Apply coupon with comprehensive validation"""
+    
     code = request.GET.get("code", "").strip().upper()
     
-    if request.headers.get("x-requested-with") == "XMLHttpRequest":
-        try:
-            coupon = Coupon.objects.get(code=code, active=True)
-
-            if coupon.can_user_use(request.user):
-                # Save coupon code in session
-                request.session["coupon_id"] = coupon.code
-
-                # Calculate discount
-                cart_items = request.user.cart_items.select_related("variant__product")
-                subtotal = Decimal('0.00')
-                for item in cart_items:
-                    price = Decimal(str(item.variant.get_discounted_price()))
-                    subtotal += price * item.quantity
-
-                discount = Decimal(str(coupon.discount_value))
-
-                tax_rate = Decimal(str(config("TAX_RATE", 0.18)))
-                delivery_charge = Decimal(str(config("DELIVERY_CHARGE", 0)))
-
-                total_tax = (subtotal * tax_rate).quantize(Decimal("0.01"))
-                grand_total = (subtotal + total_tax + delivery_charge - discount)
-                if grand_total < 0:
-                    grand_total = Decimal('0.00')
-
+    if not request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({"success": False, "message": "Invalid request method."})
+    
+    if not code:
+        return JsonResponse({"success": False, "message": "Please enter a coupon code."})
+    
+    try:
+        # Fetch coupon
+        coupon = Coupon.objects.get(code=code)
+        
+        # Validation checks
+        if not coupon.active:
+            return JsonResponse({"success": False, "message": "This coupon is no longer active."})
+        
+        if not coupon.is_valid():
+            return JsonResponse({"success": False, "message": "This coupon has expired."})
+        
+        # Calculate cart total
+        cart_items = request.user.cart_items.select_related("variant__product")
+        if not cart_items.exists():
+            return JsonResponse({"success": False, "message": "Your cart is empty."})
+        
+        subtotal = Decimal('0.00')
+        for item in cart_items:
+            try:
+                price = Decimal(str(item.variant.get_discounted_price()))
+                subtotal += price * item.quantity
+            except Exception:
                 return JsonResponse({
-                    "success": True,
-                    "code": coupon.code,
-                    "discount": _format_money(discount),
-                    "subtotal": _format_money(subtotal),
-                    "tax": _format_money(total_tax),
-                    "delivery": _format_money(delivery_charge),
-                    "new_total": _format_money(grand_total)
+                    "success": False, 
+                    "message": "Error calculating cart total."
                 })
-            else:
-                return JsonResponse({"success": False, "message": "Coupon is invalid or already used."})
-        except Coupon.DoesNotExist:
-            return JsonResponse({"success": False, "message": "Coupon does not exist."})
-    return JsonResponse({"success": False, "message": "Invalid request."})
+        
+        # Apply discount
+        discount = Decimal(str(coupon.discount_value))
+        
+        # Ensure discount doesn't exceed subtotal
+        if discount > subtotal:
+            discount = subtotal
+        
+        # Calculate final totals
+        tax_rate = Decimal(str(config("TAX_RATE", 0.18)))
+        delivery_charge = Decimal(str(config("DELIVERY_CHARGE", 0)))
+        total_tax = (subtotal * tax_rate).quantize(Decimal("0.01"))
+        grand_total = (subtotal + total_tax + delivery_charge - discount)
+        
+        if grand_total < 0:
+            grand_total = Decimal('0.00')
+        
+        # Store in session
+        request.session["coupon_id"] = coupon.code
+        request.session.modified = True
+        
+        return JsonResponse({
+            "success": True,
+            "code": coupon.code,
+            "discount": f"{discount:.2f}",
+            "subtotal": f"{subtotal:.2f}",
+            "tax": f"{total_tax:.2f}",
+            "delivery": f"{delivery_charge:.2f}",
+            "new_total": f"{grand_total:.2f}"
+        })
+        
+    except Coupon.DoesNotExist:
+        return JsonResponse({"success": False, "message": "Invalid coupon code."})
+    except Exception as e:
+        return JsonResponse({"success": False, "message": f"Error applying coupon: {str(e)}"})
 
 
 # ----------------- User: Remove Coupon -----------------

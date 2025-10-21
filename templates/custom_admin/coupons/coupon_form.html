@@ -44,24 +44,6 @@
             {% if error.valid_to %}<p class="text-red-600 text-sm mt-1">{{ error.valid_to }}</p>{% endif %}
         </div>
 
-        <!-- Usage Limit Total -->
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Total Usage Limit</label>
-            <input type="number" name="usage_limit_total"
-                   value="{{ coupon.usage_limit_total|default:0 }}"
-                   class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 {% if error.usage_limit_total %}border-red-500{% endif %}">
-            {% if error.usage_limit_total %}<p class="text-red-600 text-sm mt-1">{{ error.usage_limit_total }}</p>{% endif %}
-        </div>
-
-        <!-- Usage Limit Per User -->
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Usage Limit Per User</label>
-            <input type="number" name="usage_limit_per_user"
-                   value="{{ coupon.usage_limit_per_user|default:0 }}"
-                   class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 {% if error.usage_limit_per_user %}border-red-500{% endif %}">
-            {% if error.usage_limit_per_user %}<p class="text-red-600 text-sm mt-1">{{ error.usage_limit_per_user }}</p>{% endif %}
-        </div>
-
         <!-- Active Checkbox -->
         <div class="flex items-center">
             <input type="checkbox" name="active" id="active"
