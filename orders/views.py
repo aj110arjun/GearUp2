@@ -467,7 +467,15 @@ def admin_order_detail(request, order_id):
         item_id=getattr(order, "order_id", None),
     )
     items = [adapter]
-    return render(request, "custom_admin/orders/order_detail.html", {"order": order, "items": items})
+    grand_total = order.total_price + order.tax + Decimal(config("DELIVERY_CHARGE")) - order.discount
+
+    context = {
+        "order": order,
+        "items": items,
+        "grand_total": grand_total,
+    }
+    
+    return render(request, "custom_admin/orders/order_detail.html", context)
 
 
 @staff_member_required(login_url="admin_login")
@@ -798,13 +806,13 @@ def admin_approve_reject_return(request, item_id, action):
     refund_amount = item_price_total + Decimal(item_tax or 0)
 
     # --- Step 2: Handle coupon discount ---
-    # Assuming `order` has a field `coupon_discount` or similar
-    coupon_discount = Decimal(getattr(order, "coupon_discount", 0))
+    # The `discount` field on the order model stores the coupon discount.
+    coupon_discount = Decimal(getattr(order, "discount", 0) or 0)
     if coupon_discount > 0:
         # Divide coupon discount among items equally
         total_items = order.items.count() if hasattr(order, "items") else 1
         per_item_coupon = coupon_discount / Decimal(total_items)
-        refund_amount += per_item_coupon  # Add back proportional coupon refund
+        refund_amount -= per_item_coupon  # Subtract the proportional coupon discount from the refund
 
     # --- Step 3: Include delivery charge if last item ---
     delivery_val = getattr(order, 'delivery_charge', None)
