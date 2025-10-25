@@ -44,26 +44,33 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        let seconds = 120;
-        const timerEl = document.getElementById("timer");
-        const resendEl = document.getElementById("resend-link");
+    let seconds = {{ remaining_seconds|default:0 }};
+    const timerEl = document.getElementById("timer");
+    const resendEl = document.getElementById("resend-link");
 
-        if (timerEl && !timerEl.classList.contains("d-none")) {
-            const countdown = setInterval(() => {
-                seconds--;
-                timerEl.textContent = "Expire OTP in " + seconds + "s";
+    function formatTime(sec) {
+        const m = Math.floor(sec / 60);
+        const s = sec % 60;
+        return `${m}:${s.toString().padStart(2, '0')}`;
+    }
 
-                if (seconds <= 0) {
-                    clearInterval(countdown);
-                    timerEl.classList.add("d-none");
-                    resendEl.classList.remove("d-none");
-                }
-            }, 900);
-        } else {
-            // OTP already expired, show resend immediately
-            if (timerEl) timerEl.classList.add("d-none");
-            if (resendEl) resendEl.classList.remove("d-none");
-        }
-    </script>
+    if (seconds > 0 && timerEl && !timerEl.classList.contains("d-none")) {
+        timerEl.textContent = "Expire OTP in " + formatTime(seconds);
+        const countdown = setInterval(() => {
+            seconds--;
+            timerEl.textContent = "Expire OTP in " + formatTime(seconds);
+
+            if (seconds <= 0) {
+                clearInterval(countdown);
+                timerEl.classList.add("d-none");
+                resendEl.classList.remove("d-none");
+            }
+        }, 1000);
+    } else {
+        // ✅ OTP already expired
+        if (timerEl) timerEl.classList.add("d-none");
+        if (resendEl) resendEl.classList.remove("d-none");
+    }
+</script>
 </body>
 </html>
