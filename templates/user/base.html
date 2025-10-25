@@ -29,7 +29,7 @@
       />
   </head>
 
-  <body class="bg-[#baa991] font-sans text-gray-800">
+  <body class="bg-[#4C5C2A] font-sans text-gray-800">
 
     <!-- Navbar -->
     <nav class="bg-[#f4f1e9] shadow-md">
@@ -103,17 +103,13 @@
 
     <!-- Breadcrumb -->
     {% if breadcrumbs %}
-    <div
-      class="max-w-6xl mx-auto mt-4 bg-[#f4f1e9] rounded-lg px-6 py-3 shadow-sm"
-    >
+    <div class="max-w-6xl mx-auto mt-4 bg-[#f4f1e9] rounded-lg px-6 py-3 shadow-sm">
       <nav class="text-sm" aria-label="breadcrumb">
         <ol class="flex flex-wrap gap-2">
           {% for name, url in breadcrumbs %}
           {% if url %}
           <li>
-            <a href="{{ url }}" class="text-green-700 hover:underline"
-              >{{ name }}</a
-            >
+            <a href="{{ url }}" class="text-green-700 hover:underline">{{ name }}</a>
             <span class="text-green-600 font-bold">›</span>
           </li>
           {% else %}

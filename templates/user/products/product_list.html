@@ -6,59 +6,62 @@
 <div class="container mx-auto my-6 px-4">
 
   <!-- 🔍 Search & Filters -->
-  <div class="flex flex-wrap gap-4 mb-6 items-center">
-    <form method="get" class="flex flex-wrap gap-4 w-full">
-      <!-- Search -->
-      <div class="relative flex-1 min-w-[250px]">
-        <input type="text" name="q" id="search-input"
-          class="w-full border border-gray-300 rounded-lg py-2 px-4 pr-14 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="Search products..." value="{{ filters.search }}">
-        <button type="button" id="clear-btn" aria-label="Clear search"
-          class="absolute right-14 top-1/2 -translate-y-1/2 text-gray-400 text-xl hidden">&times;</button>
-        <button type="submit"
-          class="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-600 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-700">
-          Search
-        </button>
-      </div>
+ <div class="flex flex-wrap gap-4 mb-8 items-center bg-[#3A4526] rounded-2xl p-4 shadow-md">
+  <form method="get" class="flex flex-wrap gap-4 w-full items-end">
+    
+    <!-- Search Input -->
+    <div class="relative flex-1 min-w-[220px]">
+  <label for="search-input" class="block text-sm text-[#EEEEDC] font-semibold mb-1">Search</label>
+  <input type="text" name="q" id="search-input"
+         class="w-full bg-[#222d18] border border-[#58613A] text-[#E4E6D6] rounded-lg py-2 px-4 pr-10 focus:outline-none focus:ring-[2px] focus:ring-[#b6d96a]"
+         placeholder="Find products, kits..." value="{{ filters.search }}">
+  <button type="button" id="clear-btn"
+          class="absolute right-2 top-1/2 -translate-y-1 text-gray-400 text-xl h-6 w-6 flex items-center justify-center hidden">&times;</button>
+</div>
 
-      <!-- Category filter -->
-      <div>
-        <select name="category"
-          class="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500"
-          onchange="this.form.submit()">
-          <option value="">All Categories</option>
-          {% for cat in categories %}
+
+    <!-- Category Filter -->
+    <div>
+      <label for="category-select" class="block text-sm text-[#EEEEDC] font-semibold mb-1">Category</label>
+      <select name="category" id="category-select"
+        class="bg-[#222d18] text-[#dde2ca] border border-[#58613A] rounded-md px-3 py-2 outline-none focus:ring-[2px] focus:ring-[#b6d96a]"
+        onchange="this.form.submit()">
+        <option value="">All</option>
+        {% for cat in categories %}
           <option value="{{ cat.id }}" {% if filters.category == cat.id|stringformat:"s" %}selected{% endif %}>
             {{ cat.name }}
           </option>
-          {% endfor %}
-        </select>
-      </div>
+        {% endfor %}
+      </select>
+    </div>
 
-      <!-- Sorting -->
-      <div>
-        <select name="sort"
-          class="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500"
-          onchange="this.form.submit()">
-          <option value="">Sort by</option>
-          <option value="name" {% if filters.sort == "name" %}selected{% endif %}>Name: A-Z</option>
-          <option value="name2" {% if filters.sort == "name2" %}selected{% endif %}>Name: Z-A</option>
-          <option value="price_asc" {% if filters.sort == "price_asc" %}selected{% endif %}>Price: Low to High</option>
-          <option value="price_desc" {% if filters.sort == "price_desc" %}selected{% endif %}>Price: High to Low</option>
-        </select>
-      </div>
 
-      <!-- Clear Filters -->
-      <div class="ml-auto">
-        {% if filters.search or filters.category or filters.sort %}
-        <a href="{% url 'product_list' %}"
-          class="border border-gray-400 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-100">
-          Clear Filters
-        </a>
-        {% endif %}
-      </div>
-    </form>
-  </div>
+    <!-- Sorting Order -->
+    <div>
+      <label for="sort-select" class="block text-sm text-[#EEEEDC] font-semibold mb-1">Sort</label>
+      <select name="sort" id="sort-select"
+        class="bg-[#222d18] text-[#dde2ca] border border-[#58613A] rounded-md px-3 py-2 outline-none focus:ring-[2px] focus:ring-[#b6d96a]"
+        onchange="this.form.submit()">
+        <option value="">By Default</option>
+        <option value="name" {% if filters.sort == "name" %}selected{% endif %}>Name: A-Z</option>
+        <option value="name2" {% if filters.sort == "name2" %}selected{% endif %}>Name: Z-A</option>
+        <option value="price_asc" {% if filters.sort == "price_asc" %}selected{% endif %}>Price: Low to High</option>
+        <option value="price_desc" {% if filters.sort == "price_desc" %}selected{% endif %}>Price: High to Low</option>
+      </select>
+    </div>
+
+    <!-- Clear Filters -->
+    <div class="ml-auto">
+      {% if filters.search or filters.category or filters.sort or filters.price_min or filters.price_max %}
+      <a href="{% url 'product_list' %}"
+        class="inline-block text-[#B35C1E] border border-[#b35c1e] px-4 py-2 rounded-md hover:bg-[#58412d] hover:text-[#FFF] font-medium transition">
+        Reset Filters
+      </a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
 
   <!-- 🦴 Skeleton Loader -->
   <div id="product-skeletons" class="grid grid-cols-2 md:grid-cols-4 gap-6">

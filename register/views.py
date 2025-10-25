@@ -1,5 +1,4 @@
 import pyotp
-import time
 import re
 
 from django.core.mail import send_mail
@@ -10,9 +9,15 @@ from django.core.exceptions import ValidationError
 from django.contrib.auth import authenticate, login, logout
 from django.views.decorators.cache import never_cache
 from django.contrib import messages
-from allauth.socialaccount.models import SocialAccount
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.admin.views.decorators import staff_member_required
+from django.utils import timezone
+from datetime import datetime, timedelta
+from django.contrib.auth.decorators import login_required
+
+from decimal import Decimal
+from allauth.socialaccount.models import SocialAccount
+from decouple import config
 
 
 
@@ -79,18 +84,21 @@ def user_signup(request):
             totp = pyotp.TOTP(secret, interval=120)  # 2 min expiry
             otp = totp.now()
 
+            expires_at = timezone.now() + timedelta(seconds=120)  
+
             request.session["signup_data"] = {
                 "fullname": fullname,
                 "email": email,
                 "password": password1,
                 "secret": secret,
-                "otp_time": time.time()
+                "otp_time": timezone.now().timestamp(),
+                "otp_expires_at": expires_at.isoformat(),  
             }
 
             send_mail(
                 "Your OTP Code",
-                f"Your OTP code is: {otp}\n(It expires in 1 minute)",
-                None,
+                f"Your OTP code is: {otp}\n(It expires in 2 minute)",
+                config("EMAIL_HOST_USER"),
                 [email],
                 fail_silently=False,
             )
@@ -131,58 +139,69 @@ def user_login(request):
                 
     return render(request, 'user/login.html', {'error': error, "data": data})
 
+
 def verify_otp(request):
     error = {}
     signup_data = request.session.get("signup_data")
     if not signup_data:
         return redirect('signup')
 
-    # Check if OTP expired (more than 60 seconds past otp_time)
-    otp_expired = time.time() - signup_data.get("otp_time", 0) > 120
+    # --- Calculate remaining time ---
+    expires_at_str = signup_data.get("otp_expires_at")
+    remaining_seconds = 0
+    otp_expired = True
 
+    if expires_at_str:
+        expires_at = datetime.fromisoformat(expires_at_str)
+        now = timezone.now()
+        diff = (expires_at - now).total_seconds()
+        remaining_seconds = max(0, int(diff))
+        otp_expired = remaining_seconds <= 0
+
+    # --- Handle OTP submission ---
     if request.method == 'POST' and not otp_expired:
         entered_otp = request.POST.get("otp")
         totp = pyotp.TOTP(signup_data["secret"], interval=120)
         if totp.verify(entered_otp):
-            username = signup_data["email"]
-            password = signup_data["password"]
-            fullname = signup_data["fullname"]
             user = User.objects.create_user(
-                username=username,
-                email=username,
-                password=password,
-                first_name=fullname
+                username=signup_data["email"],
+                email=signup_data["email"],
+                password=signup_data["password"],
+                first_name=signup_data["fullname"]
             )
             login(request, user)
             del request.session["signup_data"]
             return redirect('home')
         else:
             error["otp"] = "Invalid or expired otp"
+
     elif request.method == "POST" and otp_expired:
         error["otp"] = "OTP has expired, please resend to get a new one."
 
-    return render(request, "user/otp/verify_otp.html", {'error': error, 'otp_expired': otp_expired})
-
+    return render(request, "user/otp/verify_otp.html", {
+        'error': error,
+        'otp_expired': otp_expired,
+        'remaining_seconds': remaining_seconds,  # ✅ NEW
+    })
 
 def resend_otp(request):
     signup_data = request.session.get("signup_data")
-
     if not signup_data:
         return redirect('signup')
 
-    # Use the same secret stored in session
     totp = pyotp.TOTP(signup_data["secret"], interval=120)
     new_otp = totp.now()
 
-    # Update otp_time to current time (reset timer)
-    signup_data["otp_time"] = time.time()
-    request.session["signup_data"] = signup_data  # Save session with updated time
+    new_expiry = timezone.now() + timedelta(seconds=120)
 
-    # Send OTP via email
+    signup_data["otp_time"] = timezone.now().timestamp()
+    signup_data["otp_expires_at"] = new_expiry.isoformat()  # ✅ reset expiry
+    request.session["signup_data"] = signup_data
+
     send_mail(
         "Your OTP Code",
-        f"Your new OTP is: {new_otp}. It will expire in 60 seconds.",
-        "noreply@yourdomain.com",
+        f"Your new OTP is: {new_otp}. It will expire in 2 minutes.",
+        config("EMAIL_HOST_USER"),
         [signup_data["email"]],
     )
 
@@ -207,20 +226,20 @@ def forgot_password(request):
                 user = User.objects.get(username=email)
                 # Generate OTP
                 secret = pyotp.random_base32()
-                totp = pyotp.TOTP(secret, interval=60)  
+                totp = pyotp.TOTP(secret, interval=120)  
                 otp = totp.now()
 
                 # Store in session
                 request.session["reset_data"] = {
                     "email": email,
                     "secret": secret,
-                    "time": time.time()
+                    "time": timezone.now().timestamp() 
                 }
 
                 # Send mail
                 send_mail(
                     "Password Reset OTP",
-                    f"Your OTP is {otp} (valid for 1 min)",
+                    f"Your OTP is {otp} (valid for 2 min)",
                     None,
                     [email],
                     fail_silently=False
@@ -243,7 +262,7 @@ def reset_password(request):
         new_password = request.POST.get("password")
         confirm_password = request.POST.get("confirm_password")
 
-        totp = pyotp.TOTP(reset_data["secret"], interval=60)
+        totp = pyotp.TOTP(reset_data["secret"], interval=120)
         if not totp.verify(otp):
             error["otp"] = "Invalid or expired OTP"
         elif not new_password or not confirm_password:
