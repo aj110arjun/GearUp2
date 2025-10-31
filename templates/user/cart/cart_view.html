@@ -1,133 +1,258 @@
 {% extends "user/base.html" %}
 {% load cart_extras %}
-{% block title %} My Cart {% endblock %}
+{% block title %} Shopping Cart {% endblock %}
 
 {% block content %}
 <script src="https://cdn.tailwindcss.com"></script>
 
-<div class="max-w-7xl mx-auto my-8 px-4">
-  <h2 class="text-2xl font-bold mb-4">🛒 My Cart</h2>
-  <hr class="mb-8">
-
-  <!-- Skeleton Loader -->
-<div id="cart-skeleton" class="space-y-4">
-  <div class="flex items-center space-x-4">
-    <div class="w-16 h-16 bg-gray-300 rounded animate-pulse"></div>
-    <div class="flex-1 space-y-2">
-      <div class="h-4 bg-gray-300 rounded w-3/5 animate-pulse"></div>
-      <div class="h-3 bg-gray-300 rounded w-2/5 animate-pulse"></div>
+<div class="bg-gray-50 min-h-screen py-8">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    
+    <!-- Header -->
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900">Shopping Cart</h1>
+      <p class="mt-2 text-sm text-gray-600">Review your items and proceed to checkout</p>
     </div>
-  </div>
-  <div class="flex items-center space-x-4">
-    <div class="w-16 h-16 bg-gray-300 rounded animate-pulse"></div>
-    <div class="flex-1 space-y-2">
-      <div class="h-4 bg-gray-300 rounded w-4/5 animate-pulse"></div>
-      <div class="h-3 bg-gray-300 rounded w-1/2 animate-pulse"></div>
-    </div>
-  </div>
-</div>
 
-  <!-- Actual Cart Content -->
-  <div id="cart-content">
-    {% if items %}
-    <table class="min-w-full divide-y divide-gray-200">
-      <thead class="bg-gray-50">
-        <tr>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Variant</th>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-          <th class="px-6 py-3"></th>
-        </tr>
-      </thead>
-      <tbody class="bg-white divide-y divide-gray-200">
-        {% for item in items %}
-        <tr data-item-id="{{ item.id }}">
-          <td class="px-6 py-4 flex items-center space-x-2">
-            <img src="{{ item.variant.product.image.url }}" alt="{{ item.variant.product.name }}" class="w-16 h-16 object-cover rounded">
-            <span class="truncate max-w-xs">{{ item.variant.product.name }}</span>
-          </td>
-          <td class="px-6 py-4">
-            <form method="post" action="{% url 'update_variant' item.id %}" class="variant-form">
-              {% csrf_token %}
-              <select name="variant_id" class="variant-select text-sm rounded border border-gray-300 p-1" data-item-id="{{ item.id }}">
-                {% for variant in item.variant.product.variants.all %}
-                  <option value="{{ variant.id }}" {% if variant.id == item.variant.id %}selected{% endif %}>
-                    {{ variant.color }} / {{ variant.size }}
-                  </option>
-                {% endfor %}
-              </select>
-            </form>
-          </td>
-          <td class="px-6 py-4 text-sm">
-            {% with discount=item.variant.product.get_best_offer best_offer_obj=item.variant.product.get_best_offer_obj %}
-              {% if discount and discount|floatformat:0 != '0' %}
-                <p class="text-gray-400 line-through">₹{{ item.variant.price|floatformat:2 }}</p>
-                <p class="font-bold text-green-600 mb-0">₹{{ item.variant.get_discounted_price|floatformat:2 }} <span class="bg-red-500 text-white text-xs rounded px-1">-{{ discount }}%</span></p>
-                {% if best_offer_obj %}
-                  <small class="text-xs text-blue-600">{{ best_offer_obj }}</small>
-                {% endif %}
-              {% else %}
-                <p class="font-bold">₹{{ item.variant.price|floatformat:2 }}</p>
-              {% endif %}
-            {% endwith %}
-          </td>
-          <td class="px-6 py-4 whitespace-nowrap">
-            <div class="flex items-center space-x-2 justify-center">
-              <button type="button" class="decrement-btn px-2 py-1 bg-gray-200 rounded hover:bg-gray-300" aria-label="Decrease quantity">-</button>
-              <span class="quantity-text">{{ item.quantity }}</span>
-              <button type="button" class="increment-btn px-2 py-1 bg-gray-200 rounded hover:bg-gray-300" aria-label="Increase quantity">+</button>
+    <!-- Skeleton Loader -->
+    <div id="cart-skeleton" class="space-y-4">
+      <div class="bg-white rounded-lg shadow-sm p-6">
+        <div class="flex items-center space-x-6">
+          <div class="w-24 h-24 bg-gray-200 rounded-lg animate-pulse"></div>
+          <div class="flex-1 space-y-3">
+            <div class="h-5 bg-gray-200 rounded w-3/5 animate-pulse"></div>
+            <div class="h-4 bg-gray-200 rounded w-2/5 animate-pulse"></div>
+            <div class="h-4 bg-gray-200 rounded w-1/4 animate-pulse"></div>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white rounded-lg shadow-sm p-6">
+        <div class="flex items-center space-x-6">
+          <div class="w-24 h-24 bg-gray-200 rounded-lg animate-pulse"></div>
+          <div class="flex-1 space-y-3">
+            <div class="h-5 bg-gray-200 rounded w-4/5 animate-pulse"></div>
+            <div class="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
+            <div class="h-4 bg-gray-200 rounded w-1/3 animate-pulse"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div id="cart-content" class="hidden">
+      {% if items %}
+      <div class="lg:grid lg:grid-cols-12 lg:gap-8">
+        
+        <!-- Cart Items -->
+        <div class="lg:col-span-8">
+          <div class="bg-white rounded-lg shadow-sm">
+            <div class="px-6 py-4 border-b border-gray-200">
+              <h2 class="text-lg font-semibold text-gray-900">Cart Items ({{ items|length }})</h2>
             </div>
-          </td>
-          <td class="px-6 py-4">
-            <a href="{% url 'remove_from_cart' item.id %}" class="text-red-600 hover:underline">Remove</a>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-
-    {% if error.cart %}
-    <div class="text-red-600 text-sm">{{ error.cart }}</div>
-    {% endif %}
-
-    <div class="mt-4 text-right">
-      <h4>Order Total: <span id="cart-total" data-discount="{{ discount|floatformat:2 }}" class="text-green-600 font-bold text-xl">₹{{ total|floatformat:2 }}</span></h4>
+            
+            <div class="divide-y divide-gray-200">
+              {% for item in items %}
+              <div class="p-6" data-item-id="{{ item.id }}">
+                <div class="flex items-start space-x-4">
+                  
+                  <!-- Product Image -->
+                  <div class="flex-shrink-0">
+                    <img src="{{ item.variant.product.image.url }}" 
+                         alt="{{ item.variant.product.name }}" 
+                         class="w-24 h-24 object-cover rounded-lg border border-gray-200">
+                  </div>
+                  
+                  <!-- Product Details -->
+                  <div class="flex-1 min-w-0">
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">
+                      {{ item.variant.product.name }}
+                    </h3>
+                    
+                    <!-- Variant Selector -->
+                    <div class="mb-3">
+                      <form method="post" action="{% url 'update_variant' item.id %}" class="variant-form">
+                        {% csrf_token %}
+                        <label class="text-xs font-medium text-gray-700 uppercase tracking-wider mb-1 block">Variant</label>
+                        <select name="variant_id" 
+                                class="variant-select text-sm rounded-lg border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 py-2 px-3 pr-8" 
+                                data-item-id="{{ item.id }}">
+                          {% for variant in item.variant.product.variants.all %}
+                            <option value="{{ variant.id }}" {% if variant.id == item.variant.id %}selected{% endif %}>
+                              {{ variant.color }} / {{ variant.size }}
+                            </option>
+                          {% endfor %}
+                        </select>
+                      </form>
+                    </div>
+                    
+                    <!-- Price Section -->
+                    <div class="mb-4">
+                      {% with discount=item.variant.product.get_best_offer best_offer_obj=item.variant.product.get_best_offer_obj %}
+                        {% if discount and discount|floatformat:0 != '0' %}
+                          <div class="flex items-center space-x-2 mb-1">
+                            <span class="text-xl font-bold text-gray-900">₹{{ item.variant.get_discounted_price|floatformat:2 }}</span>
+                            <span class="text-sm text-gray-500 line-through">₹{{ item.variant.price|floatformat:2 }}</span>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                              {{ discount }}% OFF
+                            </span>
+                          </div>
+                          {% if best_offer_obj %}
+                            <p class="text-xs text-blue-600 font-medium">🎉 {{ best_offer_obj }}</p>
+                          {% endif %}
+                        {% else %}
+                          <span class="text-xl font-bold text-gray-900">₹{{ item.variant.price|floatformat:2 }}</span>
+                        {% endif %}
+                      {% endwith %}
+                    </div>
+                    
+                    <!-- Quantity & Remove -->
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center space-x-3">
+                        <span class="text-sm font-medium text-gray-700">Quantity:</span>
+                        <div class="flex items-center border border-gray-300 rounded-lg">
+                          <button type="button" 
+                                  class="decrement-btn px-3 py-1.5 text-gray-600 hover:bg-gray-50 transition rounded-l-lg" 
+                                  aria-label="Decrease quantity">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
+                            </svg>
+                          </button>
+                          <span class="quantity-text px-4 py-1.5 text-sm font-semibold text-gray-900 border-x border-gray-300">{{ item.quantity }}</span>
+                          <button type="button" 
+                                  class="increment-btn px-3 py-1.5 text-gray-600 hover:bg-gray-50 transition rounded-r-lg" 
+                                  aria-label="Increase quantity">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <a href="{% url 'remove_from_cart' item.id %}" 
+                         class="inline-flex items-center text-sm font-medium text-red-600 hover:text-red-700 transition">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                        Remove
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          
+          {% if error.cart %}
+          <div class="mt-4 bg-red-50 border border-red-200 rounded-lg p-4">
+            <div class="flex">
+              <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+              </svg>
+              <p class="ml-3 text-sm text-red-700">{{ error.cart }}</p>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+        
+        <!-- Order Summary -->
+        <div class="lg:col-span-4 mt-8 lg:mt-0">
+          <div class="bg-white rounded-lg shadow-sm sticky top-8">
+            <div class="px-6 py-4 border-b border-gray-200">
+              <h2 class="text-lg font-semibold text-gray-900">Order Summary</h2>
+            </div>
+            
+            <div class="px-6 py-4 space-y-4">
+              
+              
+              <!-- Discount -->
+              {% if discount %}
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-600">Discount</span>
+                <span class="font-medium text-green-600">-₹{{ discount|floatformat:2 }}</span>
+              </div>
+              {% endif %}
+              
+              <div class="border-t border-gray-200 pt-4">
+                <div class="flex justify-between">
+                  <span class="text-base font-semibold text-gray-900">Total</span>
+                  <span class="text-2xl font-bold text-gray-900" id="cart-total" data-discount="{{ discount|floatformat:2 }}">₹{{ total|floatformat:2 }}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="px-6 py-4 border-t border-gray-200">
+              <a href="{% url 'checkout' %}" 
+                 class="block w-full bg-blue-600 hover:bg-blue-700 text-white text-center font-semibold py-3 px-4 rounded-lg transition shadow-sm hover:shadow-md">
+                Proceed to Checkout
+              </a>
+              
+              <a href="/" 
+                 class="block w-full mt-3 bg-gray-100 hover:bg-gray-200 text-gray-900 text-center font-medium py-3 px-4 rounded-lg transition">
+                Continue Shopping
+              </a>
+            </div>
+            
+            <!-- Trust Badges -->
+            <div class="px-6 py-4 bg-gray-50 rounded-b-lg">
+              <div class="grid grid-cols-2 gap-3 text-xs text-gray-600">
+                <div class="flex items-center">
+                  <svg class="w-4 h-4 mr-1.5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                  </svg>
+                  Secure Checkout
+                </div>
+                <div class="flex items-center">
+                  <svg class="w-4 h-4 mr-1.5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                  </svg>
+                  Easy Returns
+                </div>
+                <div class="flex items-center">
+                  <svg class="w-4 h-4 mr-1.5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                  </svg>
+                  24/7 Support
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {% else %}
+      <!-- Empty Cart State -->
+      <div class="bg-white rounded-lg shadow-sm p-12 text-center">
+        <svg class="mx-auto h-24 w-24 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+        </svg>
+        <h3 class="mt-4 text-xl font-semibold text-gray-900">Your cart is empty</h3>
+        <p class="mt-2 text-gray-600">Start adding items to see them here!</p>
+        <a href="{% url 'product_list' %}" 
+           class="inline-block mt-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition">
+          Start Shopping
+        </a>
+      </div>
+      {% endif %}
     </div>
-
-    <div class="mt-4 text-right">
-      <a href="{% url 'checkout' %}" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition">Proceed to Checkout</a>
-    </div>
-    {% else %}
-    <p class="text-gray-400">Your cart is empty.</p>
-    {% endif %}
   </div>
 </div>
 
 <script>
-  document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => {
   const skeleton = document.getElementById('cart-skeleton');
   const content = document.getElementById('cart-content');
 
-  // Show skeleton immediately
+  // Show skeleton, hide content initially
   skeleton.classList.remove('hidden');
   content.classList.add('hidden');
 
-  // Simulate loading delay (replace with real AJAX if needed)
+  // Simulate loading
   setTimeout(() => {
     skeleton.classList.add('hidden');
     content.classList.remove('hidden');
-  }, 800); // 0.8s delay
-});
+  }, 800);
 
-  document.addEventListener('DOMContentLoaded', () => {
-    // Simulate loading time
-    setTimeout(() => {
-      document.getElementById('cart-skeleton').classList.add('hidden');
-      document.getElementById('cart-content').classList.remove('hidden');
-    }, 800); // Adjust delay as needed
-  });
-document.addEventListener('DOMContentLoaded', () => {
   const itemData = {};
 
   // Helper: Parse price from string (removes everything but digits and dot)
@@ -139,13 +264,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Cache only the true displayed price for each row (never double discount)
-  document.querySelectorAll('tbody tr').forEach(row => {
+  document.querySelectorAll('div[data-item-id]').forEach(row => {
     const id = row.getAttribute('data-item-id');
     let price = 0;
 
-    // Try discounted price if present (green, font-bold), else normal price
-    let priceElem = row.querySelector('td:nth-child(3) .font-bold.text-green-600') ||
-                    row.querySelector('td:nth-child(3) .font-bold');
+    // Try discounted price if present, else normal price
+    let priceElem = row.querySelector('.text-xl.font-bold');
     if (priceElem) price = parsePrice(priceElem.textContent);
 
     let stock = 5; // Default stock; adjust if needed
@@ -166,7 +290,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Main order total: sum products of displayed prices × quantities; subtract coupon just once
   function updateOrderTotal() {
     let total = 0;
-    document.querySelectorAll('tbody tr').forEach(row => {
+    document.querySelectorAll('div[data-item-id]').forEach(row => {
       const quantity = parseInt(row.querySelector('.quantity-text').textContent) || 0;
       const { price } = itemData[row.getAttribute('data-item-id')];
       total += price * quantity;
@@ -202,7 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function handleQuantityChangeUIOnly(button, action) {
     if (button.disabled) return;
-    const row = button.closest('tr');
+    const row = button.closest('div[data-item-id]');
     const quantitySpan = row.querySelector('.quantity-text');
     const itemId = row.getAttribute('data-item-id');
     let quantity = parseInt(quantitySpan.textContent);
@@ -223,6 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
       handleQuantityChangeUIOnly(button, 'increase');
     });
   });
+
   document.querySelectorAll('.decrement-btn').forEach(button => {
     button.addEventListener('click', e => {
       e.preventDefault();
@@ -230,7 +355,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  document.querySelectorAll('tbody tr').forEach(row => {
+  document.querySelectorAll('div[data-item-id]').forEach(row => {
     const quantity = parseInt(row.querySelector('.quantity-text').textContent) || 0;
     toggleButtons(row, quantity);
     updateItemSubtotal(row, quantity);
@@ -243,7 +368,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const itemId = e.target.dataset.itemId;
       const form = e.target.closest('form');
       const formData = new FormData(form);
-      const row = e.target.closest('tr');
+      const row = e.target.closest('div[data-item-id]');
       try {
         const response = await fetch(form.action, {
           method: 'POST',
@@ -251,11 +376,14 @@ document.addEventListener('DOMContentLoaded', () => {
           headers: { 'X-Requested-With': 'XMLHttpRequest' }
         });
         const data = await response.json();
-        const priceCell = row.querySelector('td:nth-child(3)');
+        
+        const priceContainer = row.querySelector('.text-xl.font-bold').parentElement;
         const newPrice = `₹${data.price.toFixed(2)}`;
-        priceCell.innerHTML = `<p class="font-bold text-green-600">${newPrice}</p>`;
+        priceContainer.innerHTML = `<span class="text-xl font-bold text-gray-900">${newPrice}</span>`;
+        
         itemData[itemId].price = data.price;
         itemData[itemId].stock = data.stock;
+        
         // Remove any per-item discount (price is now always net price)
         const quantity = parseInt(row.querySelector('.quantity-text').textContent) || 0;
         updateItemSubtotal(row, quantity);
@@ -268,6 +396,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
 });
 </script>
-
 
 {% endblock %}
