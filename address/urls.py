@@ -7,4 +7,5 @@ urlpatterns = [
     path('<int:pk>/delete/', views.delete_address, name="delete_address"),
     path('add/', views.add_address, name="add_address"),
     path('<int:pk>/edit/', views.edit_address, name="edit_address"),
+    path('<int:pk>/set-default/', views.set_default_address, name="set_default_address"),
 ]

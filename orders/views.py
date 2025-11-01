@@ -337,6 +337,11 @@ def order_success(request, order_id):
 @never_cache
 def order_list(request):
     orders = Order.objects.filter(user=request.user).order_by("-created_at")
+    pending_count = orders.filter(order_status="Pending").count()
+    delivered_count = orders.filter(order_status="Delivered").count()
+    cancelled_count = orders.filter(order_status="Cancelled").count()
+    shipped_count = orders.filter(order_status="Shipped").count()
+
     
     paginator = Paginator(orders, 10)  
     page_number = request.GET.get("page")
@@ -350,6 +355,10 @@ def order_list(request):
     context = {
         'page_obj': page_obj,
         'breadcrumbs': breadcrumbs,
+        'pending_count': pending_count,
+        'delivered_count': delivered_count,
+        'cancelled_count': cancelled_count,
+        'shipped_count': shipped_count,
     }
 
 

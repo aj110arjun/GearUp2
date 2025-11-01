@@ -1,62 +1,236 @@
 {% extends 'user/base.html' %}
-{% block title %} My Addresses {% endblock title %}
+{% block title %} My Addresses | ShopEase {% endblock title %}
 
 {% block content %}
-<div class="max-w-5xl mx-auto py-8 px-4">
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    
+    <!-- Header Section -->
+    <div class="mb-8">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">My Addresses</h1>
+          <p class="text-gray-600 mt-2">Manage your delivery addresses for seamless shopping</p>
+        </div>
+        <a href="{% url 'add_address' %}" 
+           class="btn-primary flex items-center gap-2 text-white px-6 py-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 font-medium">
+          <i class="fas fa-plus-circle"></i>
+          Add New Address
+        </a>
+      </div>
+    </div>
 
-  <div class="flex justify-between items-center mb-6">
-    <h2 class="text-2xl font-bold">My Addresses</h2>
-    <a href="{% url 'add_address' %}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow transition">
-      Add New Address
-    </a>
-  </div>
-
-  <!-- Skeleton placeholders -->
-  <div id="addresses-skeleton" class="space-y-4">
-    {% for _ in "1234" %}
-      <div class="bg-gray-300 rounded-lg h-32 animate-pulse"></div>
-    {% endfor %}
-  </div>
-
-  <!-- Actual addresses -->
-  <div id="addresses-list" class="space-y-4 hidden">
-    {% for addr in addresses %}
-      <div class="bg-white p-6 rounded-lg shadow border {% if addr.is_default %}border-green-500{% endif %} transition hover:shadow-lg">
-        <div class="flex justify-between items-start">
+    <!-- Stats Bar -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-blue-500">
+        <div class="flex items-center justify-between">
           <div>
-            <h5 class="text-lg font-semibold">
-              {{ addr.full_name }}
-              {% if addr.is_default %}
-                <span class="ml-2 inline-block bg-green-500 text-white text-xs px-2 py-1 rounded">Default</span>
-              {% endif %}
-            </h5>
-            <p class="text-gray-600 mt-1">
-              {{ addr.phone }}<br>
-              {{ addr.address_line_1 }}{% if addr.address_line_2 %}, {{ addr.address_line_2 }}{% endif %}<br>
-              {{ addr.city }}, {{ addr.state }} {{ addr.postal_code }}<br>{{ addr.country }}
-            </p>
+            <p class="text-sm text-gray-600">Total Addresses</p>
+            <p class="text-2xl font-bold text-gray-900">{{ addresses|length }}</p>
           </div>
-          <div class="flex flex-col space-y-2">
-            <a href="{% url 'edit_address' addr.pk %}" class="bg-yellow-400 hover:bg-yellow-500 text-white px-3 py-1 rounded text-sm">Edit</a>
-            {% if not addr.is_default %}
-            <a href="{% url 'delete_address' addr.pk %}" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
-               onclick="return confirm('Are you sure you want to delete this address?');">Delete</a>
-            {% endif %}
+          <div class="bg-blue-100 p-3 rounded-full">
+            <i class="fas fa-map-marker-alt text-blue-600 text-xl"></i>
           </div>
         </div>
       </div>
-    {% empty %}
-      <p class="text-gray-500">No addresses found. <a href="{% url 'add_address' %}" class="text-blue-600 underline">Add one</a>.</p>
-    {% endfor %}
+      
+      <div class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-green-500">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-gray-600">Default Address</p>
+            <p class="text-lg font-semibold text-gray-900">
+              {% for addr in addresses %}
+                {% if addr.is_default %}{{ addr.city }}{% endif %}
+              {% endfor %}
+            </p>
+          </div>
+          <div class="bg-green-100 p-3 rounded-full">
+            <i class="fas fa-home text-green-600 text-xl"></i>
+          </div>
+        </div>
+      </div>
+      
+      <div class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-purple-500">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-gray-600">Quick Actions</p>
+            <p class="text-lg font-semibold text-gray-900">Manage & Edit</p>
+          </div>
+          <div class="bg-purple-100 p-3 rounded-full">
+            <i class="fas fa-cog text-purple-600 text-xl"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Skeleton Loading -->
+    <div id="addresses-skeleton" class="space-y-6">
+      {% for _ in "1234" %}
+        <div class="bg-white rounded-xl p-6 shadow-sm skeleton">
+          <div class="flex justify-between items-start">
+            <div class="space-y-3 flex-1">
+              <div class="h-6 bg-gray-200 rounded w-1/3"></div>
+              <div class="h-4 bg-gray-200 rounded w-1/2"></div>
+              <div class="h-4 bg-gray-200 rounded w-2/3"></div>
+              <div class="h-4 bg-gray-200 rounded w-1/4"></div>
+            </div>
+            <div class="flex gap-2 ml-4">
+              <div class="h-8 bg-gray-200 rounded w-16"></div>
+              <div class="h-8 bg-gray-200 rounded w-16"></div>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- Actual Addresses -->
+    <div id="addresses-list" class="hidden">
+      {% if addresses %}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {% for addr in addresses %}
+            <div class="address-card bg-white rounded-xl p-6 shadow-sm border {% if addr.is_default %}default-address border-green-500{% else %}border-gray-200{% endif %}">
+              <div class="flex justify-between items-start mb-4">
+                <div class="flex items-center gap-3">
+                  <h3 class="text-xl font-semibold text-gray-900">{{ addr.full_name }}</h3>
+                  {% if addr.is_default %}
+                    <span class="bg-green-100 text-green-800 text-xs font-medium px-3 py-1.5 rounded-full flex items-center gap-1">
+                      <i class="fas fa-check-circle text-green-600"></i>
+                      Default
+                    </span>
+                  {% endif %}
+                </div>
+                <div class="flex items-center gap-2">
+                  {% if not addr.is_default %}
+                    <form method="post" action="{% url 'set_default_address' addr.pk %}" class="inline">
+                      {% csrf_token %}
+                      <button type="submit" 
+                              class="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 transition-colors"
+                              title="Set as default">
+                        <i class="fas fa-star"></i>
+                        Set Default
+                      </button>
+                    </form>
+                  {% endif %}
+                </div>
+              </div>
+
+              <div class="space-y-3 text-gray-700">
+                <div class="flex items-center gap-3">
+                  <i class="fas fa-phone text-gray-400 w-5"></i>
+                  <span class="font-medium">{{ addr.phone }}</span>
+                </div>
+                <div class="flex items-start gap-3">
+                  <i class="fas fa-map-marker-alt text-gray-400 w-5 mt-1"></i>
+                  <div>
+                    <p class="font-medium">{{ addr.address_line_1 }}</p>
+                    {% if addr.address_line_2 %}
+                      <p class="text-gray-600">{{ addr.address_line_2 }}</p>
+                    {% endif %}
+                    <p class="text-gray-600">
+                      {{ addr.city }}, {{ addr.state }} {{ addr.postal_code }}
+                    </p>
+                    <p class="text-gray-600">{{ addr.country }}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex justify-between items-center mt-6 pt-4 border-t border-gray-100">
+                <div class="flex gap-2">
+                  <a href="{% url 'edit_address' addr.pk %}" 
+                     class="bg-blue-50 text-blue-700 hover:bg-blue-100 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+                    <i class="fas fa-edit"></i>
+                    Edit
+                  </a>
+                  {% if not addr.is_default %}
+                    <a href="{% url 'delete_address' addr.pk %}" 
+                       class="bg-red-50 text-red-700 hover:bg-red-100 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                       onclick="return confirm('Are you sure you want to delete this address? This action cannot be undone.');">
+                      <i class="fas fa-trash-alt"></i>
+                      Delete
+                    </a>
+                  {% endif %}
+                </div>
+                {% if addr.is_default %}
+                  <div class="text-green-600 text-sm font-medium flex items-center gap-1">
+                    <i class="fas fa-shield-check"></i>
+                    Primary Address
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <!-- Empty State -->
+        <div class="text-center py-12">
+          <div class="bg-white rounded-2xl p-8 max-w-md mx-auto shadow-sm">
+            <div class="bg-gray-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <i class="fas fa-map-marker-alt text-gray-400 text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-2">No addresses yet</h3>
+            <p class="text-gray-600 mb-6">Add your first address to get started with faster checkout</p>
+            <a href="{% url 'add_address' %}" 
+               class="btn-primary inline-flex items-center gap-2 text-white px-6 py-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 font-medium">
+              <i class="fas fa-plus-circle"></i>
+              Add Your First Address
+            </a>
+          </div>
+        </div>
+      {% endif %}
+    </div>
   </div>
 </div>
 
+<style>
+  .btn-primary {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    transition: all 0.3s ease;
+  }
+  
+  .btn-primary:hover {
+    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+    transform: translateY(-2px);
+  }
+  
+  .address-card {
+    transition: all 0.3s ease;
+    border-left: 4px solid transparent;
+  }
+  
+  .address-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
+  
+  .default-address {
+    border-left-color: #10b981;
+  }
+  
+  .skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+  }
+  
+  @keyframes loading {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+</style>
+
 <script>
   document.addEventListener('DOMContentLoaded', function () {
-      setTimeout(function () {
-          document.getElementById('addresses-skeleton').classList.add('hidden');
-          document.getElementById('addresses-list').classList.remove('hidden');
-      }, 1000); // 1 second simulated loading
+    setTimeout(function () {
+      const skeleton = document.getElementById('addresses-skeleton');
+      const addressesList = document.getElementById('addresses-list');
+      
+      if (skeleton) skeleton.classList.add('hidden');
+      if (addressesList) addressesList.classList.remove('hidden');
+    }, 1200);
   });
 </script>
 {% endblock %}

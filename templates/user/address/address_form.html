@@ -1,85 +1,337 @@
 {% extends "user/base.html" %}
-{% block title %} {% if address %}Edit Address{% else %}Add Address{% endif %} {% endblock title %}
+{% block title %} {% if address %}Edit Address{% else %}Add Address{% endif %} | ShopEase {% endblock title %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto py-8 px-4">
+<div class="min-h-screen bg-emerald-50 py-8">
+  <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+    
+    <!-- Breadcrumb -->
+    <nav class="flex mb-8" aria-label="Breadcrumb">
+      <ol class="flex items-center space-x-2 text-sm">
+        <li>
+          <a href="{% url 'dashboard' %}" class="text-emerald-600 hover:text-emerald-800 transition-colors">
+            <i class="fas fa-home"></i> Home
+          </a>
+        </li>
+        <li class="flex items-center">
+          <i class="fas fa-chevron-right text-emerald-400 text-xs mx-2"></i>
+          <a href="{% url 'address_list' %}" class="text-emerald-600 hover:text-emerald-800 transition-colors">Addresses</a>
+        </li>
+        <li class="flex items-center">
+          <i class="fas fa-chevron-right text-emerald-400 text-xs mx-2"></i> 
+          <span class="text-emerald-900 font-medium">
+            {% if address %}Edit Address{% else %}Add New Address{% endif %}
+          </span>
+        </li>
+      </ol>
+    </nav>
 
-  <!-- Skeleton Form -->
-  <div id="skeleton-form" class="space-y-4">
-    {% for _ in "123456789" %}
-      <div class="h-10 bg-gray-300 rounded animate-pulse"></div>
-    {% endfor %}
-    <div class="h-6 w-48 bg-gray-300 rounded-full animate-pulse"></div>
-    <div class="h-10 w-32 bg-gray-300 rounded animate-pulse"></div>
-  </div>
+    <!-- Skeleton Form -->
+    <div id="skeleton-form" class="bg-white rounded-2xl shadow-sm p-8 space-y-6">
+      <div class="space-y-2">
+        <div class="h-8 bg-emerald-200 rounded w-1/3 skeleton"></div>
+        <div class="h-4 bg-emerald-200 rounded w-1/2 skeleton"></div>
+      </div>
+      
+      {% for _ in "123456" %}
+        <div class="space-y-2">
+          <div class="h-4 bg-emerald-200 rounded w-24 skeleton"></div>
+          <div class="h-12 bg-emerald-200 rounded skeleton"></div>
+        </div>
+      {% endfor %}
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {% for _ in "12" %}
+          <div class="space-y-2">
+            <div class="h-4 bg-emerald-200 rounded w-20 skeleton"></div>
+            <div class="h-12 bg-emerald-200 rounded skeleton"></div>
+          </div>
+        {% endfor %}
+      </div>
+      
+      <div class="flex items-center gap-3 pt-4">
+        <div class="h-6 w-6 bg-emerald-200 rounded skeleton"></div>
+        <div class="h-4 bg-emerald-200 rounded w-40 skeleton"></div>
+      </div>
+      
+      <div class="pt-6">
+        <div class="h-12 bg-emerald-200 rounded w-32 skeleton"></div>
+      </div>
+    </div>
 
-  <!-- Real Form -->
-  <div id="real-form" class="hidden bg-white shadow rounded-lg p-6 space-y-4">
-    <h2 class="text-2xl font-bold">{% if address %}Edit Address{% else %}Add Address{% endif %}</h2>
+    <!-- Real Form -->
+    <div id="real-form" class="hidden">
+      <div class="bg-white rounded-2xl shadow-sm overflow-hidden border border-emerald-100">
+        <!-- Form Header -->
+        <div class="bg-gradient-to-r from-emerald-600 to-emerald-800 px-8 py-6">
+          <div class="flex items-center gap-4">
+            <div class="bg-emerald-600 bg-opacity-20 p-3 rounded-full">
+              <i class="fas fa-map-marker-alt text-white text-xl"></i>
+            </div>
+            <div>
+              <h1 class="text-2xl font-bold text-white">
+                {% if address %}Edit Address{% else %}Add New Address{% endif %}
+              </h1>
+              <p class="text-emerald-100 mt-1">
+                {% if address %}
+                  Update your delivery address information
+                {% else %}
+                  Add a new address for faster checkout
+                {% endif %}
+              </p>
+            </div>
+          </div>
+        </div>
 
-    {% if error %}
-      <div class="bg-red-100 text-red-700 px-4 py-2 rounded">{{ error }}</div>
-    {% endif %}
+        <!-- Form Content -->
+        <div class="p-8">
+          {% if error %}
+            <div class="mb-6 bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+              <i class="fas fa-exclamation-circle text-red-500 mt-0.5"></i>
+              <div>
+                <p class="text-red-800 font-medium">Error</p>
+                <p class="text-red-600 text-sm mt-1">{{ error }}</p>
+              </div>
+            </div>
+          {% endif %}
 
-    <form method="post" class="space-y-3" novalidate>
-      {% csrf_token %}
-      <input type="hidden" name="next" value="{{ next }}">
+          <form method="post" class="space-y-6" novalidate>
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ next }}">
 
-      <input type="text" name="full_name" placeholder="Full Name" 
-             class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500"
-             value="{{ address.full_name|default:'' }}" required>
+            <!-- Personal Information -->
+            <div class="space-y-4">
+              <h3 class="text-lg font-semibold text-emerald-900 flex items-center gap-2">
+                <i class="fas fa-user text-emerald-600"></i>
+                Personal Information
+              </h3>
+              
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label for="full_name" class="block text-sm font-medium text-emerald-900 mb-2">
+                    Full Name <span class="text-red-500">*</span>
+                  </label>
+                  <input type="text" name="full_name" id="full_name" placeholder="Enter your full name"
+                         class="w-full border border-emerald-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all bg-white"
+                         value="{{ address.full_name|default:'' }}" required>
+                </div>
 
-      <input type="text" name="phone" placeholder="Phone Number" 
-             class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500"
-             value="{{ address.phone|default:'' }}" required>
+                <div>
+                  <label for="phone" class="block text-sm font-medium text-emerald-900 mb-2">
+                    Phone Number <span class="text-red-500">*</span>
+                  </label>
+                  <input type="text" name="phone" id="phone" placeholder="Enter your phone number"
+                         class="w-full border border-emerald-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all bg-white"
+                         value="{{ address.phone|default:'' }}" required>
+                </div>
+              </div>
+            </div>
 
-      <input type="text" name="address_line_1" placeholder="Address Line 1" 
-             class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500"
-             value="{{ address.address_line_1|default:'' }}" required>
+            <!-- Address Details -->
+            <div class="space-y-4">
+              <h3 class="text-lg font-semibold text-emerald-900 flex items-center gap-2">
+                <i class="fas fa-home text-emerald-600"></i>
+                Address Details
+              </h3>
 
-      <input type="text" name="address_line_2" placeholder="Address Line 2" 
-             class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500"
-             value="{{ address.address_line_2|default:'' }}">
+              <div>
+                <label for="address_line_1" class="block text-sm font-medium text-emerald-900 mb-2">
+                  Street Address <span class="text-red-500">*</span>
+                </label>
+                <input type="text" name="address_line_1" id="address_line_1" placeholder="House number, street name"
+                       class="w-full border border-emerald-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all bg-white"
+                       value="{{ address.address_line_1|default:'' }}" required>
+              </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <input type="text" name="city" placeholder="City" 
-               class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500"
-               value="{{ address.city|default:'' }}" required>
+              <div>
+                <label for="address_line_2" class="block text-sm font-medium text-emerald-900 mb-2">
+                  Landmark (Optional)
+                </label>
+                <input type="text" name="address_line_2" id="address_line_2" placeholder="Apartment, suite, unit, building, floor, etc."
+                       class="w-full border border-emerald-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all bg-white"
+                       value="{{ address.address_line_2|default:'' }}">
+              </div>
 
-        <input type="text" name="state" placeholder="State" 
-               class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500"
-               value="{{ address.state|default:'' }}" required>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label for="city" class="block text-sm font-medium text-emerald-900 mb-2">
+                    City <span class="text-red-500">*</span>
+                  </label>
+                  <input type="text" name="city" id="city" placeholder="Enter your city"
+                         class="w-full border border-emerald-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all bg-white"
+                         value="{{ address.city|default:'' }}" required>
+                </div>
+
+                <div>
+                  <label for="state" class="block text-sm font-medium text-emerald-900 mb-2">
+                    State <span class="text-red-500">*</span>
+                  </label>
+                  <input type="text" name="state" id="state" placeholder="Enter your state"
+                         class="w-full border border-emerald-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all bg-white"
+                         value="{{ address.state|default:'' }}" required>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label for="postal_code" class="block text-sm font-medium text-emerald-900 mb-2">
+                    Postal Code <span class="text-red-500">*</span>
+                  </label>
+                  <input type="text" name="postal_code" id="postal_code" placeholder="Enter postal code"
+                         class="w-full border border-emerald-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all bg-white"
+                         value="{{ address.postal_code|default:'' }}" required>
+                </div>
+
+                <div>
+                  <label for="country" class="block text-sm font-medium text-emerald-900 mb-2">
+                    Country <span class="text-red-500">*</span>
+                  </label>
+                  <input type="text" name="country" id="country" placeholder="Enter your country"
+                         class="w-full border border-emerald-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all bg-white"
+                         value="{{ address.country|default:'India' }}" required>
+                </div>
+              </div>
+            </div>
+
+            <!-- Default Address Toggle -->
+            <div class="flex items-center p-4 bg-emerald-50 rounded-xl border border-emerald-200">
+              <input type="checkbox" name="is_default" id="is_default" 
+                     class="h-5 w-5 text-emerald-600 focus:ring-emerald-500 rounded border-emerald-300"
+                     {% if address.is_default %}checked{% endif %}>
+              <label for="is_default" class="ml-3 flex items-center gap-2">
+                <i class="fas fa-star text-emerald-600"></i>
+                <span class="font-semibold text-emerald-900">Set as Default Address</span>
+                <span class="text-emerald-700 text-sm ml-2">(Use this address for all future orders)</span>
+              </label>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex flex-col sm:flex-row gap-4 pt-6 border-t border-emerald-200">
+              <button type="submit" 
+                      class="btn-primary flex items-center justify-center gap-2 text-white px-8 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 font-semibold text-lg flex-1">
+                <i class="fas fa-save"></i>
+                {% if address %}Update Address{% else %}Save Address{% endif %}
+              </button>
+              
+              <a href="{% url 'address_list' %}" 
+                 class="bg-emerald-100 text-emerald-800 hover:bg-emerald-200 px-8 py-4 rounded-xl font-semibold text-lg transition-colors flex items-center justify-center gap-2">
+                <i class="fas fa-arrow-left"></i>
+                Back to List
+              </a>
+            </div>
+          </form>
+        </div>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <input type="text" name="postal_code" placeholder="Postal Code" 
-               class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500"
-               value="{{ address.postal_code|default:'' }}" required>
-
-        <input type="text" name="country" placeholder="Country" 
-               class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500"
-               value="{{ address.country|default:'India' }}">
+      <!-- Help Section -->
+      <div class="mt-8 bg-white rounded-2xl shadow-sm p-6 border border-emerald-100">
+        <h3 class="text-lg font-semibold text-emerald-900 mb-4 flex items-center gap-2">
+          <i class="fas fa-info-circle text-emerald-600"></i>
+          Address Tips
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+          <div class="flex items-start gap-3">
+            <i class="fas fa-check-circle text-emerald-500 mt-1"></i>
+            <div>
+              <p class="font-medium text-emerald-900">Accurate Information</p>
+              <p class="text-emerald-700 mt-1">Ensure all details are correct for successful delivery</p>
+            </div>
+          </div>
+          <div class="flex items-start gap-3">
+            <i class="fas fa-phone-alt text-emerald-500 mt-1"></i>
+            <div>
+              <p class="font-medium text-emerald-900">Active Phone Number</p>
+              <p class="text-emerald-700 mt-1">Carrier may contact you for delivery updates</p>
+            </div>
+          </div>
+          <div class="flex items-start gap-3">
+            <i class="fas fa-home text-emerald-500 mt-1"></i>
+            <div>
+              <p class="font-medium text-emerald-900">Complete Address</p>
+              <p class="text-emerald-700 mt-1">Include landmarks for easier location</p>
+            </div>
+          </div>
+        </div>
       </div>
-
-      <div class="flex items-center mt-3">
-        <input type="checkbox" name="is_default" id="is_default" class="h-5 w-5 text-blue-600 focus:ring-blue-500 rounded"
-               {% if address.is_default %}checked{% endif %}>
-        <label for="is_default" class="ml-2 font-semibold">Set as Default Address</label>
-      </div>
-
-      <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded shadow transition">
-        Save
-      </button>
-    </form>
+    </div>
   </div>
 </div>
 
+<style>
+  .btn-primary {
+    background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+    transition: all 0.3s ease;
+  }
+  
+  .btn-primary:hover {
+    background: linear-gradient(135deg, #047857 0%, #065f46 100%);
+    transform: translateY(-2px);
+  }
+  
+  .skeleton {
+    background: linear-gradient(90deg, #d1fae5 25%, #a7f3d0 50%, #d1fae5 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+  }
+  
+  @keyframes loading {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+  
+  input:focus, select:focus {
+    outline: none;
+    ring: 2px;
+  }
+</style>
+
 <script>
   document.addEventListener('DOMContentLoaded', function () {
-      setTimeout(function () {
-          document.getElementById('skeleton-form').classList.add('hidden');
-          document.getElementById('real-form').classList.remove('hidden');
-      }, 1000); // Show real form after 1s simulated loading
+    setTimeout(function () {
+      const skeleton = document.getElementById('skeleton-form');
+      const realForm = document.getElementById('real-form');
+      
+      if (skeleton) skeleton.classList.add('hidden');
+      if (realForm) realForm.classList.remove('hidden');
+    }, 1200);
+    
+    // Add real-time validation
+    const form = document.querySelector('form');
+    if (form) {
+      form.addEventListener('submit', function(e) {
+        const requiredFields = form.querySelectorAll('[required]');
+        let valid = true;
+        
+        requiredFields.forEach(field => {
+          if (!field.value.trim()) {
+            valid = false;
+            field.classList.add('border-red-500', 'bg-red-50');
+          } else {
+            field.classList.remove('border-red-500', 'bg-red-50');
+          }
+        });
+        
+        if (!valid) {
+          e.preventDefault();
+          alert('Please fill in all required fields marked with *');
+        }
+      });
+
+      // Add focus effects
+      const inputs = form.querySelectorAll('input');
+      inputs.forEach(input => {
+        input.addEventListener('focus', function() {
+          this.classList.add('border-emerald-400', 'bg-emerald-50');
+        });
+        input.addEventListener('blur', function() {
+          this.classList.remove('border-emerald-400', 'bg-emerald-50');
+        });
+      });
+    }
   });
 </script>
 {% endblock %}

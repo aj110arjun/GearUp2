@@ -104,6 +104,18 @@ def edit_address(request, pk):
 
     return render(request, "user/address/address_form.html", context)
 
+def set_default_address(request, pk):
+    address = get_object_or_404(Address, pk=pk, user=request.user)
+
+    Address.objects.filter(user=request.user, is_default=True).update(is_default=False)
+    address.is_default = True
+    address.save()
+
+    next_url = request.POST.get("next") or request.GET.get("next")
+    if next_url:
+        return redirect(next_url)
+    return redirect("address_list")
+
 @login_required(login_url='login')
 @never_cache
 def delete_address(request, pk):

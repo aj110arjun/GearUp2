@@ -1,141 +1,256 @@
 {% extends "user/base.html" %}
 {% load humanize %}
-{% block title %} My Wallet {% endblock title %}
+{% block title %}My Wallet{% endblock title %}
+
+{% block css %}
+<style>
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-in-up {
+    animation: fadeInUp 0.6s ease-out forwards;
+  }
+
+  .wallet-gradient {
+    background: linear-gradient(135deg, #059669, #047857);
+  }
+
+  .transaction-row {
+    transition: all 0.2s ease;
+  }
+
+  .transaction-row:hover {
+    background-color: #f0fdf4;
+  }
+
+  th {
+    font-weight: 700;
+  }
+
+  .stat-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
+</style>
+{% endblock css %}
 
 {% block content %}
 <script src="https://cdn.tailwindcss.com"></script>
 
-<div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8 font-sans select-none">
+<!-- HERO SECTION -->
+<section class="bg-white border-b-2 border-gray-200">
 
-  <!-- 🔹 Page Header -->
-  <div class="flex flex-col md:flex-row justify-between items-center mb-10">
-    <h2 class="text-3xl font-extrabold text-gray-800 mb-4 md:mb-0">
-      💰 My Wallet
-    </h2>
-    <a href="{% url 'add_money' %}" 
-       class="inline-flex items-center bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl shadow-md transition transform hover:scale-105">
-      <i class="bi bi-plus-circle mr-2 text-lg"></i> Add Money
-    </a>
-  </div>
-
-  <!-- 🔹 Error Message -->
-  {% if error %}
-  <div class="max-w-md mx-auto my-4">
-    <p class="text-red-600 text-center font-semibold bg-red-100 border border-red-200 rounded-lg py-2">
-      {{ error.amount }}
-    </p>
-  </div>
-  {% endif %}
-
-  <!-- 🔹 Wallet Balance Card -->
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 justify-center mb-10">
-    <div class="bg-gradient-to-br from-green-500 to-emerald-600 text-white rounded-2xl shadow-xl p-8 text-center transform hover:scale-105 transition">
-      <div class="text-5xl mb-4">
-        <i class="bi bi-wallet2"></i>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-12 md:py-16">
+    <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+      <div class="animate-fade-in-up space-y-4 text-center md:text-left">
+        <!-- Breadcrumb -->
+          <nav class="flex mb-8" aria-label="Breadcrumb">
+            <ol class="inline-flex items-center space-x-1 md:space-x-3">
+              <li class="inline-flex items-center">
+                <a href="/" class="text-gray-500 hover:text-gray-900 inline-flex items-center text-sm font-medium">
+                  <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path></svg>
+                  Home
+                </a>
+              </li>
+              <li>
+                <div class="flex items-center">
+                  <svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
+                  <a href="{% url 'user_wallet' %}" class="text-gray-500 hover:text-gray-900 ml-1 text-sm font-medium">Wallet</a>
+                </div>
+              </li>
+            </ol>
+          </nav>
+        <div class="inline-flex items-center gap-2 bg-emerald-100 px-4 py-2 rounded-full font-semibold text-sm text-emerald-800 border border-emerald-200">
+          
+          <span class="w-2 h-2 bg-emerald-600 rounded-full animate-pulse"></span>
+          <span>Wallet Dashboard</span>
+        </div>
+        <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900">💰 My Wallet</h1>
+        <p class="text-base md:text-lg text-gray-600">Track your balance and all transactions</p>
       </div>
-      <h5 class="text-lg opacity-80 mb-2">Current Balance</h5>
-      <h2 class="text-4xl font-extrabold">
-        ₹{{ wallet.balance|intcomma }}
-      </h2>
+
+      <div class="animate-fade-in-up">
+        <a href="{% url 'add_money' %}" class="inline-flex items-center bg-emerald-700 text-white px-6 py-3 rounded-lg font-semibold hover:bg-emerald-800 transition shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+          <i class="bi bi-plus-circle mr-2 text-lg"></i> Add Money
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ERROR MESSAGE -->
+{% if error %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 -mt-6 relative z-10">
+  <div class="bg-red-50 border-l-4 border-red-600 rounded-lg p-4 shadow-lg">
+    <div class="flex items-center">
+      <i class="bi bi-exclamation-triangle text-red-600 text-xl mr-3"></i>
+      <p class="text-red-800 font-semibold">{{ error.amount }}</p>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- MAIN SECTION -->
+<section class="max-w-7xl mx-auto px-4 sm:px-6 py-8 md:py-12 space-y-8">
+
+  <!-- WALLET STATS -->
+  <div class="mb-2">
+    <!-- BALANCE CARD -->
+    <div class="wallet-gradient bg-emerald-700 text-white rounded-xl shadow-xl p-6 md:p-8 relative overflow-hidden stat-card">
+      <div class="absolute top-0 right-0 opacity-10">
+        <i class="bi bi-wallet2 text-8xl"></i>
+      </div>
+      <div class="relative z-10">
+        <div class="flex items-center gap-3 mb-3">
+          <div class="bg-white/20 backdrop-blur-sm w-12 h-12 rounded-full flex items-center justify-center">
+            <i class="bi bi-wallet2 text-2xl"></i>
+          </div>
+        </div>
+        <h5 class="text-xs font-semibold uppercase tracking-wider opacity-90">Current Balance</h5>
+        <h2 class="text-4xl md:text-5xl font-bold mt-2">₹{{ wallet.balance|intcomma }}</h2>
+        <p class="text-sm text-white/80 mt-1">Available for spending</p>
+      </div>
+    </div>
     </div>
   </div>
 
-  <!-- 🔹 Transaction Section -->
-  <div class="bg-white rounded-2xl shadow-md p-6 md:p-8 max-w-5xl mx-auto">
-    <div class="flex items-center mb-6 space-x-3 text-blue-600 font-semibold text-lg">
-      <i class="bi bi-clock-history"></i>
-      <span>Transaction History</span>
+
+   
+
+  <!-- TRANSACTION HISTORY -->
+  <div class="bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+    <!-- HEADER -->
+    <div class="bg-gray-50 border-b px-4 sm:px-6 md:px-8 py-5">
+      <div class="flex items-center gap-3">
+        <div class="bg-blue-100 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0">
+          <i class="bi bi-clock-history text-blue-700 text-lg"></i>
+        </div>
+        <div>
+          <h3 class="text-xl md:text-2xl font-bold text-gray-900">Transaction History</h3>
+          <p class="text-sm text-gray-600">View all your wallet activities</p>
+        </div>
+      </div>
     </div>
 
     {% if page_obj %}
-    <div class="overflow-x-auto">
-      <table class="min-w-full divide-y divide-gray-200 text-sm">
-        <thead class="bg-gray-100 text-gray-600 uppercase tracking-wider">
+    <!-- TABLE - Desktop -->
+    <div class="hidden md:block overflow-x-auto">
+      <table class="min-w-full text-sm divide-y divide-gray-200">
+        <thead class="bg-gray-50">
           <tr>
-            <th class="px-6 py-3 text-left font-semibold">Date</th>
-            <th class="px-6 py-3 text-left font-semibold">Type</th>
-            <th class="px-6 py-3 text-left font-semibold">Amount (₹)</th>
-            <th class="px-6 py-3 text-left font-semibold">Description</th>
+            <th class="px-6 py-3 text-left text-xs text-gray-700 uppercase tracking-wider">Date & Time</th>
+            <th class="px-6 py-3 text-left text-xs text-gray-700 uppercase tracking-wider">Type</th>
+            <th class="px-6 py-3 text-left text-xs text-gray-700 uppercase tracking-wider">Amount</th>
+            <th class="px-6 py-3 text-left text-xs text-gray-700 uppercase tracking-wider">Description</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-gray-200 text-gray-700">
+        <tbody class="bg-white divide-y divide-gray-100">
           {% for txn in page_obj %}
-          <tr class="hover:bg-gray-50 transition">
-            <td class="px-6 py-3 whitespace-nowrap">{{ txn.created_at|date:"d M Y, H:i" }}</td>
-            <td class="px-6 py-3 whitespace-nowrap">
+          <tr class="transaction-row">
+            <td class="px-6 py-4 whitespace-nowrap">
+              <div class="font-semibold text-gray-900">{{ txn.created_at|date:"d M Y" }}</div>
+              <div class="text-xs text-gray-500">{{ txn.created_at|date:"h:i A" }}</div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
               {% if txn.transaction_type == "CREDIT" %}
-              <span class="inline-flex items-center bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-semibold">
-                <i class="bi bi-arrow-down-circle mr-1"></i> CREDIT
-              </span>
+              <span class="inline-flex px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">CREDIT</span>
               {% else %}
-              <span class="inline-flex items-center bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs font-semibold">
-                <i class="bi bi-arrow-up-circle mr-1"></i> DEBIT
-              </span>
+              <span class="inline-flex px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-semibold">DEBIT</span>
               {% endif %}
             </td>
-            <td class="px-6 py-3 font-semibold {% if txn.transaction_type == 'CREDIT' %}text-green-600{% else %}text-red-600{% endif %}">
+            <td class="px-6 py-4 whitespace-nowrap font-bold {% if txn.transaction_type == 'CREDIT' %}text-green-700{% else %}text-red-700{% endif %}">
               {% if txn.transaction_type == "CREDIT" %}+{% else %}-{% endif %}₹{{ txn.amount|intcomma }}
             </td>
-            <td class="px-6 py-3 text-gray-600">{{ txn.description }}</td>
+            <td class="px-6 py-4 text-gray-700">{{ txn.description }}</td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
 
-    <!-- 🔹 Pagination -->
-    <div class="mt-8 flex justify-center">
-      <ul class="flex space-x-2 text-sm">
-        {% if page_obj.has_previous %}
-        <li>
-          <a href="?page={{ page_obj.previous_page_number }}" class="px-4 py-2 border rounded-lg hover:bg-blue-600 hover:text-white transition">
-            Previous
-          </a>
-        </li>
-        {% else %}
-        <li><span class="px-4 py-2 border rounded-lg text-gray-400 cursor-not-allowed">Previous</span></li>
-        {% endif %}
-        
-        {% for num in page_obj.paginator.page_range %}
-          {% if page_obj.number == num %}
-          <li><span class="px-4 py-2 border-b-2 border-blue-600 font-semibold">{{ num }}</span></li>
-          {% elif num > page_obj.number|add:'-2' and num < page_obj.number|add:'2' %}
-          <li><a href="?page={{ num }}" class="px-4 py-2 border rounded-lg hover:bg-blue-600 hover:text-white transition">{{ num }}</a></li>
+    <!-- CARD VIEW - Mobile -->
+    <div class="md:hidden divide-y divide-gray-200">
+      {% for txn in page_obj %}
+      <div class="p-4 hover:bg-gray-50 transition">
+        <div class="flex justify-between items-start mb-2">
+          <div>
+            <div class="font-semibold text-gray-900">{{ txn.created_at|date:"d M Y" }}</div>
+            <div class="text-xs text-gray-500">{{ txn.created_at|date:"h:i A" }}</div>
+          </div>
+          {% if txn.transaction_type == "CREDIT" %}
+          <span class="inline-flex px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">CREDIT</span>
+          {% else %}
+          <span class="inline-flex px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-semibold">DEBIT</span>
           {% endif %}
-        {% endfor %}
-        
-        {% if page_obj.has_next %}
-        <li>
-          <a href="?page={{ page_obj.next_page_number }}" class="px-4 py-2 border rounded-lg hover:bg-blue-600 hover:text-white transition">
-            Next
-          </a>
-        </li>
-        {% else %}
-        <li><span class="px-4 py-2 border rounded-lg text-gray-400 cursor-not-allowed">Next</span></li>
-        {% endif %}
-      </ul>
+        </div>
+        <div class="flex justify-between items-end">
+          <p class="text-sm text-gray-700">{{ txn.description }}</p>
+          <div class="text-lg font-bold {% if txn.transaction_type == 'CREDIT' %}text-green-700{% else %}text-red-700{% endif %}">
+            {% if txn.transaction_type == "CREDIT" %}+{% else %}-{% endif %}₹{{ txn.amount|intcomma }}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
     </div>
+
+    <!-- PAGINATION -->
+    <div class="bg-gray-50 px-4 sm:px-6 md:px-8 py-4 border-t">
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <p class="text-sm text-gray-700">
+          Showing <span class="font-semibold text-emerald-700">{{ page_obj.start_index }}</span> to
+          <span class="font-semibold text-emerald-700">{{ page_obj.end_index }}</span> of
+          <span class="font-semibold text-emerald-700">{{ page_obj.paginator.count }}</span> transactions
+        </p>
+
+        <div class="flex gap-2 items-center flex-wrap justify-center">
+          {% if page_obj.has_previous %}
+          <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1.5 bg-white border border-gray-300 rounded-md hover:bg-emerald-700 hover:text-white hover:border-emerald-700 font-medium text-sm transition">Previous</a>
+          {% else %}
+          <span class="px-3 py-1.5 bg-gray-100 text-gray-400 border border-gray-200 rounded-md text-sm font-medium cursor-not-allowed">Previous</span>
+          {% endif %}
+
+          {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+            <span class="px-3 py-1.5 bg-emerald-700 text-white rounded-md font-semibold text-sm">{{ num }}</span>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+            <a href="?page={{ num }}" class="px-3 py-1.5 bg-white border border-gray-300 rounded-md hover:bg-emerald-700 hover:text-white hover:border-emerald-700 font-medium text-sm transition">{{ num }}</a>
+            {% endif %}
+          {% endfor %}
+
+          {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1.5 bg-white border border-gray-300 rounded-md hover:bg-emerald-700 hover:text-white hover:border-emerald-700 font-medium text-sm transition">Next</a>
+          {% else %}
+          <span class="px-3 py-1.5 bg-gray-100 text-gray-400 border border-gray-200 rounded-md text-sm font-medium cursor-not-allowed">Next</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
     {% else %}
-    <div class="text-center py-12 text-gray-500">
-      <i class="bi bi-emoji-frown text-5xl mb-3"></i>
-      <p class="text-lg">No transactions yet.</p>
+    <!-- EMPTY STATE -->
+    <div class="text-center py-16 px-4">
+      <div class="inline-flex items-center justify-center w-20 h-20 bg-gray-100 rounded-full mb-4">
+        <i class="bi bi-inbox text-4xl text-gray-400"></i>
+      </div>
+      <h3 class="text-xl font-bold text-gray-900 mb-2">No Transactions Yet</h3>
+      <p class="text-gray-600 mb-6">Your wallet is ready! Add money to get started.</p>
+      <a href="{% url 'add_money' %}" class="inline-flex items-center bg-emerald-700 hover:bg-emerald-800 text-white px-6 py-3 rounded-lg font-semibold transition shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+        <i class="bi bi-plus-circle mr-2"></i> Add Money Now
+      </a>
     </div>
     {% endif %}
   </div>
-</div>
-
-<!-- 🔹 Smooth Skeleton Loader -->
-<script>
-  document.addEventListener("DOMContentLoaded", function() {
-    const skeleton = document.getElementById("skeleton-wallet");
-    const real = document.getElementById("real-wallet");
-    if (skeleton && real) {
-      setTimeout(() => {
-        skeleton.style.display = "none";
-        real.style.display = "block";
-      }, 800);
-    }
-  });
-</script>
-
+</section>
 {% endblock %}
