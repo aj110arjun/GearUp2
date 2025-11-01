@@ -1,103 +1,337 @@
 {% extends "user/base.html" %}
-{% block title %}Track Order{% endblock title %}
+{% load custom_filters %}
+{% block title %}Track Order | GearUp{% endblock title %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto py-8 px-4">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-  <h2 class="text-2xl font-bold mb-4">Track Your Order</h2>
+<style>
+    .btn-primary {
+        background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+        transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #047857 0%, #065f46 100%);
+        transform: translateY(-2px);
+    }
+    
+    .skeleton {
+        background: linear-gradient(90deg, #d1fae5 25%, #a7f3d0 50%, #d1fae5 75%);
+        background-size: 200% 100%;
+        animation: loading 1.5s infinite;
+    }
+    
+    @keyframes loading {
+        0% {
+            background-position: 200% 0;
+        }
+        100% {
+            background-position: -200% 0;
+        }
+    }
+</style>
 
-  <!-- Search Form -->
-  <form method="post" class="mb-6 flex gap-2">
-    {% csrf_token %}
-    <input type="text" name="order_code" placeholder="Enter your Tracking Code" 
-           class="flex-1 border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500" required>
-    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow">
-      Track
-    </button>
-  </form>
+<div class="min-h-screen bg-emerald-50 py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <!-- Breadcrumb -->
+        <nav class="flex mb-8" aria-label="Breadcrumb">
+            <ol class="flex items-center space-x-2 text-sm">
+                <li>
+                    <a href="{% url 'home' %}" class="text-emerald-600 hover:text-emerald-800 transition-colors">
+                        <i class="fas fa-home"></i>
+                    </a>
+                </li>
+                <li class="flex items-center">
+                    <i class="fas fa-chevron-right text-emerald-400 text-xs mx-2"></i>
+                    <a href="{% url 'order_list' %}" class="text-emerald-600 hover:text-emerald-800 transition-colors">My Orders</a>
+                </li>
+                <li class="flex items-center">
+                    <i class="fas fa-chevron-right text-emerald-400 text-xs mx-2"></i>
+                    <span class="text-emerald-900 font-medium">Track Order</span>
+                </li>
+            </ol>
+        </nav>
 
-  <!-- Skeleton Loader (hidden initially) -->
-  <div id="skeleton-tracking" class="space-y-4 hidden">
-    {% for _ in "1234" %}
-      <div class="h-10 bg-gray-300 rounded animate-pulse"></div>
-    {% endfor %}
-    <div class="h-6 w-40 bg-gray-300 rounded animate-pulse mt-2"></div>
-    <div class="overflow-x-auto mt-4">
-      <table class="w-full text-left border border-gray-200">
-        <thead>
-          <tr>
-            <th class="h-8 bg-gray-300 animate-pulse"></th>
-            <th class="h-8 bg-gray-300 animate-pulse"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for _ in "1234" %}
-            <tr>
-              <td class="h-10 bg-gray-200 animate-pulse"></td>
-              <td class="h-10 bg-gray-200 animate-pulse"></td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+        <!-- Header Section -->
+        <div class="bg-white rounded-2xl shadow-sm p-8 mb-8 border border-emerald-100">
+            <div class="flex items-center gap-4">
+                <div class="bg-emerald-100 p-4 rounded-2xl">
+                    <i class="fas fa-shipping-fast text-emerald-600 text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-3xl font-bold text-emerald-900">Track Your Order</h1>
+                    <p class="text-emerald-600 mt-2">Enter your tracking code to check order status and delivery updates</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search Section -->
+        <div class="bg-white rounded-2xl shadow-sm p-8 mb-8 border border-emerald-100">
+            <form method="post" class="space-y-4">
+                {% csrf_token %}
+                <div>
+                    <label class="block text-lg font-semibold text-emerald-900 mb-4 flex items-center gap-2">
+                        <i class="fas fa-search text-emerald-600"></i>
+                        Enter Tracking Code
+                    </label>
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <input type="text" name="order_code" placeholder="Enter your order tracking code (e.g., ORD20251017-AB12CD)" 
+                               class="flex-1 border-2 border-emerald-200 rounded-xl px-6 py-4 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all placeholder-emerald-400 text-lg"
+                               required>
+                        <button type="submit" class="btn-primary text-white px-8 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 font-semibold text-lg flex items-center justify-center gap-3 min-w-[180px]">
+                            <i class="fas fa-shipping-fast"></i>
+                            Track Order
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Skeleton Loader -->
+        <div id="skeleton-tracking" class="hidden space-y-6">
+            <div class="bg-white rounded-2xl shadow-sm p-8 border border-emerald-100">
+                <div class="space-y-4">
+                    <div class="skeleton h-8 w-64 rounded"></div>
+                    <div class="skeleton h-4 w-48 rounded"></div>
+                </div>
+                
+                <!-- Tracking Progress Skeleton -->
+                <div class="mt-8 space-y-6">
+                    <div class="skeleton h-4 w-32 rounded"></div>
+                    <div class="flex justify-between">
+                        {% for _ in "12345" %}
+                        <div class="text-center">
+                            <div class="skeleton w-12 h-12 rounded-full mx-auto mb-2"></div>
+                            <div class="skeleton h-3 w-16 rounded"></div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <!-- Order Item Skeleton -->
+                <div class="mt-8 space-y-4">
+                    <div class="skeleton h-6 w-40 rounded"></div>
+                    <div class="flex items-center gap-4 p-4 border border-emerald-200 rounded-xl">
+                        <div class="skeleton w-16 h-16 rounded-lg"></div>
+                        <div class="flex-1 space-y-2">
+                            <div class="skeleton h-4 w-48 rounded"></div>
+                            <div class="skeleton h-3 w-32 rounded"></div>
+                        </div>
+                        <div class="skeleton h-8 w-24 rounded-full"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Real Tracking Info -->
+        <div id="real-tracking" class="{% if not order %}hidden{% endif %}">
+            {% if order %}
+            <div class="bg-white rounded-2xl shadow-sm overflow-hidden border border-emerald-100">
+                <!-- Order Header -->
+                <div class="bg-gradient-to-r from-emerald-600 to-emerald-800 px-8 py-6">
+                    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                        <div class="flex items-center gap-4">
+                            <div class="bg-white bg-opacity-20 p-3 rounded-full">
+                                <i class="fas fa-box text-white text-xl"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-2xl font-bold text-emerald-500">Order #{{ order.order_code }}</h2>
+                                <p class="text-emerald-300 mt-1">
+                                    <i class="far fa-clock mr-2"></i>
+                                    Placed on {{ order.created_at|date:"F d, Y" }}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="px-4 py-2 text-sm font-semibold rounded-full bg-white bg-opacity-20 text-emerald-600 flex items-center gap-2">
+                                <i class="fas fa-map-marker-alt"></i>
+                                Tracking Active
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                
+
+                <!-- Order Details -->
+                <div class="p-8">
+                    <h3 class="text-lg font-semibold text-emerald-900 mb-6 flex items-center gap-2">
+                        <i class="fas fa-box text-emerald-600"></i>
+                        Order Details
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <!-- Product Information -->
+                        <div class="bg-emerald-50 rounded-2xl p-6 border border-emerald-200">
+                            <h4 class="font-semibold text-emerald-900 mb-4 flex items-center gap-2">
+                                <i class="fas fa-cube"></i>
+                                Product Information
+                            </h4>
+                            
+                            <div class="flex items-center gap-4">
+                                {% if order.product.product.image %}
+                                <img src="{{ order.product.product.image.url }}" 
+                                     alt="{{ order.product.product.name }}"
+                                     class="w-20 h-20 object-cover rounded-xl border-2 border-emerald-300">
+                                {% else %}
+                                <div class="w-20 h-20 bg-emerald-200 rounded-xl flex items-center justify-center border-2 border-emerald-300">
+                                    <i class="fas fa-box text-emerald-400 text-2xl"></i>
+                                </div>
+                                {% endif %}
+                                
+                                <div class="flex-1">
+                                    <h5 class="font-semibold text-emerald-900 text-lg">{{ order.product.product.name }}</h5>
+                                    <div class="space-y-1 mt-2 text-sm text-emerald-700">
+                                        <p class="flex items-center gap-2">
+                                            <i class="fas fa-layer-group"></i>
+                                            Variant: {{ order.product.variation_value }}
+                                        </p>
+                                        <p class="flex items-center gap-2">
+                                            <i class="fas fa-hashtag"></i>
+                                            Quantity: {{ order.quantity }}
+                                        </p>
+                                        <p class="flex items-center gap-2">
+                                            <i class="fas fa-tag"></i>
+                                            Unit Price: ₹{{ order.price }}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Order Status -->
+                            <div class="mt-4 pt-4 border-t border-emerald-200">
+                                <span class="px-4 py-2 text-sm font-semibold rounded-full flex items-center gap-2 w-fit
+                                    {% if order.order_status == 'Delivered' %}bg-green-100 text-green-800
+                                    {% elif order.order_status == 'Shipped' %}bg-blue-100 text-blue-800
+                                    {% elif order.order_status == 'Out For Delivery' %}bg-indigo-100 text-indigo-800
+                                    {% elif order.order_status == 'Processing' %}bg-yellow-100 text-yellow-800
+                                    {% elif order.order_status == 'Pending' %}bg-yellow-100 text-yellow-800
+                                    {% elif order.order_status == 'Cancelled' %}bg-red-100 text-red-800
+                                    {% elif order.order_status == 'Returned' %}bg-gray-100 text-gray-800
+                                    {% else %}bg-emerald-100 text-emerald-800{% endif %}">
+                                    <i class="fas 
+                                        {% if order.order_status == 'Delivered' %}fa-check-circle
+                                        {% elif order.order_status == 'Shipped' %}fa-shipping-fast
+                                        {% elif order.order_status == 'Out For Delivery' %}fa-truck
+                                        {% elif order.order_status == 'Processing' %}fa-cog
+                                        {% elif order.order_status == 'Pending' %}fa-clock
+                                        {% elif order.order_status == 'Cancelled' %}fa-times-circle
+                                        {% elif order.order_status == 'Returned' %}fa-undo
+                                        {% else %}fa-circle{% endif %} text-xs"></i>
+                                    {{ order.order_status }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Order Summary -->
+                        <div class="bg-emerald-50 rounded-2xl p-6 border border-emerald-200">
+                            <h4 class="font-semibold text-emerald-900 mb-4 flex items-center gap-2">
+                                <i class="fas fa-receipt"></i>
+                                Order Summary
+                            </h4>
+                            
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center py-2 border-b border-emerald-200">
+                                    <span class="text-emerald-700">Subtotal</span>
+                                    <span class="font-semibold">₹{{ order.total_price|floatformat:2 }}</span>
+                                </div>
+                                {% if order.tax > 0 %}
+                                <div class="flex justify-between items-center py-2 border-b border-emerald-200">
+                                    <span class="text-emerald-700">Tax</span>
+                                    <span class="font-semibold">₹{{ order.tax|floatformat:2 }}</span>
+                                </div>
+                                {% endif %}
+                                {% if order.discount > 0 %}
+                                <div class="flex justify-between items-center py-2 border-b border-emerald-200">
+                                    <span class="text-emerald-700">Discount</span>
+                                    <span class="font-semibold text-green-600">-₹{{ order.discount|floatformat:2 }}</span>
+                                </div>
+                                {% endif %}
+                                <div class="flex justify-between items-center py-3 bg-white rounded-lg px-3 mt-2">
+                                    <span class="font-bold text-lg text-emerald-900">Total</span>
+                                    <span class="font-bold text-lg text-emerald-900">
+                                        ₹{{ order.total_price|add:order.tax|sub:order.discount|floatformat:2 }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Payment Information -->
+                            <div class="mt-6 pt-4 border-t border-emerald-200">
+                                <p class="flex justify-between items-center text-sm">
+                                    <span class="text-emerald-700">Payment Method:</span>
+                                    <span class="font-semibold">{{ order.get_payment_method_display }}</span>
+                                </p>
+                                <p class="flex justify-between items-center text-sm mt-2">
+                                    <span class="text-emerald-700">Payment Status:</span>
+                                    <span class="px-2 py-1 rounded-full text-xs font-medium
+                                        {% if order.payment_status == 'Paid' %}bg-green-100 text-green-800
+                                        {% elif order.payment_status == 'Pending' %}bg-yellow-100 text-yellow-800
+                                        {% elif order.payment_status == 'Failed' %}bg-red-100 text-red-800
+                                        {% elif order.payment_status == 'Refund' %}bg-blue-100 text-blue-800
+                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {{ order.payment_status }}
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% elif request.method == "POST" %}
+            <!-- No Order Found -->
+            <div class="bg-white rounded-2xl shadow-sm p-8 text-center border border-emerald-100">
+                <div class="bg-red-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-bold text-red-900 mb-2">Order Not Found</h3>
+                <p class="text-red-700 mb-6">No order found with the tracking code you entered.</p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <a href="{% url 'order_list' %}" class="btn-primary text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center gap-2">
+                        <i class="fas fa-list"></i>
+                        View All Orders
+                    </a>
+                    <a href="{% url 'contact' %}" class="bg-emerald-100 text-emerald-800 hover:bg-emerald-200 px-6 py-3 rounded-xl font-semibold transition-colors flex items-center gap-2">
+                        <i class="fas fa-headset"></i>
+                        Get Help
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
     </div>
-  </div>
-
-  <!-- Real Tracking Info -->
-  <div id="real-tracking" class="bg-white shadow rounded-lg p-4 space-y-3 {% if not order %}hidden{% endif %}">
-    {% if order %}
-      <p><strong>Tracking Code:</strong> #{{ order.order_code }}</p>
-      <p><strong>Placed on:</strong> {{ order.created_at|date:"d M Y" }}</p>
-
-      <h5 class="font-semibold mt-3">Items:</h5>
-      <div class="overflow-x-auto">
-        <table class="w-full text-left border border-gray-200">
-          <thead class="bg-gray-100">
-            <tr>
-              <th class="px-3 py-2 border-b">Item</th>
-              <th class="px-3 py-2 border-b">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for item in order.items.all %}
-              <tr class="border-b">
-                <td class="px-3 py-2">{{ item.variant.product.name }} ({{ item.variant.size }})</td>
-                <td class="px-3 py-2">
-                  {% if item.status == 'pending' %}
-                    <span class="bg-yellow-400 text-black px-2 py-1 rounded-full text-xs font-semibold">{{ item.status }}</span>
-                  {% elif item.status == 'shipped' %}
-                    <span class="bg-blue-400 text-white px-2 py-1 rounded-full text-xs font-semibold">{{ item.status }}</span>
-                  {% elif item.status == 'out for Delivery' %}
-                    <span class="bg-indigo-500 text-white px-2 py-1 rounded-full text-xs font-semibold">{{ item.status }}</span>
-                  {% elif item.status == 'delivered' %}
-                    <span class="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-semibold">{{ item.status }}</span>
-                  {% elif item.status == 'cancelled' %}
-                    <span class="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-semibold">{{ item.status }}</span>
-                  {% elif item.status == 'returned' %}
-                    <span class="bg-gray-800 text-white px-2 py-1 rounded-full text-xs font-semibold">{{ item.status }}</span>
-                  {% endif %}
-                </td>
-              </tr>
-            {% empty %}
-              <tr>
-                <td colspan="2" class="px-3 py-2 text-center text-gray-500">No items found in this order</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    {% elif request.method == "POST" %}
-      <div class="bg-red-100 text-red-700 px-4 py-2 rounded">No order found for this Tracking Code.</div>
-    {% endif %}
-  </div>
-
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const form = document.querySelector('form');
-    form.addEventListener('submit', function() {
-        document.getElementById('skeleton-tracking').classList.remove('hidden');
-        document.getElementById('real-tracking').classList.add('hidden');
+    if (form) {
+        form.addEventListener('submit', function() {
+            document.getElementById('skeleton-tracking').classList.remove('hidden');
+            document.getElementById('real-tracking').classList.add('hidden');
+            
+            // Auto-hide skeleton after 2 seconds (fallback)
+            setTimeout(() => {
+                const skeleton = document.getElementById('skeleton-tracking');
+                if (skeleton && !skeleton.classList.contains('hidden')) {
+                    skeleton.classList.add('hidden');
+                    document.getElementById('real-tracking').classList.remove('hidden');
+                }
+            }, 2000);
+        });
+    }
+
+    // Add focus effects
+    const inputs = document.querySelectorAll('input');
+    inputs.forEach(input => {
+        input.addEventListener('focus', function() {
+            this.classList.add('ring-2', 'ring-emerald-200');
+        });
+        input.addEventListener('blur', function() {
+            this.classList.remove('ring-2', 'ring-emerald-200');
+        });
     });
 });
 </script>

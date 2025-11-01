@@ -1,32 +1,312 @@
 {% extends "user/base.html" %}
-{% block title %}Payment Failed{% endblock title %}
-
+{% block title %}Payment Failed | GearUp{% endblock title %}
 {% block content %}
-<div class="min-h-[80vh] flex items-center justify-center">
-  <div class="bg-white shadow-lg p-8 text-center rounded-2xl max-w-md w-full">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <h2 class="text-2xl font-bold text-red-600 mb-2">Payment Failed</h2>
-    <p class="text-gray-600 mb-4">Unfortunately, we could not process your payment.</p>
+<style>
+    .btn-primary {
+        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+        transform: translateY(-2px);
+    }
+    
+    .btn-secondary {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        transition: all 0.3s ease;
+    }
+    
+    .btn-secondary:hover {
+        background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+        transform: translateY(-2px);
+    }
+    
+    .btn-outline {
+        background: transparent;
+        border: 2px solid #6b7280;
+        color: #6b7280;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-outline:hover {
+        background: #6b7280;
+        color: white;
+        transform: translateY(-2px);
+    }
+    
+    .pulse-alert {
+        animation: pulse-alert 2s infinite;
+    }
+    
+    @keyframes pulse-alert {
+        0%, 100% {
+            box-shadow: 0 0 20px rgba(220, 38, 38, 0.3);
+        }
+        50% {
+            box-shadow: 0 0 30px rgba(220, 38, 38, 0.6);
+        }
+    }
+    
+    .shake {
+        animation: shake 0.5s ease-in-out;
+    }
+    
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        75% { transform: translateX(5px); }
+    }
+</style>
 
-    <!-- Order Info -->
-    <div class="text-left mb-4">
-      <p><span class="font-semibold">Order ID:</span> <span class="text-gray-800">#{{ order.order_code }}</span></p>
+<div class="min-h-screen bg-red-50 py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <!-- Breadcrumb -->
+        <nav class="flex mb-8" aria-label="Breadcrumb">
+            <ol class="flex items-center space-x-2 text-sm">
+                <li>
+                    <a href="{% url 'home' %}" class="text-red-600 hover:text-red-800 transition-colors">
+                        <i class="fas fa-home"></i>
+                    </a>
+                </li>
+                <li class="flex items-center">
+                    <i class="fas fa-chevron-right text-red-400 text-xs mx-2"></i>
+                    <a href="{% url 'checkout' %}" class="text-red-600 hover:text-red-800 transition-colors">Checkout</a>
+                </li>
+                <li class="flex items-center">
+                    <i class="fas fa-chevron-right text-red-400 text-xs mx-2"></i>
+                    <span class="text-red-900 font-medium">Payment Failed</span>
+                </li>
+            </ol>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden border border-red-200 pulse-alert">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-red-600 to-red-700 px-8 py-6">
+                <div class="flex items-center gap-4">
+                    <div class="bg-white bg-opacity-20 p-3 rounded-full shake">
+                        <i class="fas fa-times-circle text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold text-white">Payment Failed</h1>
+                        <p class="text-red-100 mt-1">We couldn't process your payment</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content -->
+            <div class="p-8">
+                <!-- Error Icon and Message -->
+                <div class="text-center mb-8">
+                    <div class="bg-red-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-exclamation-triangle text-red-500 text-3xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-red-900 mb-2">Payment Processing Failed</h2>
+                    <p class="text-red-600">Unfortunately, we could not process your payment at this time.</p>
+                </div>
+
+                <!-- Failed Order Information -->
+                <div class="bg-red-50 rounded-xl p-6 mb-6 border border-red-200">
+                    <h3 class="text-lg font-semibold text-red-900 mb-4 flex items-center gap-2">
+                        <i class="fas fa-receipt"></i>
+                        Failed Order Information
+                    </h3>
+                    
+                    <!-- Specific Failed Order -->
+                    <div class="mb-4 p-4 bg-white rounded-lg border border-red-300">
+                        <div class="flex items-center gap-4">
+                            {% if order.product.product.image %}
+                            <img src="{{ order.product.product.image.url }}" 
+                                 alt="{{ order.product.product.name }}"
+                                 class="w-16 h-16 object-cover rounded-lg border border-red-200">
+                            {% else %}
+                            <div class="w-16 h-16 bg-red-100 rounded-lg flex items-center justify-center border border-red-200">
+                                <i class="fas fa-box text-red-400"></i>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="flex-1">
+                                <h4 class="font-semibold text-red-900">{{ order.product.product.name }}</h4>
+                                <div class="flex flex-wrap gap-4 mt-1 text-sm text-red-700">
+                                    <span>Variant: {{ order.product.variation_value }}</span>
+                                    <span>Qty: {{ order.quantity }}</span>
+                                    <span>Order: #{{ order.order_code }}</span>
+                                </div>
+                                <div class="mt-2 text-sm">
+                                    <span class="font-medium">Amount: ₹{{ grand_total|floatformat:2 }}</span>
+                                    <span class="mx-2">•</span>
+                                    <span class="text-red-600">Payment: {{ order.get_payment_method_display }}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="text-right">
+                                <span class="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-semibold">
+                                    Failed
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Price Breakdown -->
+                    <div class="bg-white rounded-lg p-4 border border-red-200">
+                        <h4 class="font-semibold text-red-900 mb-3">Amount Details</h4>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-red-700">Subtotal:</span>
+                                <span>₹{{ subtotal|floatformat:2 }}</span>
+                            </div>
+                            {% if discount > 0 %}
+                            <div class="flex justify-between">
+                                <span class="text-red-700">Discount:</span>
+                                <span class="text-green-600">-₹{{ discount|floatformat:2 }}</span>
+                            </div>
+                            {% endif %}
+                            <div class="flex justify-between">
+                                <span class="text-red-700">Tax:</span>
+                                <span>₹{{ total_tax|floatformat:2 }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-red-700">Delivery:</span>
+                                <span>₹{{ delivery_charge|floatformat:2 }}</span>
+                            </div>
+                            <div class="flex justify-between border-t border-red-200 pt-2 font-semibold">
+                                <span class="text-red-900">Total:</span>
+                                <span class="text-red-900">₹{{ grand_total|floatformat:2 }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+               
+
+                <!-- Possible Reasons -->
+                <div class="bg-blue-50 rounded-xl p-6 mb-6 border border-blue-200">
+                    <h3 class="text-lg font-semibold text-blue-900 mb-4 flex items-center gap-2">
+                        <i class="fas fa-lightbulb"></i>
+                        Common Reasons for Payment Failure
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div class="flex items-start gap-3">
+                            <i class="fas fa-credit-card text-blue-600 mt-1"></i>
+                            <div>
+                                <p class="font-medium text-blue-900">Insufficient Funds</p>
+                                <p class="text-blue-700 text-xs">Check your account balance</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <i class="fas fa-shield-alt text-blue-600 mt-1"></i>
+                            <div>
+                                <p class="font-medium text-blue-900">Security Check</p>
+                                <p class="text-blue-700 text-xs">Bank security measures</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <i class="fas fa-wifi text-blue-600 mt-1"></i>
+                            <div>
+                                <p class="font-medium text-blue-900">Network Issues</p>
+                                <p class="text-blue-700 text-xs">Internet connection problems</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <i class="fas fa-clock text-blue-600 mt-1"></i>
+                            <div>
+                                <p class="font-medium text-blue-900">Session Timeout</p>
+                                <p class="text-blue-700 text-xs">Payment session expired</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <a href="{% url 'start_payment' order.order_id %}" 
+                           class="btn-secondary text-white py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 font-semibold text-lg flex items-center justify-center gap-3">
+                            <i class="fas fa-redo-alt"></i>
+                            Retry This Payment
+                        </a>
+                        <a href="{% url 'order_detail' order.order_id %}" 
+                           class="btn-outline py-4 rounded-xl font-semibold text-lg transition-all duration-300 flex items-center justify-center gap-3">
+                            <i class="fas fa-list"></i>
+                            View Order Details
+                        </a>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <a href="{% url 'order_list' %}" 
+                           class="bg-gray-100 text-gray-700 hover:bg-gray-200 py-3 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2">
+                            <i class="fas fa-shopping-bag"></i>
+                            View All Orders ({{ user_orders.count }})
+                        </a>
+                        <a href="" 
+                           class="bg-blue-100 text-blue-700 hover:bg-blue-200 py-3 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2">
+                            <i class="fas fa-headset"></i>
+                            Contact Support
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Help Section -->
+        <div class="mt-8 bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <i class="fas fa-question-circle text-gray-600"></i>
+                Payment Tips
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div class="flex items-start gap-3">
+                    <i class="fas fa-check-circle text-green-500 mt-1"></i>
+                    <div>
+                        <p class="font-medium text-gray-900">Check Card Details</p>
+                        <p class="text-gray-600 mt-1">Ensure all card information is correct</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <i class="fas fa-check-circle text-green-500 mt-1"></i>
+                    <div>
+                        <p class="font-medium text-gray-900">Sufficient Balance</p>
+                        <p class="text-gray-600 mt-1">Verify available funds in your account</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <i class="fas fa-check-circle text-green-500 mt-1"></i>
+                    <div>
+                        <p class="font-medium text-gray-900">Stable Connection</p>
+                        <p class="text-gray-600 mt-1">Use a reliable internet connection</p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-
-    <p class="text-gray-600 mb-6">Please try again or use a different payment method.</p>
-
-    <!-- Action Buttons -->
-    <div class="flex flex-col gap-3">
-      <a href="{% url 'start_payment' order.order_id %}" 
-         class="block w-full bg-yellow-400 hover:bg-yellow-500 text-white py-3 rounded-xl font-medium transition">
-         Retry Payment
-      </a>
-      <a href="{% url 'order_detail' order.order_id %}" 
-         class="block w-full bg-gray-400 hover:bg-gray-500 text-white py-3 rounded-xl font-medium transition">
-         Go to My Orders
-      </a>
-    </div>
-
-  </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add hover effects to buttons
+    const buttons = document.querySelectorAll('a');
+    buttons.forEach(button => {
+        button.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-2px)';
+        });
+        button.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+
+    // Add continuous subtle shake to error icon
+    const errorIcon = document.querySelector('.shake');
+    setInterval(() => {
+        errorIcon.classList.add('shake');
+        setTimeout(() => {
+            errorIcon.classList.remove('shake');
+        }, 500);
+    }, 3000);
+});
+</script>
 {% endblock %}

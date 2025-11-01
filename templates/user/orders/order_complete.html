@@ -1,85 +1,365 @@
 {% extends "user/base.html" %}
-{% block title %} Order Complete {% endblock title %}
+{% block title %} Order Complete | GearUp {% endblock title %}
 {% load static %}
 {% block content %}
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-<div class="max-w-3xl mx-auto my-10 px-4 text-center">
+<style>
+    .btn-primary {
+        background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+        transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #047857 0%, #065f46 100%);
+        transform: translateY(-2px);
+    }
+    
+    .btn-secondary {
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        transition: all 0.3s ease;
+    }
+    
+    .btn-secondary:hover {
+        background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+        transform: translateY(-2px);
+    }
+    
+    .confetti {
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        background: #ffd700;
+        border-radius: 50%;
+        animation: confetti-fall 5s linear infinite;
+    }
+    
+    @keyframes confetti-fall {
+        0% {
+            transform: translateY(-100px) rotate(0deg);
+            opacity: 1;
+        }
+        100% {
+            transform: translateY(100vh) rotate(360deg);
+            opacity: 0;
+        }
+    }
+    
+    .checkmark__circle {
+        stroke-dasharray: 166;
+        stroke-dashoffset: 166;
+        stroke-width: 2;
+        stroke-miterlimit: 10;
+        stroke: #10b981;
+        fill: none;
+        animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+    }
+    
+    .checkmark {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: block;
+        stroke-width: 2;
+        stroke: #fff;
+        stroke-miterlimit: 10;
+        margin: 0 auto;
+        box-shadow: inset 0px 0px 0px #10b981;
+        animation: fill .4s ease-in-out .4s forwards, scale .3s ease-in-out .9s both;
+    }
+    
+    .checkmark__check {
+        transform-origin: 50% 50%;
+        stroke-dasharray: 48;
+        stroke-dashoffset: 48;
+        animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards;
+    }
+    
+    @keyframes stroke {
+        100% {
+            stroke-dashoffset: 0;
+        }
+    }
+    
+    @keyframes scale {
+        0%, 100% {
+            transform: none;
+        }
+        50% {
+            transform: scale3d(1.1, 1.1, 1);
+        }
+    }
+    
+    @keyframes fill {
+        100% {
+            box-shadow: inset 0px 0px 0px 40px #10b981;
+        }
+    }
+</style>
 
-  <!-- Heading -->
-  <h2 class="text-green-600 text-3xl font-semibold mb-4">Order Placed Successfully!</h2>
-  <p class="text-gray-600 text-lg mb-6">
-    Thank you for shopping with <strong>GearUp</strong>.<br>
-    Your order <span class="font-bold">#{{ order.order_code }}</span> has been confirmed.
-  </p>
+<div class="min-h-screen bg-emerald-50 py-8 relative overflow-hidden">
+    <!-- Confetti Effect -->
+    <div id="confetti-container" class="absolute inset-0 pointer-events-none"></div>
+    
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        
+        <!-- Breadcrumb -->
+        <nav class="flex mb-8" aria-label="Breadcrumb">
+            <ol class="flex items-center space-x-2 text-sm">
+                <li>
+                    <a href="{% url 'home' %}" class="text-emerald-600 hover:text-emerald-800 transition-colors">
+                        <i class="fas fa-home"></i>
+                    </a>
+                </li>
+                <li class="flex items-center">
+                    <i class="fas fa-chevron-right text-emerald-400 text-xs mx-2"></i>
+                    <a href="{% url 'cart' %}" class="text-emerald-600 hover:text-emerald-800 transition-colors">Cart</a>
+                </li>
+                <li class="flex items-center">
+                    <i class="fas fa-chevron-right text-emerald-400 text-xs mx-2"></i>
+                    <a href="{% url 'checkout' %}" class="text-emerald-600 hover:text-emerald-800 transition-colors">Checkout</a>
+                </li>
+                <li class="flex items-center">
+                    <i class="fas fa-chevron-right text-emerald-400 text-xs mx-2"></i>
+                    <span class="text-emerald-900 font-medium">Order Complete</span>
+                </li>
+            </ol>
+        </nav>
 
-  <!-- Order Summary -->
-  <div class="bg-white shadow-md rounded-lg mx-auto max-w-md w-full mb-6">
-    <div class="p-6 text-left space-y-2">
-      <h5 class="text-xl font-semibold mb-3 border-b pb-2">Order Summary</h5>
-      <ul class="divide-y divide-gray-200">
+        <!-- Success Header -->
+        <div class="bg-white rounded-2xl shadow-sm p-8 mb-8 text-center border border-emerald-100">
+            <!-- Animated Checkmark -->
+            <svg class="checkmark mb-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                <circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none"/>
+                <path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+            </svg>
+            
+            <h1 class="text-4xl font-bold text-emerald-900 mb-4">Order Placed Successfully!</h1>
+            <p class="text-emerald-600 text-lg mb-2">
+                Thank you for shopping with <strong class="text-emerald-700">GearUp</strong>
+            </p>
+            <p class="text-emerald-500">
+                Your order <span class="font-bold text-emerald-700">#{{ order.order_code }}</span> has been confirmed
+            </p>
+        </div>
 
-        <!-- Order Details -->
-        <li class="py-2 flex justify-between">
-          <span class="font-medium">Order ID:</span>
-          <span>#{{ order.order_code }}</span>
-        </li>
-        <li class="py-2 flex justify-between">
-          <span class="font-medium">Date:</span>
-          <span>{{ order.created_at|date:"M d, Y" }}</span>
-        </li>
-        <li class="py-2 flex justify-between">
-          <span class="font-medium">Payment Method:</span>
-          <span>{{ order.get_payment_method_display }}</span>
-        </li>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Main Content -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Order Summary -->
+                <div class="bg-white rounded-2xl shadow-sm overflow-hidden border border-emerald-100">
+                    <div class="bg-gradient-to-r from-emerald-600 to-emerald-800 px-6 py-4">
+                        <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                            <i class="fas fa-receipt"></i>
+                            Order Summary
+                        </h2>
+                    </div>
+                    
+                    <div class="p-6">
+                        <!-- Order Details -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center py-2 border-b border-emerald-100">
+                                    <span class="font-medium text-emerald-700">Order ID</span>
+                                    <span class="font-semibold">#{{ order.order_code }}</span>
+                                </div>
+                                <div class="flex justify-between items-center py-2 border-b border-emerald-100">
+                                    <span class="font-medium text-emerald-700">Order Date</span>
+                                    <span>{{ order.created_at|date:"F d, Y" }}</span>
+                                </div>
+                                <div class="flex justify-between items-center py-2 border-b border-emerald-100">
+                                    <span class="font-medium text-emerald-700">Payment Method</span>
+                                    <span class="font-semibold">{{ order.get_payment_method_display }}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center py-2 border-b border-emerald-100">
+                                    <span class="font-medium text-emerald-700">Payment Status</span>
+                                    <span class="px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                        {{ order.payment_status }}
+                                    </span>
+                                </div>
+                                <div class="flex justify-between items-center py-2 border-b border-emerald-100">
+                                    <span class="font-medium text-emerald-700">Order Status</span>
+                                    <span class="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                                        {{ order.order_status }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
 
-        <!-- Price Breakdown -->
-        <li class="py-2 flex justify-between">
-          <span class="font-medium">Subtotal:</span>
-          <span>₹{{ subtotal|floatformat:2 }}</span>
-        </li>
+                        <!-- Price Breakdown -->
+                        <div class="bg-emerald-50 rounded-xl p-6 border border-emerald-200">
+                            <h3 class="font-semibold text-emerald-900 mb-4 flex items-center gap-2">
+                                <i class="fas fa-calculator"></i>
+                                Price Breakdown
+                            </h3>
+                            
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center py-2">
+                                    <span class="text-emerald-700">Subtotal</span>
+                                    <span class="font-semibold">₹{{ subtotal|floatformat:2 }}</span>
+                                </div>
 
-        {% if discount > 0 %}
-        <li class="py-2 flex justify-between text-red-600">
-          <span class="font-medium">Discount:</span>
-          <span>- ₹{{ discount|floatformat:2 }}</span>
-        </li>
-        {% endif %}
+                                {% if discount > 0 %}
+                                <div class="flex justify-between items-center py-2">
+                                    <span class="text-emerald-700">Discount</span>
+                                    <span class="font-semibold text-green-600">- ₹{{ discount|floatformat:2 }}</span>
+                                </div>
+                                {% endif %}
 
-        <li class="py-2 flex justify-between">
-          <span class="font-medium">Tax:</span>
-          <span>₹{{ total_tax|floatformat:2 }}</span>
-        </li>
+                                <div class="flex justify-between items-center py-2">
+                                    <span class="text-emerald-700">Tax</span>
+                                    <span class="font-semibold">₹{{ total_tax|floatformat:2 }}</span>
+                                </div>
 
-        <li class="py-2 flex justify-between">
-          <span class="font-medium">Delivery Charge:</span>
-          <span>₹{{ delivery_charge|floatformat:2 }}</span>
-        </li>
+                                <div class="flex justify-between items-center py-2">
+                                    <span class="text-emerald-700">Delivery Charge</span>
+                                    <span class="font-semibold">₹{{ delivery_charge|floatformat:2 }}</span>
+                                </div>
 
-        <li class="py-2 flex justify-between font-semibold text-lg border-t mt-2 pt-2">
-          <span>Total Paid:</span>
-          <span class="text-green-700 font-bold">₹{{ grand_total|floatformat:2 }}</span>
-        </li>
-      </ul>
+                                <div class="flex justify-between items-center py-4 border-t border-emerald-300 mt-2">
+                                    <span class="text-xl font-bold text-emerald-900">Total Paid</span>
+                                    <span class="text-xl font-bold text-emerald-900">₹{{ grand_total|floatformat:2 }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Next Steps -->
+                <div class="bg-white rounded-2xl shadow-sm p-6 border border-emerald-100">
+                    <h3 class="text-lg font-semibold text-emerald-900 mb-4 flex items-center gap-2">
+                        <i class="fas fa-clock"></i>
+                        What's Next?
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="flex items-start gap-3">
+                            <div class="bg-emerald-100 p-3 rounded-full">
+                                <i class="fas fa-envelope text-emerald-600"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-emerald-900">Confirmation Email</h4>
+                                <p class="text-emerald-600 text-sm mt-1">Check your inbox for order details</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <div class="bg-blue-100 p-3 rounded-full">
+                                <i class="fas fa-shipping-fast text-blue-600"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-emerald-900">Shipping Updates</h4>
+                                <p class="text-emerald-600 text-sm mt-1">Track your order in real-time</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <div class="bg-purple-100 p-3 rounded-full">
+                                <i class="fas fa-box-open text-purple-600"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-emerald-900">Delivery</h4>
+                                <p class="text-emerald-600 text-sm mt-1">Expected within 3-5 business days</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <div class="bg-yellow-100 p-3 rounded-full">
+                                <i class="fas fa-headset text-yellow-600"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-emerald-900">Support</h4>
+                                <p class="text-emerald-600 text-sm mt-1">We're here to help 24/7</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="space-y-6">
+                <!-- Quick Actions -->
+                <div class="bg-white rounded-2xl shadow-sm p-6 border border-emerald-100">
+                    <h3 class="text-lg font-semibold text-emerald-900 mb-4 flex items-center gap-2">
+                        <i class="fas fa-bolt"></i>
+                        Quick Actions
+                    </h3>
+                    <div class="space-y-3">
+                        <a href="{% url 'order_detail' order.order_id %}" 
+                           class="btn-secondary w-full text-white py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 font-semibold flex items-center justify-center gap-2">
+                            <i class="fas fa-eye"></i>
+                            View Order Details
+                        </a>
+                        <a href="{% url 'order_list' %}" 
+                           class="bg-emerald-100 text-emerald-800 hover:bg-emerald-200 w-full py-3 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2">
+                            <i class="fas fa-list"></i>
+                            View All Orders
+                        </a>
+                        <a href="{% url 'product_list' %}" 
+                           class="btn-primary w-full text-white py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 font-semibold flex items-center justify-center gap-2">
+                            <i class="fas fa-shopping-cart"></i>
+                            Continue Shopping
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Share Order -->
+                <div class="bg-white rounded-2xl shadow-sm p-6 border border-emerald-100">
+                    <h3 class="text-lg font-semibold text-emerald-900 mb-4 flex items-center gap-2">
+                        <i class="fas fa-share-alt"></i>
+                        Share Your Purchase
+                    </h3>
+                    <div class="flex justify-center gap-3">
+                        <button class="bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-full transition-colors">
+                            <i class="fab fa-facebook-f"></i>
+                        </button>
+                        <button class="bg-blue-400 hover:bg-blue-500 text-white p-3 rounded-full transition-colors">
+                            <i class="fab fa-twitter"></i>
+                        </button>
+                        <button class="bg-pink-500 hover:bg-pink-600 text-white p-3 rounded-full transition-colors">
+                            <i class="fab fa-instagram"></i>
+                        </button>
+                        <button class="bg-green-500 hover:bg-green-600 text-white p-3 rounded-full transition-colors">
+                            <i class="fab fa-whatsapp"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
-
-  <!-- Next Steps -->
-  <p class="text-gray-500 mb-6">
-    You’ll receive a confirmation email with your order details shortly.
-  </p>
-
-  <!-- Action Buttons -->
-  <div class="flex justify-center gap-4">
-    <a href="{% url 'order_detail' order.order_id %}"
-       class="bg-blue-600 text-white px-5 py-2 rounded-md hover:bg-blue-700 transition">
-       View Order
-    </a>
-    <a href="{% url 'product_list' %}" 
-       class="border border-gray-400 px-5 py-2 rounded-md text-gray-700 hover:bg-gray-100 transition">
-       Continue Shopping
-    </a>
-  </div>
-
 </div>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Create confetti effect
+    function createConfetti() {
+        const container = document.getElementById('confetti-container');
+        const colors = ['#ffd700', '#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57'];
+        
+        for (let i = 0; i < 50; i++) {
+            const confetti = document.createElement('div');
+            confetti.className = 'confetti';
+            confetti.style.left = Math.random() * 100 + 'vw';
+            confetti.style.animationDelay = Math.random() * 5 + 's';
+            confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+            confetti.style.width = Math.random() * 10 + 5 + 'px';
+            confetti.style.height = confetti.style.width;
+            container.appendChild(confetti);
+        }
+    }
+    
+    createConfetti();
+    
+    // Add hover effects to buttons
+    const buttons = document.querySelectorAll('a, button');
+    buttons.forEach(button => {
+        button.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-2px)';
+        });
+        button.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+});
+</script>
 {% endblock %}
