@@ -4,61 +4,182 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% trans "Sign In Via Google" %}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>{% trans "Sign In Via Google" %} | GearUp</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body {
-            background-color: #BAA991;
+        .btn-primary {
+            background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+            transition: all 0.3s ease;
         }
-        .google-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: #fff;
-            color: #000;
-            padding: 12px;
-            font-size: 16px;
-            font-weight: bold;
-            border: 2px solid #000;
-            border-radius: 50px;
-            cursor: pointer;
-            width: 100%;
-            transition: background-color 0.3s;
-            text-decoration: none;
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #047857 0%, #065f46 100%);
+            transform: translateY(-2px);
         }
-        .google-btn:hover {
-            background-color: grey;
-            color: white;
+        
+        .btn-google {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border: 2px solid #e5e7eb;
+            color: #374151;
+            transition: all 0.3s ease;
         }
-        .google-btn img {
-            height: 20px;
-            margin-right: 10px;
+        
+        .btn-google:hover {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-color: #d1d5db;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .background-pattern {
+            background: linear-gradient(135deg, #065f46 0%, #047857 50%, #10b981 100%);
+        }
+        
+        .skeleton {
+            background: linear-gradient(90deg, #d1fae5 25%, #a7f3d0 50%, #d1fae5 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+        
+        @keyframes loading {
+            0% {
+                background-position: 200% 0;
+            }
+            100% {
+                background-position: -200% 0;
+            }
+        }
+
+        /* Ensure proper stacking */
+        #skeleton, #main-content {
+            position: relative;
+            z-index: 10;
         }
     </style>
 </head>
-<body class="d-flex align-items-center justify-content-center min-vh-100">
-
-    <div class="card shadow-lg border-0 p-4" style="max-width: 400px; width: 100%; border-radius: 12px;">
-        <div class="text-center mb-4">
-            <h3 class="fw-bold">{% trans "Sign In Via Google" %}</h3>
-            <p class="text-muted mb-0">
-                {% blocktrans %}You are about to sign in using your Google account.{% endblocktrans %}
-            </p>
+<body class="min-h-screen bg-emerald-50 flex items-center justify-center p-4">
+    <!-- Background Pattern -->
+    <div class="fixed inset-0 background-pattern opacity-5"></div>
+    
+    <!-- Main Container -->
+    <div class="relative w-full max-w-md">
+        <!-- Skeleton Loader -->
+        <div id="skeleton" class="bg-white rounded-3xl shadow-2xl p-12">
+            <div class="text-center mb-8 space-y-4">
+                <div class="skeleton h-10 w-48 mx-auto rounded"></div>
+                <div class="skeleton h-4 w-64 mx-auto rounded"></div>
+            </div>
+            <div class="skeleton h-16 rounded-xl mb-4"></div>
+            <div class="skeleton h-12 rounded-xl"></div>
         </div>
 
-        <form method="post" class="mb-3">
-            {% csrf_token %}
-            <button type="submit" class="google-btn">
-                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo">
-                Continue with Google
-            </button>
-        </form>
+        <!-- Main Content -->
+        <div id="main-content" class="bg-white rounded-3xl shadow-2xl overflow-hidden border border-emerald-100 hidden">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-emerald-600 to-emerald-800 px-8 py-8 text-center">
+                <div class="flex items-center justify-center gap-4 mb-4">
+                    <div class="bg-white bg-opacity-20 p-3 rounded-full">
+                        <i class="fab fa-google text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold text-white">Continue with Google</h1>
+                        <p class="text-emerald-100 mt-1">Secure and instant access</p>
+                    </div>
+                </div>
+            </div>
 
-        <a href="{% url 'login' %}" class="btn btn-outline-secondary w-100 rounded-pill">
-            Cancel
-        </a>
+            <!-- Content -->
+            <div class="p-8">
+                <!-- Info Section -->
+                <div class="text-center mb-8">
+                    <div class="bg-emerald-50 rounded-2xl p-6 mb-6 border border-emerald-200">
+                        <div class="flex items-center justify-center gap-3 mb-3">
+                            <i class="fas fa-shield-check text-emerald-600 text-2xl"></i>
+                            <h3 class="text-lg font-semibold text-emerald-900">Secure Authentication</h3>
+                        </div>
+                        <p class="text-emerald-700 text-sm">
+                            You are about to sign in using your Google account. This ensures your information remains secure and private.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Benefits -->
+                <div class="space-y-3 mb-8">
+                    <div class="flex items-center gap-3 text-sm text-emerald-700">
+                        <i class="fas fa-check-circle text-emerald-500"></i>
+                        <span>No password to remember</span>
+                    </div>
+                    <div class="flex items-center gap-3 text-sm text-emerald-700">
+                        <i class="fas fa-check-circle text-emerald-500"></i>
+                        <span>One-click secure access</span>
+                    </div>
+                    <div class="flex items-center gap-3 text-sm text-emerald-700">
+                        <i class="fas fa-check-circle text-emerald-500"></i>
+                        <span>Your data stays private</span>
+                    </div>
+                </div>
+
+                <!-- Google Sign In Form -->
+                <form method="post" class="mb-4">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-google w-full py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 font-semibold text-lg flex items-center justify-center gap-3 mb-4">
+                        <i class="fab fa-google text-red-500 text-xl"></i>
+                        Continue with Google
+                    </button>
+                </form>
+
+                <!-- Cancel Button -->
+                <a href="{% url 'login' %}" class="btn-primary w-full text-white py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 font-semibold text-lg flex items-center justify-center gap-2">
+                    <i class="fas fa-arrow-left"></i>
+                    Back to Login
+                </a>
+
+                <!-- Security Info -->
+                <div class="mt-8 text-center">
+                    <div class="inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 px-4 py-3 rounded-xl text-sm border border-emerald-200">
+                        <i class="fas fa-lock text-emerald-600"></i>
+                        <span>Protected by OAuth 2.0 security standards</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="bg-emerald-50 px-8 py-4 border-t border-emerald-200">
+                <div class="flex items-center justify-between text-xs text-emerald-600">
+                    <span>GearUp Authentication</span>
+                    <span>🔒 Secure</span>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Simulate loading
+            setTimeout(() => {
+                const skeleton = document.getElementById('skeleton');
+                const mainContent = document.getElementById('main-content');
+                
+                if (skeleton) {
+                    skeleton.style.display = 'none';
+                }
+                if (mainContent) {
+                    mainContent.classList.remove('hidden');
+                }
+            }, 1000);
+
+            // Add hover effects
+            const buttons = document.querySelectorAll('button, a');
+            buttons.forEach(button => {
+                button.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-2px)';
+                });
+                button.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0)';
+                });
+            });
+        });
+    </script>
 </body>
 </html>

@@ -1,33 +1,281 @@
 {% extends "user/base.html" %}
-{% block title %}Cancel Order{% endblock title %}
+{% block title %}Cancel Order | ShopEase{% endblock title %}
 
 {% block content %}
-<div class="max-w-2xl mx-auto my-10 px-4">
+<div class="min-h-screen bg-emerald-50 py-8">
+  <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+    
+    <!-- Breadcrumb -->
+    <nav class="flex mb-8" aria-label="Breadcrumb">
+      <ol class="flex items-center space-x-2 text-sm">
+        <li>
+          <a href="{% url 'dashboard' %}" class="text-emerald-600 hover:text-emerald-800 transition-colors">
+            <i class="fas fa-home"></i>
+          </a>
+        </li>
+        <li class="flex items-center">
+          <i class="fas fa-chevron-right text-emerald-400 text-xs mx-2"></i>
+          <a href="{% url 'order_list' %}" class="text-emerald-600 hover:text-emerald-800 transition-colors">My Orders</a>
+        </li>
+        <li class="flex items-center">
+          <i class="fas fa-chevron-right text-emerald-400 text-xs mx-2"></i>
+          <a href="{% url 'order_detail' order.order_id %}" class="text-emerald-600 hover:text-emerald-800 transition-colors">Order #{{ order.order_code }}</a>
+        </li>
+        <li class="flex items-center">
+          <i class="fas fa-chevron-right text-emerald-400 text-xs mx-2"></i>
+          <span class="text-emerald-900 font-medium">Cancel Order</span>
+        </li>
+      </ol>
+    </nav>
 
-  <h3 class="text-2xl font-semibold mb-4">Cancel Order</h3>
-  <p class="mb-4"><span class="font-semibold">Product:</span> {{ order.product.product.name }}</p>
-  <p class="mb-4"><span class="font-semibold">Quantity:</span> {{ order.quantity }}</p>
+    <!-- Main Card -->
+    <div class="bg-white rounded-2xl shadow-sm overflow-hidden border border-emerald-100">
+      <!-- Header -->
+      <div class="bg-gradient-to-r from-red-600 to-red-700 px-8 py-6">
+        <div class="flex items-center gap-4">
+          <div class="bg-white bg-opacity-20 p-3 rounded-full">
+            <i class="fas fa-times-circle text-white text-xl"></i>
+          </div>
+          <div>
+            <h1 class="text-2xl font-bold text-white">Cancel Order</h1>
+            <p class="text-red-100 mt-1">Request cancellation for your order</p>
+          </div>
+        </div>
+      </div>
 
-  <form action="{% url 'request_cancel_order_item' order.order_id %}" method="post" class="space-y-4">
-    {% csrf_token %}
+      <!-- Order Details -->
+      <div class="p-8 border-b border-emerald-100">
+        <div class="flex items-center gap-6 p-4 bg-red-50 rounded-xl border border-red-200">
+          {% if order.product.product.image %}
+            <img src="{{ order.product.product.image.url }}" 
+                 alt="{{ order.product.product.name }}"
+                 class="w-20 h-20 object-cover rounded-lg border border-red-300">
+          {% else %}
+            <div class="w-20 h-20 bg-red-100 rounded-lg flex items-center justify-center border border-red-300">
+              <i class="fas fa-box text-red-400 text-xl"></i>
+            </div>
+          {% endif %}
+          <div class="flex-1">
+            <h3 class="text-lg font-semibold text-red-900">{{ order.product.product.name }}</h3>
+            <div class="flex flex-wrap gap-4 mt-2 text-sm text-red-700">
+              <span class="flex items-center gap-1">
+                <i class="fas fa-hashtag"></i>
+                Order: #{{ order.order_code }}
+              </span>
+              <span class="flex items-center gap-1">
+                <i class="fas fa-layer-group"></i>
+                Variant: {{ order.product.color }} / {{ order.product.size }}
+              </span>
+              <span class="flex items-center gap-1">
+                <i class="fas fa-shopping-cart"></i>
+                Quantity: {{ order.quantity }}
+              </span>
+            </div>
+            <div class="mt-2">
+              <span class="text-lg font-bold text-red-900">Total: ₹{{ order.total_price|floatformat:2 }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
-    <div>
-      <label for="reason" class="block font-medium mb-1">Reason for cancellation</label>
-      <textarea id="reason" name="reason" required 
-                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-400"></textarea>
+      <!-- Cancellation Form -->
+      <div class="p-8">
+        <div class="mb-6 bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+          <div class="flex items-start gap-3">
+            <i class="fas fa-exclamation-triangle text-yellow-600 mt-0.5"></i>
+            <div>
+              <h4 class="font-semibold text-yellow-900">Important Notice</h4>
+              <p class="text-yellow-700 text-sm mt-1">
+                Once submitted, your cancellation request will be reviewed by our team. 
+                Refunds (if applicable) will be processed within 5-7 business days.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <form action="{% url 'request_cancel_order_item' order.order_id %}" method="post" class="space-y-6">
+          {% csrf_token %}
+
+          <!-- Reason Selection -->
+          <div>
+            <label class="block text-lg font-semibold text-emerald-900 mb-4 flex items-center gap-2">
+              <i class="fas fa-comment-dots text-emerald-600"></i>
+              Reason for Cancellation
+            </label>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+              <label class="flex items-center p-4 border-2 border-emerald-200 rounded-xl cursor-pointer hover:bg-emerald-50 transition-colors">
+                <input type="radio" name="reason" value="Changed my mind" class="text-red-600 focus:ring-red-500 mr-3">
+                <div>
+                  <span class="font-medium text-emerald-900">Changed my mind</span>
+                  <p class="text-emerald-600 text-sm mt-1">No longer need this item</p>
+                </div>
+              </label>
+
+              <label class="flex items-center p-4 border-2 border-emerald-200 rounded-xl cursor-pointer hover:bg-emerald-50 transition-colors">
+                <input type="radio" name="reason" value="Found better price" class="text-red-600 focus:ring-red-500 mr-3">
+                <div>
+                  <span class="font-medium text-emerald-900">Found better price</span>
+                  <p class="text-emerald-600 text-sm mt-1">Found a better deal elsewhere</p>
+                </div>
+              </label>
+
+              <label class="flex items-center p-4 border-2 border-emerald-200 rounded-xl cursor-pointer hover:bg-emerald-50 transition-colors">
+                <input type="radio" name="reason" value="Delivery time too long" class="text-red-600 focus:ring-red-500 mr-3">
+                <div>
+                  <span class="font-medium text-emerald-900">Delivery time too long</span>
+                  <p class="text-emerald-600 text-sm mt-1">Need the item sooner</p>
+                </div>
+              </label>
+
+              <label class="flex items-center p-4 border-2 border-emerald-200 rounded-xl cursor-pointer hover:bg-emerald-50 transition-colors">
+                <input type="radio" name="reason" value="Ordered by mistake" class="text-red-600 focus:ring-red-500 mr-3">
+                <div>
+                  <span class="font-medium text-emerald-900">Ordered by mistake</span>
+                  <p class="text-emerald-600 text-sm mt-1">Accidental order placement</p>
+                </div>
+              </label>
+            </div>
+
+            <!-- Custom Reason -->
+            <div>
+              <label class="flex items-center p-4 border-2 border-emerald-200 rounded-xl cursor-pointer hover:bg-emerald-50 transition-colors mb-3">
+                <input type="radio" name="reason" value="other" id="other_reason" class="text-red-600 focus:ring-red-500 mr-3">
+                <span class="font-medium text-emerald-900">Other reason</span>
+              </label>
+              
+              <textarea id="custom_reason" name="custom_reason" 
+                        placeholder="Please specify your reason for cancellation..."
+                        class="w-full border border-emerald-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all hidden"
+                        rows="4"></textarea>
+            </div>
+          </div>
+
+          <!-- Additional Comments -->
+          <div>
+            <label for="additional_comments" class="block text-sm font-medium text-emerald-900 mb-2">
+              Additional Comments (Optional)
+            </label>
+            <textarea id="additional_comments" name="additional_comments" 
+                      placeholder="Any additional information you'd like to share..."
+                      class="w-full border border-emerald-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
+                      rows="3"></textarea>
+          </div>
+
+          <!-- Form Actions -->
+          <div class="flex flex-col sm:flex-row gap-4 pt-6 border-t border-emerald-100">
+            <button type="submit" 
+                    class="btn-cancel flex items-center justify-center gap-2 text-white px-8 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 font-semibold text-lg flex-1">
+              <i class="fas fa-paper-plane"></i>
+              Submit Cancellation Request
+            </button>
+            
+            <a href="{% url 'order_detail' order.order_id %}" 
+               class="bg-emerald-100 text-emerald-800 hover:bg-emerald-200 px-8 py-4 rounded-xl font-semibold text-lg transition-colors flex items-center justify-center gap-2">
+              <i class="fas fa-arrow-left"></i>
+              Back to Order
+            </a>
+          </div>
+        </form>
+      </div>
     </div>
 
-    <div class="flex flex-wrap gap-3">
-      <button type="submit" 
-              class="bg-red-600 hover:bg-red-700 text-white font-medium px-6 py-2 rounded-lg transition">
-        Submit Cancellation
-      </button>
-      <a href="{% url 'order_detail' order.order_id %}" 
-         class="bg-gray-400 hover:bg-gray-500 text-white font-medium px-6 py-2 rounded-lg transition">
-        Back
-      </a>
+    <!-- Help Section -->
+    <div class="mt-8 bg-white rounded-2xl shadow-sm p-6 border border-emerald-100">
+      <h3 class="text-lg font-semibold text-emerald-900 mb-4 flex items-center gap-2">
+        <i class="fas fa-info-circle text-emerald-600"></i>
+        Cancellation Policy
+      </h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+        <div class="flex items-start gap-3">
+          <i class="fas fa-sync-alt text-emerald-500 mt-1"></i>
+          <div>
+            <p class="font-medium text-emerald-900">Instant Processing</p>
+            <p class="text-emerald-600 mt-1">Cancellation requests are processed within 24 hours</p>
+          </div>
+        </div>
+        <div class="flex items-start gap-3">
+          <i class="fas fa-undo text-emerald-500 mt-1"></i>
+          <div>
+            <p class="font-medium text-emerald-900">Full Refund</p>
+            <p class="text-emerald-600 mt-1">Complete refund for cancelled orders</p>
+          </div>
+        </div>
+        <div class="flex items-start gap-3">
+          <i class="fas fa-clock text-emerald-500 mt-1"></i>
+          <div>
+            <p class="font-medium text-emerald-900">5-7 Days Processing</p>
+            <p class="text-emerald-600 mt-1">Refunds processed in 5-7 business days</p>
+          </div>
+        </div>
+        <div class="flex items-start gap-3">
+          <i class="fas fa-ban text-emerald-500 mt-1"></i>
+          <div>
+            <p class="font-medium text-emerald-900">Non-Cancellable</p>
+            <p class="text-emerald-600 mt-1">Orders in shipment cannot be cancelled</p>
+          </div>
+        </div>
+      </div>
     </div>
-  </form>
-
+  </div>
 </div>
+
+<style>
+  .btn-cancel {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    transition: all 0.3s ease;
+  }
+  
+  .btn-cancel:hover {
+    background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+    transform: translateY(-2px);
+  }
+  
+  input[type="radio"]:checked + div {
+    border-color: #dc2626;
+    background-color: #fef2f2;
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const otherRadio = document.getElementById('other_reason');
+    const customReason = document.getElementById('custom_reason');
+    
+    otherRadio.addEventListener('change', function() {
+      if (this.checked) {
+        customReason.classList.remove('hidden');
+        customReason.required = true;
+      } else {
+        customReason.classList.add('hidden');
+        customReason.required = false;
+      }
+    });
+    
+    // Show custom reason if other is selected on page load
+    if (otherRadio.checked) {
+      customReason.classList.remove('hidden');
+      customReason.required = true;
+    }
+    
+    // Form validation
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+      const selectedReason = document.querySelector('input[name="reason"]:checked');
+      if (!selectedReason) {
+        e.preventDefault();
+        alert('Please select a reason for cancellation.');
+        return;
+      }
+      
+      if (selectedReason.value === 'other' && !customReason.value.trim()) {
+        e.preventDefault();
+        alert('Please specify your reason for cancellation.');
+        customReason.focus();
+        return;
+      }
+    });
+  });
+</script>
+
 {% endblock %}

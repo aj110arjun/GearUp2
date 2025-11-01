@@ -18,9 +18,14 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.urls import reverse
+from django.db.models import Sum
 
 from .forms import ProfileEditForm
 from .models import Profile
+from orders.models import Order
+from wishlist.models import Wishlist
+from cart.models import CartItem
+
 
 @login_required(login_url='login')
 @never_cache
@@ -29,6 +34,14 @@ def account_info(request):
         return redirect('login')
 
     profile, created = Profile.objects.get_or_create(user=request.user)
+
+    total_orders = Order.objects.filter(user=request.user).count()
+    total_spent = Order.objects.filter(user=request.user, payment_status="Paid").aggregate(total=Sum('total_price'))['total'] or 0
+    wishlist_items = Wishlist.objects.filter(user=request.user).count()
+    cart_items = CartItem.objects.filter(user=request.user).count()
+
+    recent_orders = Order.objects.filter(user=request.user).order_by('-id')[:3]
+
     success_message = None
     if request.session.get('profile_updated'):
         success_message = "✅ Profile updated successfully!"
@@ -41,6 +54,11 @@ def account_info(request):
         'profile': profile,
         'success_message': success_message,
         'breadcrumbs': breadcrumbs,
+        'total_orders': total_orders,
+        'total_spent': total_spent,
+        'wishlist_items': wishlist_items,
+        'cart_items': cart_items,
+        'orders': recent_orders,
     }
     return render(request, 'user/account.html', context)
 

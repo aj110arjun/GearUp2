@@ -258,25 +258,70 @@ def checkout(request):
     return render(request, "user/orders/checkout.html", context)
 
 
-def order_complete(request, order_id):
-    order = get_object_or_404(Order, order_id=order_id, user=request.user)
-    subtotal = order.total_price
-    discount = order.discount or 0
-    total_after_discount = subtotal - discount
-    delivery_charge = Decimal(getattr(order, 'delivery_charge', None) or config("DELIVERY_CHARGE"))
-    tax_rate = Decimal(config("TAX_RATE"))
-    total_tax = q2(total_after_discount * tax_rate)
-    grand_total = q2(total_after_discount + total_tax + delivery_charge)
+from decimal import Decimal, ROUND_HALF_UP
+from django.conf import settings
+from decouple import config
+from django.contrib import messages
 
-    context = {
-        "order": order,
-        "subtotal": subtotal,
-        "discount": discount,
-        "total_tax": total_tax,
-        "delivery_charge": delivery_charge,
-        "grand_total": grand_total,
-    }
-    return render(request, "user/orders/order_complete.html", context)
+def order_complete(request, order_id):
+    try:
+        order = get_object_or_404(Order, order_id=order_id, user=request.user)
+        
+        # Verify this is the most recent order for the user
+        user_orders = Order.objects.filter(user=request.user).order_by('-created_at')
+        if user_orders.first().id != order.id:
+            messages.info(request, "Viewing a previous order.")
+        
+        # Calculate order totals with proper rounding
+        subtotal = order.total_price
+        discount = order.discount or Decimal('0')
+        total_after_discount = max(subtotal - discount, Decimal('0'))  # Ensure non-negative
+        
+        # Get charges from settings with defaults
+        delivery_charge = Decimal(config("DELIVERY_CHARGE", 50))  # Default 50 if not set
+        tax_rate = Decimal(config("TAX_RATE", 0.18))  # Default 18% tax
+        
+        total_tax = (total_after_discount * tax_rate).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        grand_total = (total_after_discount + total_tax + delivery_charge).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
+        # Format all amounts
+        subtotal = Decimal(subtotal).quantize(Decimal('0.01'))
+        discount = Decimal(discount).quantize(Decimal('0.01'))
+        delivery_charge = Decimal(delivery_charge).quantize(Decimal('0.01'))
+
+        # Calculate savings if any
+        savings = discount
+        if order.coupon:
+            coupon_savings = discount
+        else:
+            coupon_savings = Decimal('0')
+
+        breadcrumbs = [
+            ("Home", reverse("home")),
+            ("Cart", reverse("cart")),
+            ("Checkout", reverse("checkout")),
+            ("Order Complete", None),
+        ]
+
+        # Additional context for the enhanced template
+        context = {
+            "order": order,
+            "subtotal": subtotal,
+            "discount": discount,
+            "total_tax": total_tax,
+            "delivery_charge": delivery_charge,
+            "grand_total": grand_total,
+            "breadcrumbs": breadcrumbs,
+            "savings": savings,
+            "coupon_savings": coupon_savings,
+            "tax_rate": tax_rate * 100,  # For display as percentage
+        }
+        
+        return render(request, "user/orders/order_complete.html", context)
+        
+    except Exception as e:
+        messages.error(request, "An error occurred while loading your order details.")
+        return redirect('order_list')
 
 @login_required(login_url='login')
 @never_cache
@@ -337,12 +382,18 @@ def order_success(request, order_id):
 @never_cache
 def order_list(request):
     orders = Order.objects.filter(user=request.user).order_by("-created_at")
+    
+    # Calculate counts
     pending_count = orders.filter(order_status="Pending").count()
     delivered_count = orders.filter(order_status="Delivered").count()
     cancelled_count = orders.filter(order_status="Cancelled").count()
     shipped_count = orders.filter(order_status="Shipped").count()
 
-    
+    # Calculate total spent (only completed/delivered orders)
+    total_spent = orders.filter(order_status="Delivered").aggregate(
+        total=Sum('total_price')
+    )['total'] or 0
+
     paginator = Paginator(orders, 10)  
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
@@ -352,6 +403,7 @@ def order_list(request):
         ("Account", reverse("account_info")),
         ("My Orders", None),
     ]
+    
     context = {
         'page_obj': page_obj,
         'breadcrumbs': breadcrumbs,
@@ -359,8 +411,9 @@ def order_list(request):
         'delivered_count': delivered_count,
         'cancelled_count': cancelled_count,
         'shipped_count': shipped_count,
+        'total_spent': total_spent,
+        'total_orders': orders.count(),
     }
-
 
     return render(request, "user/orders/orders.html", context)
 
@@ -599,29 +652,57 @@ def request_cancel_order_item(request, order_id):
 def cancel_order_page(request, order_id):
     order = get_object_or_404(Order, order_id=order_id, user=request.user)
 
+    # Define cancellable statuses
     cancellable_statuses = {"Pending", "Processing", "Shipped", "Out For Delivery"}
+    
+    # Check if order can be cancelled
     if order.order_status not in cancellable_statuses:
         messages.warning(request, f"Cannot cancel this order as its status is '{order.order_status}'.")
         return redirect("order_detail", order_id=order.order_id or order.id)
 
-    if request.method == "POST":
-        reason = (request.POST.get("reason") or "").strip()
-        if not reason:
-            messages.error(request, "Please provide a reason for cancellation.")
-            return redirect("order_detail", order_id=order.order_id or order.id)
-
-        if order.cancellation_requested:
-            messages.info(request, "A cancellation has already been requested for this order.")
-            return redirect("order_detail", order_id=order.order_id or order.id)
-
-        order.cancellation_requested = True
-        order.cancellation_reason = reason
-        order.cancellation_approved = None
-        order.save(update_fields=["cancellation_requested", "cancellation_reason", "cancellation_approved"])
-        messages.success(request, "Cancellation request submitted successfully.")
+    # Check if cancellation already requested
+    if order.cancellation_requested:
+        messages.info(request, "A cancellation has already been requested for this order.")
         return redirect("order_detail", order_id=order.order_id or order.id)
 
-    return render(request, "user/orders/cancel_request.html", {"order": order})
+    if request.method == "POST":
+        # Handle reason selection - support both radio buttons and custom reason
+        reason = request.POST.get("reason", "").strip()
+        custom_reason = request.POST.get("custom_reason", "").strip()
+        
+        # Determine the final reason
+        if reason == "other" and custom_reason:
+            final_reason = custom_reason
+        elif reason and reason != "other":
+            final_reason = reason
+        else:
+            messages.error(request, "Please provide a valid reason for cancellation.")
+            return render(request, "user/orders/cancel_request.html", {"order": order})
+
+        # Additional comments (optional)
+        additional_comments = request.POST.get("additional_comments", "").strip()
+        if additional_comments:
+            final_reason += f"\n\nAdditional Comments: {additional_comments}"
+
+        # Update order with cancellation request
+        order.cancellation_requested = True
+        order.cancellation_reason = final_reason
+        order.cancellation_approved = None
+        order.save(update_fields=["cancellation_requested", "cancellation_reason", "cancellation_approved"])
+        
+        # You might want to add notification/email functionality here
+        # send_cancellation_notification(order, request.user)
+        
+        messages.success(request, "Cancellation request submitted successfully! We'll process it within 24 hours.")
+        return redirect("order_detail", order_id=order.order_id or order.id)
+
+    # Pre-populate form data if needed (for GET requests)
+    context = {
+        "order": order,
+        "cancellable_statuses": cancellable_statuses,
+    }
+    
+    return render(request, "user/orders/cancel_request.html", context)
     
 @staff_member_required(login_url="admin_login")
 @never_cache
@@ -910,11 +991,28 @@ def admin_approve_reject_return(request, item_id, action):
 @never_cache
 def track_order_search(request):
     order = None
+    current_step = 0
+    
     if request.method == "POST":
-        order_code = request.POST.get("order_code")
+        order_code = request.POST.get("order_code", "").strip()
         try:
             order = Order.objects.get(order_code=order_code)
+            
+            # Calculate current step for progress tracker based on your ORDER_STATUS
+            status_mapping = {
+                "Pending": 0,              # Order Placed
+                "Processing": 1,           # Confirmed
+                "Shipped": 2,              # Shipped
+                "Out For Delivery": 3,     # Out for Delivery
+                "Delivered": 4,            # Delivered
+                "Cancelled": 0,            # Reset for cancelled orders
+                "Returned": 0,             # Reset for returned orders
+            }
+            current_step = status_mapping.get(order.order_status, 0)
+            
         except Order.DoesNotExist:
+            order = None
+        except Exception as e:
             order = None
 
     breadcrumbs = [
@@ -925,6 +1023,7 @@ def track_order_search(request):
 
     context = {
         "order": order,
+        "current_step": current_step,
         "breadcrumbs": breadcrumbs,
     }
 
@@ -1307,13 +1406,45 @@ def payment_success(request, order_id):
             return redirect("order_failed", order_id=order_id)
 
         
+from decimal import Decimal
+from decouple import config
+
 @login_required(login_url='login')
 @never_cache
 def payment_failed(request, order_id):
     order = get_object_or_404(Order, order_id=order_id, user=request.user)
+    
+    # Update payment status to Failed
     order.payment_status = "Failed"
-    order.save()
-    return render(request, "user/orders/payment_failed.html", {"order": order})
+    order.save(update_fields=['payment_status'])
+    
+    # Calculate order totals for the template
+    subtotal = order.total_price
+    discount = order.discount or Decimal('0')
+    delivery_charge = Decimal(config("DELIVERY_CHARGE", 50))
+    tax_rate = Decimal(config("TAX_RATE", 0.18))
+    
+    total_after_discount = max(subtotal - discount, Decimal('0'))
+    total_tax = (total_after_discount * tax_rate).quantize(Decimal('0.01'))
+    grand_total = (total_after_discount + total_tax + delivery_charge).quantize(Decimal('0.01'))
+    
+    # Get other pending orders for the user
+    user_orders = Order.objects.filter(
+        user=request.user, 
+        payment_status="Pending"
+    ).order_by('-created_at')
+
+    context = {
+        "order": order,
+        "user_orders": user_orders,
+        "subtotal": subtotal,
+        "discount": discount,
+        "total_tax": total_tax,
+        "delivery_charge": delivery_charge,
+        "grand_total": grand_total,
+    }
+    
+    return render(request, "user/orders/payment_failed.html", context)
 
 def retry_payment(request, order_id):
     order = get_object_or_404(Order, order_id=order_id)

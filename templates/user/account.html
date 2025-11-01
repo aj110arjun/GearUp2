@@ -154,7 +154,7 @@
           <div class="flex items-center justify-between">
             <div>
               <p class="text-gray-500 text-sm font-medium mb-1">Total Orders</p>
-              <p class="text-3xl font-bold text-gray-800">24</p>
+              <p class="text-3xl font-bold text-gray-800">{{ total_orders }}</p>
             </div>
             <div class="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center">
               <i class="fas fa-shopping-bag text-2xl text-blue-600"></i>
@@ -166,7 +166,7 @@
           <div class="flex items-center justify-between">
             <div>
               <p class="text-gray-500 text-sm font-medium mb-1">Total Spent</p>
-              <p class="text-3xl font-bold text-gray-800">$2,459</p>
+              <p class="text-3xl font-bold text-gray-800">₹{{ total_spent }}</p>
             </div>
             <div class="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center">
               <i class="fas fa-dollar-sign text-2xl text-green-600"></i>
@@ -178,7 +178,7 @@
           <div class="flex items-center justify-between">
             <div>
               <p class="text-gray-500 text-sm font-medium mb-1">Wishlist Items</p>
-              <p class="text-3xl font-bold text-gray-800">12</p>
+              <p class="text-3xl font-bold text-gray-800">{{ wishlist_items }}</p>
             </div>
             <div class="w-14 h-14 bg-purple-100 rounded-full flex items-center justify-center">
               <i class="fas fa-heart text-2xl text-purple-600"></i>
@@ -189,11 +189,11 @@
         <div class="bg-white rounded-2xl p-6 shadow-lg card-hover fade-in border-l-4 border-yellow-500">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-gray-500 text-sm font-medium mb-1">Reward Points</p>
-              <p class="text-3xl font-bold text-gray-800">1,250</p>
+              <p class="text-gray-500 text-sm font-medium mb-1">Cart Items</p>
+              <p class="text-3xl font-bold text-gray-800">{{ cart_items }}</p>
             </div>
             <div class="w-14 h-14 bg-yellow-100 rounded-full flex items-center justify-center">
-              <i class="fas fa-star text-2xl text-yellow-600"></i>
+              <i class="fas fa-cart-plus text-2xl text-yellow-600"></i>
             </div>
           </div>
         </div>
@@ -219,65 +219,49 @@
             </div>
 
             <div class="space-y-4">
-              <!-- Order Item -->
-              <div class="border border-gray-200 rounded-xl p-4 hover:shadow-md transition">
-                <div class="flex items-center justify-between mb-3">
-                  <div class="flex items-center space-x-3">
-                    <div class="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
-                      <i class="fas fa-box text-2xl text-gray-400"></i>
-                    </div>
-                    <div>
-                      <p class="font-semibold text-gray-800">Order #ORD-2024-1234</p>
-                      <p class="text-sm text-gray-500">Placed on Oct 28, 2025</p>
-                    </div>
-                  </div>
-                  <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">Delivered</span>
-                </div>
-                <div class="flex items-center justify-between text-sm">
-                  <p class="text-gray-600">3 items • $159.99</p>
-                  <a href="#" class="text-blue-600 hover:text-blue-700 font-medium">View Details</a>
-                </div>
-              </div>
+
 
               <!-- Order Item -->
+               {% for order in orders %}
               <div class="border border-gray-200 rounded-xl p-4 hover:shadow-md transition">
                 <div class="flex items-center justify-between mb-3">
                   <div class="flex items-center space-x-3">
                     <div class="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
-                      <i class="fas fa-box text-2xl text-gray-400"></i>
+                      <img src="{{order.product.product.image.url}}" alt="{{order.product.product.name}}" class="w-12 h-12 object-cover rounded-full">
                     </div>
                     <div>
-                      <p class="font-semibold text-gray-800">Order #ORD-2024-1233</p>
-                      <p class="text-sm text-gray-500">Placed on Oct 25, 2025</p>
+                      <p class="font-semibold text-gray-800">Order {{order.order_code}}</p>
+                      <p class="text-sm text-gray-500">{{order.created_at|date:"j F Y"}}</p>
                     </div>
                   </div>
-                  <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">In Transit</span>
+                  {% if order.order_status == "Pending" %}
+                  <span class="px-3 py-1 bg-yellow-100 text-yellow-800 text-sm font-medium rounded-full">Pending</span>
+                  {% elif order.order_status == "Shipped" %}
+                  <span class="px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">Shipped</span>
+                  {% elif order.order_status == "Out for Delivery" %}
+                  <span class="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full">Out for Delivery</span>
+                  {% elif order.order_status == "Delivered" %}
+                  <span class="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full">Delivered</span>
+                  {% elif order.order_status == "Cancelled" %}
+                  <span class="px-3 py-1 bg-red-100 text-red-800 text-sm font-medium rounded-full">Cancelled</span>
+                  {% elif order.order_status == "Returned" %}
+                  <span class="px-3 py-1 bg-gray-100 text-gray-800 text-sm font-medium rounded-full">Returned</span>
+                  {% else %}
+                  <span class="px-3 py-1 bg-purple-100 text-purple-800 text-sm font-medium rounded-full">{{order.order_status}}</span>
+                  {% endif %}
                 </div>
                 <div class="flex items-center justify-between text-sm">
-                  <p class="text-gray-600">2 items • $89.99</p>
-                  <a href="#" class="text-blue-600 hover:text-blue-700 font-medium">Track Order</a>
-                </div>
-              </div>
+                  <p class="text-gray-600"> ${{order.total_price}}</p>
 
-              <!-- Order Item -->
-              <div class="border border-gray-200 rounded-xl p-4 hover:shadow-md transition">
-                <div class="flex items-center justify-between mb-3">
-                  <div class="flex items-center space-x-3">
-                    <div class="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
-                      <i class="fas fa-box text-2xl text-gray-400"></i>
-                    </div>
-                    <div>
-                      <p class="font-semibold text-gray-800">Order #ORD-2024-1232</p>
-                      <p class="text-sm text-gray-500">Placed on Oct 20, 2025</p>
-                    </div>
-                  </div>
-                  <span class="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium">Processing</span>
-                </div>
-                <div class="flex items-center justify-between text-sm">
-                  <p class="text-gray-600">1 item • $299.99</p>
-                  <a href="#" class="text-blue-600 hover:text-blue-700 font-medium">View Details</a>
+                  <a href="{% url 'order_detail' order.order_id %}" class="text-blue-600 hover:text-blue-700 font-medium">View Details</a>
                 </div>
               </div>
+              {% empty %}
+              <p class="text-gray-600">No recent orders found.</p>
+              {% endfor %}
+              <!-- End Order Item -->
+
+              
             </div>
           </div>
 
@@ -378,59 +362,17 @@
                 </div>
                 <i class="fas fa-chevron-right text-gray-400"></i>
               </a>
-
-              <a href="#" class="flex items-center space-x-3 p-3 rounded-xl hover:bg-orange-50 transition group">
-                <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center group-hover:bg-orange-200">
-                  <i class="fas fa-gift text-orange-600"></i>
-                </div>
-                <div class="flex-1">
-                  <p class="font-semibold text-gray-800">Rewards</p>
-                  <p class="text-xs text-gray-500">View your points</p>
-                </div>
-                <i class="fas fa-chevron-right text-gray-400"></i>
-              </a>
-            </div>
-          </div>
-
-          <!-- Security Settings -->
-          <div class="bg-white rounded-2xl shadow-lg p-6 fade-in">
-            <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center space-x-2">
-              <i class="fas fa-shield-alt text-green-600"></i>
-              <span>Security</span>
-            </h2>
-            
-            <div class="space-y-3">
-              <a href="#" class="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 transition">
-                <div class="flex items-center space-x-3">
-                  <i class="fas fa-key text-gray-600"></i>
-                  <span class="font-medium text-gray-800">Change Password</span>
-                </div>
-                <i class="fas fa-chevron-right text-gray-400"></i>
-              </a>
-
-              <a href="#" class="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 transition">
-                <div class="flex items-center space-x-3">
-                  <i class="fas fa-mobile-alt text-gray-600"></i>
-                  <span class="font-medium text-gray-800">Two-Factor Auth</span>
-                </div>
-                <i class="fas fa-chevron-right text-gray-400"></i>
-              </a>
-
-              <a href="#" class="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 transition">
-                <div class="flex items-center space-x-3">
-                  <i class="fas fa-bell text-gray-600"></i>
-                  <span class="font-medium text-gray-800">Notifications</span>
-                </div>
-                <i class="fas fa-chevron-right text-gray-400"></i>
-              </a>
             </div>
           </div>
 
           <!-- Logout Button -->
-          <a href="{% url 'logout' %}" class="block w-full bg-gradient-to-r from-red-500 to-red-600 text-white text-center px-6 py-4 rounded-2xl font-semibold hover:from-red-600 hover:to-red-700 transition shadow-lg flex items-center justify-center space-x-2">
-            <i class="fas fa-sign-out-alt"></i>
-            <span>Logout</span>
-          </a>
+          <div class="bg-white rounded-2xl shadow-lg p-6 fade-in">
+            <a href="{% url 'logout' %}" class="w-full flex items-center justify-center px-4 py-3 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition shadow-lg">
+              <i class="fas fa-sign-out-alt mr-2"></i>
+              <span>Logout</span>
+            </a>
+          </div>
+        </div>
         </div>
       </div>
     </div>
