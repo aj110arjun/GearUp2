@@ -14,6 +14,9 @@ from reportlab.lib import colors
 from reportlab.platypus import Table, TableStyle, Paragraph
 from django.utils import timezone
 from reportlab.lib.styles import getSampleStyleSheet
+from django.db.models.functions import ExtractMonth, ExtractYear
+from django.http import JsonResponse
+
 
 
 
@@ -99,26 +102,29 @@ def dashboard(request):
     # Order Stats
     total_orders = Order.objects.count()
     completed_orders = Order.objects.filter(payment_status="Paid").count()
-    # pending_orders = Order.objects.filter(status="pending").count()
+    pending_orders = Order.objects.filter(order_status="Pending").count()  # Uncommented
     total_sales_decimal = Order.objects.filter(payment_status="Paid") \
         .aggregate(total=Sum("total_price"))["total"] or 0
     total_sales = int(total_sales_decimal)
 
-    # Top 10 Products
+    # Top 10 Products (commented out as in your original)
+    top_products = []  # Placeholder since you commented this out
     # top_products = (
-    #     # OrderItem.objects.values("variant__product__name")
+    #     OrderItem.objects.values("variant__product__name")
     #     .annotate(quantity_sold=Sum("quantity"))
     #     .order_by("-quantity_sold")[:10]
     # )
 
-    # Top 10 Categories
+    # Top 10 Categories (commented out as in your original)
+    top_categories = []  # Placeholder
     # top_categories = (
     #     OrderItem.objects.values("variant__product__category__name")
     #     .annotate(quantity_sold=Sum("quantity"))
     #     .order_by("-quantity_sold")[:10]
     # )
 
-    # Top 10 Brands
+    # Top 10 Brands (commented out as in your original)
+    top_brands = []  # Placeholder
     # top_brands = (
     #     OrderItem.objects.values("variant__product__brand")
     #     .annotate(quantity_sold=Sum("quantity"))
@@ -126,23 +132,28 @@ def dashboard(request):
     # )
 
     today = date.today()
+    sales_data = []
 
     if selected_filter == 'monthly':
         # Aggregate total sales per month for the current year
         sales_qs = (
             Order.objects.filter(payment_status="Paid", created_at__year=today.year)
-            .annotate(month=Sum("created_at__month"))
+            .annotate(month=ExtractMonth("created_at"))
             .values("month")
             .annotate(total=Sum("total_price"))
             .order_by("month")
         )
-        # prepare monthly sales data with month labels (Jan, Feb, etc.)
+        
+        # Prepare monthly sales data with month labels (Jan, Feb, etc.)
         monthly_sales = []
         month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
                        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        
+        # Create a dictionary for easy lookup
+        sales_dict = {item['month']: float(item['total']) for item in sales_qs}
+        
         for i in range(1, 13):
-            month_data = next((item for item in sales_qs if item['month'] == i), None)
-            total = float(month_data['total']) if month_data else 0
+            total = sales_dict.get(i, 0.0)
             monthly_sales.append({"date": month_names[i-1], "sales": total})
 
         sales_data = monthly_sales
@@ -151,17 +162,18 @@ def dashboard(request):
         # Aggregate total sales per year for all available years
         sales_qs = (
             Order.objects.filter(payment_status="Paid")
-            .annotate(year=Sum("created_at__year"))
+            .annotate(year=ExtractYear("created_at"))
             .values("year")
             .annotate(total=Sum("total_price"))
             .order_by("year")
         )
+        
         yearly_sales = []
-        available_years = sorted(set(item['year'] for item in sales_qs))
-        for year in available_years:
-            year_data = next((item for item in sales_qs if item['year'] == year), None)
-            total = float(year_data['total']) if year_data else 0
-            yearly_sales.append({"date": str(year), "sales": total})
+        for item in sales_qs:
+            yearly_sales.append({
+                "date": str(item['year']), 
+                "sales": float(item['total'])
+            })
 
         sales_data = yearly_sales
 
@@ -169,28 +181,35 @@ def dashboard(request):
         # Daily - last 7 days sales
         last_7_days = [today - timedelta(days=i) for i in range(6, -1, -1)]
         daily_sales = []
+        
         for day in last_7_days:
-            day_sales = (
-                Order.objects.filter(payment_status="Paid", created_at__date=day)
-                .aggregate(total=Sum("total_price"))["total"] or 0
-            )
-            daily_sales.append({"date": day.strftime("%b %d"), "sales": float(day_sales)})
+            day_sales = Order.objects.filter(
+                payment_status="Paid", 
+                created_at__date=day
+            ).aggregate(total=Sum("total_price"))["total"] or 0
+            
+            daily_sales.append({
+                "date": day.strftime("%b %d"), 
+                "sales": float(day_sales)
+            })
+        
         sales_data = daily_sales
 
     context = {
         "total_orders": total_orders,
         "completed_orders": completed_orders,
-        # "pending_orders": pending_orders,
+        "pending_orders": pending_orders,
         "total_sales": total_sales,
-        # "top_products": top_products,
-        # "top_categories": top_categories,
-        # "top_brands": top_brands,
+        "top_products": top_products,
+        "top_categories": top_categories,
+        "top_brands": top_brands,
         "daily_sales": sales_data,  # dynamic sales data by filter
         "selected_filter": selected_filter,
     }
     return render(request, 'custom_admin/dashboard.html', context)
 
 @staff_member_required(login_url='admin_login')
+@never_cache
 def download_sales_report_pdf(request):
     # Create HttpResponse with PDF headers
     response = HttpResponse(content_type='application/pdf')
@@ -210,7 +229,7 @@ def download_sales_report_pdf(request):
     pdf.drawCentredString(width / 2, height - 80, f"Generated on: {date.today().strftime('%Y-%m-%d')}")
 
     # Prepare data for table with header
-    table_data = [['Date', 'Total Sales (Rs.)', 'Orders Count', 'Top 3 Products (Quantity)']]
+    table_data = [['Date', 'Total Sales (Rs.)', 'Orders Count', 'Status Breakdown', 'Avg. Order Value']]
 
     styles = getSampleStyleSheet()
     wrap_style = styles["BodyText"]
@@ -218,31 +237,42 @@ def download_sales_report_pdf(request):
     wrap_style.leading = 10
 
     today = date.today()
+    weekly_data = []
 
     for i in range(6, -1, -1):
         current_day = today - timedelta(days=i)
-        daily_orders = Order.objects.filter(payment_status='Pending', created_at__date=current_day)
+        daily_orders = Order.objects.filter(created_at__date=current_day)
         total_sales = daily_orders.aggregate(total=Sum('total_price'))['total'] or 0
         orders_count = daily_orders.count()
+        
+        # Calculate average order value
+        avg_order_value = total_sales / orders_count if orders_count > 0 else 0
 
-        top_products_qs = (
-            OrderItem.objects.filter(order__in=daily_orders)
-            .values('variant__product__name')
-            .annotate(quantity_sold=Sum('quantity'))
-            .order_by('-quantity_sold')[:3]
-        )
+        # Get status breakdown
+        paid_count = daily_orders.filter(payment_status='Paid').count()
+        pending_count = daily_orders.filter(payment_status='Pending').count()
+        status_info = f"Paid: {paid_count}\nPending: {pending_count}"
+        status_para = Paragraph(status_info, wrap_style)
 
-        # Format top products as a Paragraph for word wrap
-        product_lines = []
-        for p in top_products_qs:
-            product_lines.append(f"{p['variant__product__name']} ({p['quantity_sold']})")
-        top_products_para = Paragraph('<br />'.join(product_lines) if product_lines else 'N/A', wrap_style)
-
-        # Append each row; for Paragraph cell use later
-        table_data.append([current_day.strftime('%Y-%m-%d'), f"Rs.{total_sales:,}", orders_count, top_products_para])
+        # Append each row
+        table_data.append([
+            current_day.strftime('%Y-%m-%d'), 
+            f"Rs.{total_sales:,.0f}", 
+            orders_count, 
+            status_para, 
+            f"Rs.{avg_order_value:,.0f}" if orders_count > 0 else "Rs.0"
+        ])
+        
+        weekly_data.append({
+            'date': current_day,
+            'total_sales': total_sales,
+            'orders_count': orders_count,
+            'paid_count': paid_count,
+            'pending_count': pending_count
+        })
 
     # Create table with column widths
-    col_widths = [80, 100, 80, 220]
+    col_widths = [80, 90, 70, 80, 90]
     table = Table(table_data, colWidths=col_widths)
 
     # Define Table Style for headers and rows
@@ -251,23 +281,50 @@ def download_sales_report_pdf(request):
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 12),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
-        ('TOPPADDING', (0, 0), (-1, 0), 10),
+        ('FONTSIZE', (0, 0), (-1, 0), 9),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+        ('TOPPADDING', (0, 0), (-1, 0), 8),
         ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
         ('VALIGN', (0, 1), (-1, -1), 'MIDDLE'),
-        ('FONTSIZE', (0, 1), (-1, -1), 10),
-        ('LEFTPADDING', (3, 1), (3, -1), 6),  # Padding in top products column
+        ('FONTSIZE', (0, 1), (-1, -1), 8),
+        ('LEFTPADDING', (0, 1), (-1, -1), 4),
+        ('RIGHTPADDING', (0, 1), (-1, -1), 4),
     ])
     table.setStyle(table_style)
 
-    # Calculate Y position to draw the table (start below title)
+    # Calculate Y position to draw the table
     available_height = height - 120
-    table_width, table_height = table.wrapOn(pdf, width - 80, available_height)
-    x_start = 40
+    table_width, table_height = table.wrapOn(pdf, width - 40, available_height)
+    x_start = 20
     y_start = available_height - table_height
 
     table.drawOn(pdf, x_start, y_start)
+
+    # Add summary section
+    summary_y = y_start - 80
+    
+    pdf.setFont("Helvetica-Bold", 14)
+    pdf.drawString(40, summary_y, "Weekly Summary")
+    
+    # Calculate weekly totals
+    weekly_total_sales = sum(day['total_sales'] for day in weekly_data)
+    weekly_total_orders = sum(day['orders_count'] for day in weekly_data)
+    weekly_paid_orders = sum(day['paid_count'] for day in weekly_data)
+    weekly_pending_orders = sum(day['pending_count'] for day in weekly_data)
+    
+    avg_weekly_order_value = weekly_total_sales / weekly_total_orders if weekly_total_orders > 0 else 0
+    conversion_rate = (weekly_paid_orders / weekly_total_orders) * 100 if weekly_total_orders > 0 else 0
+
+    pdf.setFont("Helvetica", 10)
+    pdf.drawString(40, summary_y - 20, f"Total Weekly Sales: Rs.{weekly_total_sales:,.0f}")
+    pdf.drawString(40, summary_y - 35, f"Total Weekly Orders: {weekly_total_orders}")
+    pdf.drawString(40, summary_y - 50, f"Paid Orders: {weekly_paid_orders} | Pending Orders: {weekly_pending_orders}")
+    pdf.drawString(40, summary_y - 65, f"Average Order Value: Rs.{avg_weekly_order_value:,.0f}")
+    pdf.drawString(40, summary_y - 80, f"Payment Conversion Rate: {conversion_rate:.1f}%")
+    
+    # Best performing day
+    best_day = max(weekly_data, key=lambda x: x['total_sales'])
+    pdf.drawString(40, summary_y - 100, f"Best Day: {best_day['date'].strftime('%Y-%m-%d')} (Rs.{best_day['total_sales']:,.0f})")
 
     # Finalize PDF
     pdf.showPage()

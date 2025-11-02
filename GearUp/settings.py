@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'wallet.apps.WalletConfig',
     'cloudinary',
     'cloudinary_storage',
+    
 ]
 
 cloudinary.config(

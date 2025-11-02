@@ -1,152 +1,407 @@
 {% extends 'custom_admin/base.html' %}
 {% load static %}
 
-{% block title %}Edit Product - {{ product.name }}{% endblock %}
+{% block title %}Edit {{ product.name }} | Admin Panel{% endblock %}
 
 {% block content %}
-<div class="max-w-6xl mx-auto bg-white shadow-md rounded-2xl p-8 mt-8">
-  <h2 class="text-2xl font-semibold text-gray-800 mb-6">Edit Product</h2>
-
-  <form method="POST" enctype="multipart/form-data" class="space-y-6">
-    {% csrf_token %}
-
-    <!-- Product Info -->
-    <div>
-      <label class="block text-gray-700 font-medium mb-1">Product Name</label>
-      <input type="text" name="name" value="{{ product.name }}"
-             class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 {% if errors.name %}border-red-500{% endif %}">
-      {% if errors.name %}
-        <p class="text-red-500 text-sm mt-1">{{ errors.name }}</p>
-      {% endif %}
-    </div>
-
-    <div>
-      <label class="block text-gray-700 font-medium mb-1">Brand</label>
-      <input type="text" name="brand" value="{{ product.brand }}"
-             class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 {% if errors.brand %}border-red-500{% endif %}">
-      {% if errors.brand %}
-        <p class="text-red-500 text-sm mt-1">{{ errors.brand }}</p>
-      {% endif %}
-    </div>
-
-    <div>
-      <label class="block text-gray-700 font-medium mb-1">Description</label>
-      <textarea name="description"
-                class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 {% if errors.description %}border-red-500{% endif %}">{{ product.description }}</textarea>
-      {% if errors.description %}
-        <p class="text-red-500 text-sm mt-1">{{ errors.description }}</p>
-      {% endif %}
-    </div>
-
-    <div>
-      <label class="block text-gray-700 font-medium mb-1">Category</label>
-      <select name="category"
-              class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 {% if errors.category %}border-red-500{% endif %}">
-        <option value="">-- Select Category --</option>
-        {% for c in categories %}
-          <option value="{{ c.id }}" {% if product.category.id == c.id %}selected{% endif %}>{{ c.name }}</option>
-        {% endfor %}
-      </select>
-      {% if errors.category %}
-        <p class="text-red-500 text-sm mt-1">{{ errors.category }}</p>
-      {% endif %}
-    </div>
-
-    <!-- Main Image -->
-    <div>
-      <label class="block text-gray-700 font-medium mb-1">Main Image</label>
-      {% if product.image %}
-        <img id="image-preview" src="{{ product.image.url }}" alt="Main Image"
-             class="mb-2 w-32 h-32 object-cover rounded-lg shadow-sm">
-      {% else %}
-        <img id="image-preview" style="display:none;" class="mb-2 w-32 h-32 object-cover rounded-lg shadow-sm">
-      {% endif %}
-      <input type="file" id="image-input" name="cropped_image"
-             class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 {% if errors.image %}border-red-500{% endif %}">
-      {% if errors.image %}
-        <p class="text-red-500 text-sm mt-1">{{ errors.image }}</p>
-      {% endif %}
-    </div>
-
-    <!-- Active Checkbox -->
-    <div class="flex items-center gap-2">
-      <input type="checkbox" name="is_active" id="is_active" class="h-4 w-4 text-indigo-600 rounded" {% if product.is_active %}checked{% endif %}>
-      <label for="is_active" class="text-gray-700 font-medium">Active</label>
-    </div>
-
-    <hr class="my-6">
-
-    <!-- Variants -->
-    <div>
-      <h3 class="text-lg font-semibold text-gray-800 mb-3">Existing Variants</h3>
-      <div class="overflow-x-auto border border-gray-200 rounded-lg">
-        <table class="min-w-full divide-y divide-gray-200 text-gray-700">
-          <thead class="bg-gray-100">
-            <tr>
-              <th class="px-4 py-2 text-left font-medium">Color</th>
-              <th class="px-4 py-2 text-left font-medium">Size</th>
-              <th class="px-4 py-2 text-left font-medium">Price</th>
-              <th class="px-4 py-2 text-left font-medium">Stock</th>
-              <th class="px-4 py-2 text-left font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-100">
-            {% for v in variants %}
-            <tr class="hover:bg-gray-50">
-              <td class="px-4 py-2">{{ v.color }}</td>
-              <td class="px-4 py-2">{{ v.size }}</td>
-              <td class="px-4 py-2">₹{{ v.price }}</td>
-              <td class="px-4 py-2">{{ v.stock }}</td>
-              <td class="px-4 py-2 flex gap-2">
-                <a href="{% url 'admin_variant_edit' v.id %}" class="px-2 py-1 border border-indigo-500 text-indigo-600 rounded hover:bg-indigo-50 text-sm">Edit</a>
-                <a href="{% url 'admin_variant_delete' v.id %}" class="px-2 py-1 border border-red-500 text-red-600 rounded hover:bg-red-50 text-sm">Delete</a>
-              </td>
-            </tr>
-            {% empty %}
-            <tr>
-              <td colspan="5" class="px-4 py-2 text-gray-500 text-center">No variants yet.</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      <a href="{% url 'admin_variant_add' product.id %}"
-         class="inline-block mt-3 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm">+ Add Variant</a>
-    </div>
-
-    <hr class="my-6">
-
-    <!-- Additional Images -->
-   <div>
-        <h3 class="text-lg font-semibold text-gray-800 mb-3">Additional Images</h3>
-        <div class="flex flex-wrap gap-4 mb-3">
-            {% for img in additional_images %}
-            <div class="relative w-24 h-24 group">
-                <img src="{{ img.image.url }}" alt="Additional Image"
-                    class="w-24 h-24 object-cover rounded-lg shadow-sm">
-
-                <!-- Delete button overlay -->
-                <button type="button"
-                        onclick="document.getElementById('delete_image_{{ img.id }}').checked = true; this.parentElement.style.display='none';"
-                        class="absolute top-1 right-1 bg-red-600 text-white w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-700 transition"
-                        title="Delete Image">
-                &times;
-                </button>
-
-                <input type="hidden" name="image_id_{{ img.id }}" value="{{ img.id }}">
-                <input type="checkbox" id="delete_image_{{ img.id }}" name="delete_image_{{ img.id }}" class="hidden">
-            </div>
-            {% endfor %}
+<div class="min-h-screen bg-gray-50 py-6">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    
+    <!-- Header Section -->
+    <div class="mb-8">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+        <div>
+          <nav class="flex mb-4" aria-label="Breadcrumb">
+            <ol class="flex items-center space-x-2">
+              <li>
+                <a href="{% url 'admin_product_list' %}" class="text-gray-500 hover:text-gray-700 text-sm font-medium">Products</a>
+              </li>
+              <li>
+                <svg class="flex-shrink-0 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                </svg>
+              </li>
+              <li>
+                <a href="{% url 'admin_product_detail' product.product_id %}" class="text-gray-500 hover:text-gray-700 text-sm font-medium">{{ product.name|truncatechars:20 }}</a>
+              </li>
+              <li>
+                <svg class="flex-shrink-0 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                </svg>
+              </li>
+              <li>
+                <span class="text-gray-700 text-sm font-medium">Edit Product</span>
+              </li>
+            </ol>
+          </nav>
+          <h1 class="text-3xl font-bold text-gray-900">Edit Product</h1>
+          <p class="mt-2 text-gray-600">Update product details, images, and variants</p>
         </div>
-        <a href="{% url 'admin_image_add' product.id %}"
-            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm">+ Add Image</a>
+        
+        <div class="flex flex-wrap gap-3 mt-4 md:mt-0">
+          <a href="{% url 'admin_product_detail' product.product_id %}"
+             class="inline-flex items-center px-4 py-2.5 bg-white text-gray-700 text-sm font-medium rounded-lg border border-gray-300 shadow-sm hover:bg-gray-50 transition-all duration-200">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Product
+          </a>
+        </div>
+      </div>
     </div>
 
-    <button type="submit"
-            class="px-6 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition">Save Changes</button>
-  </form>
+    <!-- Main Form -->
+    <form method="POST" enctype="multipart/form-data" class="space-y-8">
+      {% csrf_token %}
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- Left Column - Product Details -->
+        <div class="lg:col-span-2 space-y-6">
+          
+          <!-- Basic Information Card -->
+          <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="border-b border-gray-200 px-6 py-4">
+              <h2 class="text-lg font-semibold text-gray-900">Basic Information</h2>
+              <p class="text-sm text-gray-600 mt-1">Essential product details and description</p>
+            </div>
+            <div class="p-6 space-y-6">
+              <!-- Product Name -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Product Name *</label>
+                <input type="text" name="name" value="{{ product.name }}" required
+                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200 {% if errors.name %}border-red-500 ring-1 ring-red-500{% endif %}"
+                       placeholder="Enter product name">
+                {% if errors.name %}
+                  <p class="text-red-500 text-sm mt-2 flex items-center">
+                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                    {{ errors.name }}
+                  </p>
+                {% endif %}
+              </div>
+
+              <!-- Brand -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Brand</label>
+                <input type="text" name="brand" value="{{ product.brand }}"
+                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200 {% if errors.brand %}border-red-500 ring-1 ring-red-500{% endif %}"
+                       placeholder="Enter brand name">
+                {% if errors.brand %}
+                  <p class="text-red-500 text-sm mt-2 flex items-center">
+                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                    {{ errors.brand }}
+                  </p>
+                {% endif %}
+              </div>
+
+              <!-- Category -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Category *</label>
+                <select name="category" required
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200 {% if errors.category %}border-red-500 ring-1 ring-red-500{% endif %}">
+                  <option value="">Select a category</option>
+                  {% for c in categories %}
+                    <option value="{{ c.id }}" {% if product.category.id == c.id %}selected{% endif %}>{{ c.name }}</option>
+                  {% endfor %}
+                </select>
+                {% if errors.category %}
+                  <p class="text-red-500 text-sm mt-2 flex items-center">
+                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                    {{ errors.category }}
+                  </p>
+                {% endif %}
+              </div>
+
+              <!-- Description -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                <textarea name="description" rows="5"
+                          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200 {% if errors.description %}border-red-500 ring-1 ring-red-500{% endif %}"
+                          placeholder="Enter product description">{{ product.description }}</textarea>
+                {% if errors.description %}
+                  <p class="text-red-500 text-sm mt-2 flex items-center">
+                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                    {{ errors.description }}
+                  </p>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <!-- Variants Management Card -->
+          <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+              <div>
+                <h2 class="text-lg font-semibold text-gray-900">Product Variants</h2>
+                <p class="text-sm text-gray-600 mt-1">Manage colors, sizes, prices, and stock</p>
+              </div>
+              <a href="{% url 'admin_variant_add' product.id %}"
+                 class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-all duration-200">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Add Variant
+              </a>
+            </div>
+            <div class="p-6">
+              {% if variants %}
+                <div class="overflow-x-auto border border-gray-200 rounded-lg">
+                  <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                      <tr>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Color</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Size</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Price</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Stock</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                      {% for v in variants %}
+                      <tr class="hover:bg-gray-50 transition-colors duration-150">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                          <div class="flex items-center">
+                            {% if v.color %}
+                              <div class="w-3 h-3 rounded-full mr-2 border border-gray-300"></div>
+                              <span class="text-sm text-gray-900 capitalize">{{ v.color }}</span>
+                            {% else %}
+                              <span class="text-sm text-gray-500">—</span>
+                            {% endif %}
+                          </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                          <span class="text-sm text-gray-900">{{ v.size|default:"—" }}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                          <span class="text-sm font-semibold text-gray-900">₹{{ v.price }}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                          {% if v.stock > 10 %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              {{ v.stock }}
+                            </span>
+                          {% elif v.stock > 0 %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                              {{ v.stock }}
+                            </span>
+                          {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                              {{ v.stock }}
+                            </span>
+                          {% endif %}
+                        </td>
+                        
+                        <td class="px-6 py-4 whitespace-nowrap">
+                          <div class="flex items-center space-x-2">
+                            <a href="{% url 'admin_variant_edit' v.id %}" 
+                               class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors duration-200">
+                              <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                              Edit
+                            </a>
+                            <a href="{% url 'admin_variant_delete' v.id %}" 
+                               class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 transition-colors duration-200">
+                              <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                              Delete
+                            </a>
+                          </div>
+                        </td>
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              {% else %}
+                <div class="text-center py-8">
+                  <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                  </svg>
+                  <p class="text-gray-500 text-sm">No variants added yet.</p>
+                  <p class="text-gray-400 text-xs mt-1">Add variants to manage different colors, sizes, and prices.</p>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column - Media & Settings -->
+        <div class="space-y-6">
+          
+          <!-- Main Image Card -->
+          <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="border-b border-gray-200 px-6 py-4">
+              <h2 class="text-lg font-semibold text-gray-900">Main Image</h2>
+              <p class="text-sm text-gray-600 mt-1">Primary product image</p>
+            </div>
+            <div class="p-6">
+              <!-- Image Preview -->
+              <div class="mb-4">
+                {% if product.image %}
+                  <img id="image-preview" src="{{ product.image.url }}" alt="Main Image"
+                       class="w-full h-48 object-contain rounded-lg border-2 border-dashed border-gray-300">
+                {% else %}
+                  <div id="image-preview-placeholder" class="w-full h-48 bg-gray-100 flex flex-col items-center justify-center text-gray-500 rounded-lg border-2 border-dashed border-gray-300">
+                    <svg class="w-12 h-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span class="text-sm">No image selected</span>
+                  </div>
+                  <img id="image-preview" style="display:none;" class="w-full h-48 object-contain rounded-lg border-2 border-dashed border-gray-300">
+                {% endif %}
+              </div>
+
+              <!-- File Input -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Upload New Image</label>
+                <input type="file" id="image-input" name="cropped_image" accept="image/*"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200 {% if errors.image %}border-red-500 ring-1 ring-red-500{% endif %}">
+                {% if errors.image %}
+                  <p class="text-red-500 text-sm mt-2 flex items-center">
+                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                    {{ errors.image }}
+                  </p>
+                {% endif %}
+                <p class="text-xs text-gray-500 mt-2">Recommended: 800x800px, JPG or PNG format</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Additional Images Card -->
+          <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+              <div>
+                <h2 class="text-lg font-semibold text-gray-900">Additional Images</h2>
+                <p class="text-sm text-gray-600 mt-1">Product gallery images</p>
+              </div>
+              <a href="{% url 'admin_image_add' product.id %}"
+                 class="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-all duration-200">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Add
+              </a>
+            </div>
+            <div class="p-6">
+              {% if additional_images %}
+                <div class="grid grid-cols-3 gap-3">
+                  {% for img in additional_images %}
+                  <div class="relative group">
+                    <img src="{{ img.image.url }}" alt="Additional Image"
+                         class="w-full h-20 object-cover rounded-lg border border-gray-200 group-hover:opacity-75 transition-opacity duration-200">
+                    
+                    <!-- Delete Button -->
+                    <button type="button"
+                            onclick="document.getElementById('delete_image_{{ img.id }}').checked = true; this.parentElement.style.display='none';"
+                            class="absolute -top-2 -right-2 bg-red-600 text-white w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-700 transition-all duration-200 text-xs font-bold"
+                            title="Delete Image">
+                      ×
+                    </button>
+                    
+                    <input type="hidden" name="image_id_{{ img.id }}" value="{{ img.id }}">
+                    <input type="checkbox" id="delete_image_{{ img.id }}" name="delete_image_{{ img.id }}" class="hidden">
+                  </div>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <div class="text-center py-4">
+                  <svg class="w-8 h-8 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <p class="text-gray-500 text-sm">No additional images</p>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Settings Card -->
+          <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="border-b border-gray-200 px-6 py-4">
+              <h2 class="text-lg font-semibold text-gray-900">Product Settings</h2>
+            </div>
+            <div class="p-6">
+              <!-- Active Status -->
+              <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div>
+                  <p class="text-sm font-medium text-gray-900">Product Status</p>
+                  <p class="text-xs text-gray-600">Show or hide product from store</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" name="is_active" class="sr-only peer" {% if product.is_active %}checked{% endif %}>
+                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                </label>
+              </div>
+
+              <!-- Form Actions -->
+              <div class="mt-6 space-y-3">
+                <button type="submit"
+                        class="w-full inline-flex items-center justify-center px-4 py-3 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-200">
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Save Changes
+                </button>
+                
+                <a href="{% url 'admin_product_detail' product.product_id %}"
+                   class="w-full inline-flex items-center justify-center px-4 py-3 bg-white text-gray-700 text-sm font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition-all duration-200">
+                  Cancel
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
 </div>
 
-<!-- Optional: Tailwind Cropper JS integration can be added similar to Add Product page -->
+<!-- Image Preview Script -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const imageInput = document.getElementById('image-input');
+    const imagePreview = document.getElementById('image-preview');
+    const imagePreviewPlaceholder = document.getElementById('image-preview-placeholder');
+    
+    if (imageInput) {
+      imageInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            if (imagePreview) {
+              imagePreview.src = e.target.result;
+              imagePreview.style.display = 'block';
+            }
+            if (imagePreviewPlaceholder) {
+              imagePreviewPlaceholder.style.display = 'none';
+            }
+          }
+          reader.readAsDataURL(file);
+        }
+      });
+    }
+  });
+</script>
 
+<style>
+  /* Custom toggle switch styling */
+  .peer:checked ~ .peer-checked\:bg-indigo-600 {
+    background-color: #4f46e5;
+  }
+  .peer:checked ~ .peer-checked\:after\:translate-x-full:after {
+    transform: translateX(100%);
+  }
+</style>
 {% endblock %}

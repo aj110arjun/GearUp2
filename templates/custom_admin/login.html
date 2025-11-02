@@ -5,52 +5,290 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin Login | GearUp</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dhpo5iq3m/image/upload/guide_mar3hq.png">
   <script src="https://unpkg.com/tailwindcss@3.4.10/dist/tailwind.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-  <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dhpo5iq3m/image/upload/guide_mar3hq.png">
+  
+  <style>
+    .btn-primary {
+      background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+      transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #1e3a8a 0%, #1e3a8a 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px -5px rgba(30, 64, 175, 0.4);
+    }
+    
+    .skeleton {
+      background: linear-gradient(90deg, #dbeafe 25%, #bfdbfe 50%, #dbeafe 75%);
+      background-size: 200% 100%;
+      animation: loading 1.5s infinite;
+    }
+    
+    @keyframes loading {
+      0% {
+        background-position: 200% 0;
+      }
+      100% {
+        background-position: -200% 0;
+      }
+    }
+    
+    .admin-glow {
+      box-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
+    }
+  </style>
 </head>
-<body class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 to-blue-600">
+<body class="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-blue-600 flex items-center justify-center p-4">
 
-  <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
-    <h3 class="text-2xl font-bold text-center text-blue-800 mb-6">Admin Login</h3>
-
-    {% if error %}
-      <div class="bg-red-100 border border-red-400 text-red-700 text-sm px-4 py-2 rounded-md mb-4 text-center">
-        {{ error.admin }}
+  <!-- Background Pattern -->
+  <div class="fixed inset-0 bg-black bg-opacity-10"></div>
+  
+  <!-- Main Container -->
+  <div class="relative w-full max-w-5xl flex flex-col lg:flex-row rounded-3xl shadow-2xl overflow-hidden admin-glow">
+    
+    <!-- Left Side - Branding & Security -->
+    <div class="lg:w-1/2 bg-gradient-to-br from-blue-800 to-blue-900 text-white p-12 flex flex-col justify-between">
+      <!-- Skeleton Loader -->
+      <div id="left-skeleton" class="space-y-6">
+        <div class="flex items-center gap-3 mb-8">
+          <div class="skeleton w-12 h-12 rounded-2xl"></div>
+          <div class="skeleton h-8 w-32 rounded"></div>
+        </div>
+        
+        <div class="mb-12 space-y-4">
+          <div class="skeleton h-10 w-3/4 rounded"></div>
+          <div class="skeleton h-4 w-full rounded"></div>
+          <div class="skeleton h-4 w-5/6 rounded"></div>
+        </div>
+        
+        <div class="space-y-6">
+          <div class="flex items-center gap-4">
+            <div class="skeleton w-12 h-12 rounded-xl"></div>
+            <div class="flex-1 space-y-2">
+              <div class="skeleton h-5 w-32 rounded"></div>
+              <div class="skeleton h-3 w-40 rounded"></div>
+            </div>
+          </div>
+          
+          <div class="flex items-center gap-4">
+            <div class="skeleton w-12 h-12 rounded-xl"></div>
+            <div class="flex-1 space-y-2">
+              <div class="skeleton h-5 w-36 rounded"></div>
+              <div class="skeleton h-3 w-44 rounded"></div>
+            </div>
+          </div>
+        </div>
       </div>
-    {% endif %}
 
-    <form method="POST" novalidate class="space-y-5">
-      {% csrf_token %}
+      <!-- Real Content -->
+      <div id="left-content" class="hidden">
+        <div>
+          <!-- Logo & Brand -->
+          <div class="flex items-center gap-3 mb-8">
+            <div class="bg-white bg-opacity-20 p-3 rounded-2xl">
+              <i class="fas fa-crown text-yellow-400 text-2xl"></i>
+            </div>
+            <div>
+              <h1 class="text-3xl font-bold">GearUp</h1>
+              <p class="text-blue-200 text-sm">Administration Portal</p>
+            </div>
+          </div>
+          
+          <!-- Welcome Message -->
+          <div class="mb-12">
+            <h2 class="text-4xl font-bold mb-4">Admin Access</h2>
+            <p class="text-blue-100 text-lg opacity-90">
+              Secure access to the GearUp administration dashboard. Manage products, orders, and customer data.
+            </p>
+          </div>
+          
+          <!-- Security Features -->
+          <div class="space-y-6">
+            <div class="flex items-center gap-4">
+              <div class="bg-white bg-opacity-20 p-3 rounded-xl">
+                <i class="fas fa-shield-alt text-xl"></i>
+              </div>
+              <div>
+                <h3 class="font-semibold text-lg">Enterprise Security</h3>
+                <p class="text-blue-100 text-sm">256-bit SSL encryption & 2FA ready</p>
+              </div>
+            </div>
+            
+            <div class="flex items-center gap-4">
+              <div class="bg-white bg-opacity-20 p-3 rounded-xl">
+                <i class="fas fa-chart-line text-xl"></i>
+              </div>
+              <div>
+                <h3 class="font-semibold text-lg">Analytics Dashboard</h3>
+                <p class="text-blue-100 text-sm">Real-time sales and performance data</p>
+              </div>
+            </div>
+            
+            <div class="flex items-center gap-4">
+              <div class="bg-white bg-opacity-20 p-3 rounded-xl">
+                <i class="fas fa-cog text-xl"></i>
+              </div>
+              <div>
+                <h3 class="font-semibold text-lg">Full Control</h3>
+                <p class="text-blue-100 text-sm">Complete inventory and order management</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="mt-8 text-center lg:text-left">
+          <p class="text-blue-200 text-sm">
+            Restricted Access • Authorized Personnel Only
+          </p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Right Side - Login Form -->
+    <div class="lg:w-1/2 bg-white p-12 flex items-center justify-center">
+      <!-- Skeleton Loader -->
+      <div id="right-skeleton" class="w-full max-w-md space-y-6">
+        <div class="text-center mb-8 space-y-4">
+          <div class="skeleton h-8 w-48 mx-auto rounded"></div>
+          <div class="skeleton h-4 w-64 mx-auto rounded"></div>
+        </div>
 
-      <!-- Username -->
-      <div>
-        <label class="block text-gray-700 font-medium mb-1">Username</label>
-        <input type="text" name="username"
-               class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-               placeholder="Enter your username" required>
+        <div class="space-y-2">
+          <div class="skeleton h-4 w-24 rounded"></div>
+          <div class="skeleton h-12 rounded-xl"></div>
+        </div>
+
+        <div class="space-y-2">
+          <div class="skeleton h-4 w-20 rounded"></div>
+          <div class="skeleton h-12 rounded-xl"></div>
+        </div>
+
+        <div class="skeleton h-14 rounded-xl"></div>
+
+        <div class="text-center mt-8">
+          <div class="skeleton h-4 w-32 mx-auto rounded"></div>
+        </div>
       </div>
 
-      <!-- Password -->
-      <div>
-        <label class="block text-gray-700 font-medium mb-1">Password</label>
-        <input type="password" name="password"
-               class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-               placeholder="Enter your password" required>
+      <!-- Real Form -->
+      <div id="right-content" class="w-full max-w-md hidden">
+        <!-- Form Header -->
+        <div class="text-center mb-8">
+          <div class="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i class="fas fa-lock text-blue-600 text-2xl"></i>
+          </div>
+          <h2 class="text-3xl font-bold text-gray-900 mb-2">Admin Portal</h2>
+          <p class="text-gray-600">Enter your credentials to continue</p>
+        </div>
+
+        <!-- Error Message -->
+        {% if error %}
+          <div class="bg-red-50 border border-red-200 rounded-xl p-4 mb-6 flex items-start gap-3">
+            <i class="fas fa-exclamation-triangle text-red-500 mt-0.5"></i>
+            <div>
+              <p class="text-red-800 font-medium">Authentication Failed</p>
+              <p class="text-red-600 text-sm mt-1">{{ error.admin }}</p>
+            </div>
+          </div>
+        {% endif %}
+
+        <!-- Login Form -->
+        <form method="POST" novalidate class="space-y-6">
+          {% csrf_token %}
+
+          <!-- Username Field -->
+          <div>
+            <label class="block text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
+              <i class="fas fa-user text-blue-600"></i>
+              Username
+            </label>
+            <input type="text" name="username"
+                   class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder-gray-400"
+                   placeholder="Enter admin username" required>
+          </div>
+
+          <!-- Password Field -->
+          <div>
+            <label class="block text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
+              <i class="fas fa-key text-blue-600"></i>
+              Password
+            </label>
+            <input type="password" name="password"
+                   class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder-gray-400"
+                   placeholder="Enter your password" required>
+          </div>
+
+          <!-- Remember Me -->
+          <div class="flex items-center gap-2 text-sm">
+            <input type="checkbox" id="remember" name="remember" class="rounded text-blue-600 focus:ring-blue-500">
+            <label for="remember" class="text-gray-700">Remember this device</label>
+          </div>
+
+          <!-- Submit Button -->
+          <button type="submit"
+                  class="btn-primary w-full text-white py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 font-semibold text-lg flex items-center justify-center gap-2">
+            <i class="fas fa-sign-in-alt"></i>
+            Access Dashboard
+          </button>
+        </form>
+
+        <!-- Security Notice -->
+        <div class="mt-8 text-center">
+          <div class="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-3 rounded-xl text-sm border border-blue-200">
+            <i class="fas fa-shield-check"></i>
+            <span>Protected by advanced security protocols</span>
+          </div>
+        </div>
+
+        <!-- Support Link -->
+        <div class="text-center mt-6">
+          <a href="#" class="text-blue-600 hover:text-blue-800 font-medium transition-colors flex items-center justify-center gap-2 text-sm">
+            <i class="fas fa-life-ring"></i>
+            Need help accessing the portal?
+          </a>
+        </div>
       </div>
-
-      <!-- Submit Button -->
-      <button type="submit"
-              class="w-full bg-blue-700 text-white py-2 rounded-lg font-semibold hover:bg-blue-800 transition">
-        Login
-      </button>
-    </form>
-
-    <!-- Forgot Password -->
-    <div class="text-center mt-4">
-      <a href="#" class="text-blue-600 hover:underline text-sm">Forgot Password?</a>
     </div>
   </div>
 
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Simulate loading
+      setTimeout(() => {
+        document.getElementById('left-skeleton').classList.add('hidden');
+        document.getElementById('right-skeleton').classList.add('hidden');
+        document.getElementById('left-content').classList.remove('hidden');
+        document.getElementById('right-content').classList.remove('hidden');
+      }, 1000);
+
+      // Add focus effects to form inputs
+      const inputs = document.querySelectorAll('input');
+      inputs.forEach(input => {
+        input.addEventListener('focus', function() {
+          this.classList.add('ring-2', 'ring-blue-200', 'border-blue-500');
+        });
+        input.addEventListener('blur', function() {
+          this.classList.remove('ring-2', 'ring-blue-200', 'border-blue-500');
+        });
+      });
+
+      // Add hover effects to button
+      const button = document.querySelector('button');
+      if (button) {
+        button.addEventListener('mouseenter', function() {
+          this.style.transform = 'translateY(-2px)';
+        });
+        button.addEventListener('mouseleave', function() {
+          this.style.transform = 'translateY(0)';
+        });
+      }
+    });
+  </script>
 </body>
 </html>

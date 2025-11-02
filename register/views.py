@@ -312,14 +312,50 @@ def admin_login(request):
 
     return render(request, "custom_admin/login.html")
 
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.contrib.auth.models import User
+from allauth.socialaccount.models import SocialAccount
+from django.db.models import Q
+
 @staff_member_required(login_url='admin_login')
 @never_cache
 def user_list(request):
-    users = User.objects.exclude(is_staff=True).order_by("-date_joined")
+    # Get search query
+    search_query = request.GET.get('q', '').strip()
+    
+    # Base queryset - exclude staff users
+    users_queryset = User.objects.exclude(is_staff=True).order_by("-date_joined")
+    
+    # Pagination
+    page = request.GET.get('page', 1)
+    paginator = Paginator(users_queryset, 10)  # Show 10 users per page
+    
+    try:
+        users = paginator.page(page)
+    except PageNotAnInteger:
+        users = paginator.page(1)
+    except EmptyPage:
+        users = paginator.page(paginator.num_pages)
+    
+    # Get Google OAuth users
     google_users = SocialAccount.objects.filter(provider='google').values_list('user_id', flat=True)
+    
+    # Calculate statistics
+    total_users = User.objects.all().count()
+    active_users = User.objects.filter(is_active=True).count()
+    blocked_users = User.objects.filter(is_active=False).count()
+    google_users_count = len(google_users)
+    
     context = {
         "users": users,
         'google_users': google_users,
+        'search_query': search_query,
+        'stats': {
+            'total': total_users,
+            'active': active_users,
+            'blocked': blocked_users,
+            'google': google_users_count,
+        }
     }
     return render(request, 'custom_admin/users/user_list.html', context)
 
