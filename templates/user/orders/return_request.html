@@ -1,32 +1,203 @@
 {% extends "user/base.html" %}
-{% block title %}Return Order Item{% endblock title %}
+{% block title %}Return Order Item - {{ item.variant.product.name }}{% endblock title %}
 
 {% block content %}
-<div class="max-w-2xl mx-auto my-10 px-4">
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header Section -->
+        <div class="mb-8 text-center">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Return Item</h1>
+            <p class="text-gray-600 max-w-2xl mx-auto">Initiate a return request for your purchased item. Our team will review your request and get back to you shortly.</p>
+        </div>
 
-  <h3 class="text-2xl font-semibold mb-4">Return Order Item</h3>
-  <p class="mb-4"><span class="font-semibold">Product:</span> {{ item.variant.product.name }}</p>
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+            <!-- Order Summary Card -->
+            <div class="p-6 border-b border-gray-200 bg-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Item Details</h2>
+                <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <!-- Product Image -->
+                    <div class="w-20 h-20 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <img src="{{item.variant.product.image.url}}" alt="{{ item.variant.product.name }}" class="w-16 h-16 object-cover rounded-lg">
+                    </div>
+                    
+                    <!-- Product Info -->
+                    <div class="flex-1">
+                        <h3 class="text-xl font-semibold text-gray-900">{{ item.variant.product.name }}</h3>
+                        <div class="flex flex-wrap gap-4 mt-2 text-sm text-gray-600">
+                            <div class="flex items-center">
+                                <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                                </svg>
+                                Color: {{ item.variant.color }}
+                            </div>
+                            <div class="flex items-center">
+                                <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5"></path>
+                                </svg>
+                                Size: {{ item.variant.size }}
+                            </div>
+                            <div class="flex items-center">
+                                <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                </svg>
+                                Order: #{{ item.order.order_code }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Price -->
+                    <div class="text-right">
+                        <p class="text-lg font-semibold text-gray-900">₹{{ item.order.total_price }}</p>
+                        <p class="text-sm text-gray-500">Qty: {{ item.variant.quantity }}</p>
+                    </div>
+                </div>
+            </div>
 
-  <form method="post" class="space-y-4">
-    {% csrf_token %}
+            <!-- Return Form Section -->
+            <div class="p-6">
+                <form method="post" class="space-y-6">
+                    {% csrf_token %}
 
-    <div>
-      <label for="reason" class="block font-medium mb-1">Reason for return</label>
-      <textarea id="reason" name="reason" required 
-                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-400"></textarea>
+                    <!-- Return Reason -->
+                    <div>
+                        <label for="reason" class="block text-sm font-semibold text-gray-900 mb-3">
+                            Reason for Return
+                            <span class="text-red-500 ml-1">*</span>
+                        </label>
+                        <textarea id="reason" name="reason" required 
+                                rows="6"
+                                placeholder="Please provide detailed reason for returning this item. Include any issues with the product, wrong item received, or other concerns..."
+                                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none"></textarea>
+                        <p class="text-sm text-gray-500 mt-2">Please be specific about the reason to help us process your return faster.</p>
+                    </div>
+
+                    <!-- Return Policy Information -->
+                    <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                        <div class="flex items-start">
+                            <svg class="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <div>
+                                <h4 class="text-sm font-semibold text-blue-900 mb-1">Return Policy</h4>
+                                <ul class="text-sm text-blue-800 space-y-1">
+                                    <li>• Returns are accepted within 30 days of delivery</li>
+                                    <li>• Item must be in original condition with tags attached</li>
+                                    <li>• Refund will be processed within 5-7 business days after inspection</li>
+                                    <li>• Shipping charges are non-refundable for change of mind returns</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex flex-col sm:flex-row gap-4 pt-4">
+                        <button type="submit" 
+                                class="flex-1 inline-flex items-center justify-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all duration-200 transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            Submit Return Request
+                        </button>
+                        
+                        <a href="{% url 'order_detail' item.order.order_id %}" 
+                           class="flex-1 inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-all duration-200 transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                            </svg>
+                            Back to Order Details
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Additional Help Section -->
+        <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 text-center">
+                <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"></path>
+                    </svg>
+                </div>
+                <h3 class="font-semibold text-gray-900 mb-2">Easy Returns</h3>
+                <p class="text-sm text-gray-600">Simple and hassle-free return process with quick refunds.</p>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 text-center">
+                <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192L5.636 18.364M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <h3 class="font-semibold text-gray-900 mb-2">Quick Resolution</h3>
+                <p class="text-sm text-gray-600">Most returns are processed within 24-48 hours of receiving the item.</p>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 text-center">
+                <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"></path>
+                    </svg>
+                </div>
+                <h3 class="font-semibold text-gray-900 mb-2">Customer Support</h3>
+                <p class="text-sm text-gray-600">Need help? Contact our support team for assistance with your return.</p>
+            </div>
+        </div>
     </div>
-
-    <div class="flex flex-wrap gap-3">
-      <button type="submit" 
-              class="bg-yellow-500 hover:bg-yellow-600 text-white font-medium px-6 py-2 rounded-lg transition">
-        Submit Return
-      </button>
-      <a href="{% url 'order_detail' item.order.order_id %}" 
-         class="bg-gray-400 hover:bg-gray-500 text-white font-medium px-6 py-2 rounded-lg transition">
-        Back
-      </a>
-    </div>
-  </form>
-
 </div>
+
+<style>
+.hover-lift:hover {
+    transform: translateY(-2px);
+    transition: transform 0.2s ease-in-out;
+}
+
+/* Smooth focus transitions */
+textarea:focus {
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Custom scrollbar for textarea */
+textarea::-webkit-scrollbar {
+    width: 6px;
+}
+
+textarea::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+textarea::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+textarea::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+</style>
+
+<script>
+// Add character counter for reason textarea
+document.addEventListener('DOMContentLoaded', function() {
+    const textarea = document.getElementById('reason');
+    const charCount = document.createElement('div');
+    charCount.className = 'text-sm text-gray-500 text-right mt-1';
+    charCount.textContent = '0 characters';
+    
+    textarea.parentNode.appendChild(charCount);
+    
+    textarea.addEventListener('input', function() {
+        charCount.textContent = this.value.length + ' characters';
+        
+        if (this.value.length < 10) {
+            charCount.className = 'text-sm text-red-500 text-right mt-1';
+        } else if (this.value.length < 50) {
+            charCount.className = 'text-sm text-yellow-500 text-right mt-1';
+        } else {
+            charCount.className = 'text-sm text-green-500 text-right mt-1';
+        }
+    });
+});
+</script>
 {% endblock %}
