@@ -1,63 +1,253 @@
 {% extends "custom_admin/base.html" %}
 {% block content %}
-<div class="max-w-3xl mx-auto my-6">
-    <h2 class="text-2xl font-bold mb-4">Add Product Offer</h2>
-    <form method="POST" novalidate class="space-y-4 bg-white p-6 rounded-lg shadow-md">
-        {% csrf_token %}
-
-        <div>
-            <label class="block mb-1 font-medium">Product</label>
-            <select name="product" class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                <option value="">Select Product</option>
-                {% for product in products %}
-                    <option value="{{ product.id }}"
-                        {% if form_data.product|default_if_none:'' == product.id|stringformat:"s" %}
-                            selected
-                        {% endif %}>
-                        {{ product.name }}
-                    </option>
-                {% endfor %}
-            </select>
-            {% if error.product %}
-                <p class="text-red-500 text-sm mt-1">{{ error.product }}</p>
-            {% endif %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header Card -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">Create New Product Offer</h1>
+                    <p class="text-gray-600 mt-1">Add special discounts to boost product sales</p>
+                </div>
+                <div class="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                </div>
+            </div>
         </div>
 
-        <div>
-            <label class="block mb-1 font-medium">Discount %</label>
-            <input type="number" name="discount" class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required
-                   value="{{ form_data.discount|default_if_none:'' }}">
-            {% if error.discount %}
-                <p class="text-red-500 text-sm mt-1">{{ error.discount }}</p>
-            {% endif %}
+        <!-- Form Card -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+            <form method="POST" novalidate class="p-6 space-y-6">
+                {% csrf_token %}
+
+                <!-- Product Selection -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-semibold text-gray-900">
+                        Select Product
+                        <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <select name="product" 
+                                class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 appearance-none {% if error.product %}border-red-500 ring-2 ring-red-200{% endif %}"
+                                required>
+                            <option value="">Choose a product...</option>
+                            {% for product in products %}
+                                <option value="{{ product.id }}"
+                                    {% if form_data.product|default_if_none:'' == product.id|stringformat:"s" %}
+                                        selected
+                                    {% endif %}>
+                                    {{ product.name }} - ₹{{ product.price }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    {% if error.product %}
+                    <div class="flex items-center text-red-600 text-sm">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        {{ error.product }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Discount Percentage -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-semibold text-gray-900">
+                        Discount Percentage
+                        <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <input type="number" name="discount" 
+                               value="{{ form_data.discount|default_if_none:'' }}"
+                               min="1" max="90" step="1"
+                               placeholder="Enter discount percentage"
+                               class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 {% if error.discount %}border-red-500 ring-2 ring-red-200{% endif %}"
+                               required>
+                        <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                            <span class="text-gray-500 font-medium">%</span>
+                        </div>
+                    </div>
+                    {% if error.discount %}
+                    <div class="flex items-center text-red-600 text-sm">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        {{ error.discount }}
+                    </div>
+                    {% endif %}
+                    <p class="text-xs text-gray-500">Recommended: 10-30% for optimal conversion</p>
+                </div>
+
+                <!-- Date Range -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Start Date -->
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-gray-900">
+                            Start Date
+                            <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <input type="date" name="start_date"
+                                   value="{{ form_data.start_date|default_if_none:'' }}"
+                                   min="{{ today }}"
+                                   class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 {% if error.start_date %}border-red-500 ring-2 ring-red-200{% endif %}"
+                                   required>
+                        </div>
+                        {% if error.start_date %}
+                        <div class="flex items-center text-red-600 text-sm">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            {{ error.start_date }}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- End Date -->
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-gray-900">
+                            End Date
+                            <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <input type="date" name="end_date"
+                                   value="{{ form_data.end_date|default_if_none:'' }}"
+                                   min="{{ today }}"
+                                   class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 {% if error.end_date %}border-red-500 ring-2 ring-red-200{% endif %}"
+                                   required>
+                        </div>
+                        {% if error.end_date %}
+                        <div class="flex items-center text-red-600 text-sm">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            {{ error.end_date }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Active Status -->
+                <div class="flex items-center p-4 bg-blue-50 rounded-xl border border-blue-200">
+                    <div class="flex items-center h-5">
+                        <input type="checkbox" name="active" id="active"
+                               class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                               {% if form_data.active %}checked{% endif %}>
+                    </div>
+                    <div class="ml-3">
+                        <label for="active" class="text-sm font-medium text-gray-900">Activate Offer Immediately</label>
+                        <p class="text-sm text-gray-600">Make this offer visible to customers right away</p>
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200">
+                    <button type="submit"
+                            class="flex-1 inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        Create Offer
+                    </button>
+                    <a href="{% url 'admin_product_offers' %}"
+                       class="flex-1 inline-flex items-center justify-center px-6 py-3 bg-white border border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all duration-200">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                        Cancel
+                    </a>
+                </div>
+            </form>
         </div>
 
-        <div>
-            <label class="block mb-1 font-medium">Start Date</label>
-            <input type="date" name="start_date" class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required
-                   value="{{ form_data.start_date|default_if_none:'' }}"
-                   min="{{ today }}">
-            {% if error.start_date %}
-                <p class="text-red-500 text-sm mt-1">{{ error.start_date }}</p>
-            {% endif %}
+        <!-- Offer Guidelines -->
+        <div class="mt-6 bg-gradient-to-br from-green-50 to-emerald-100 border border-green-200 rounded-2xl p-6">
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-semibold text-green-800">Creating Effective Offers</h3>
+                    <div class="mt-2 text-sm text-green-700 space-y-2">
+                        <div class="flex items-start">
+                            <span class="font-bold mr-2">•</span>
+                            <span>Set offers for 1-2 weeks to create urgency</span>
+                        </div>
+                        <div class="flex items-start">
+                            <span class="font-bold mr-2">•</span>
+                            <span>Use discounts between 10-30% for best results</span>
+                        </div>
+                        <div class="flex items-start">
+                            <span class="font-bold mr-2">•</span>
+                            <span>Focus on best-selling products for maximum impact</span>
+                        </div>
+                        <div class="flex items-start">
+                            <span class="font-bold mr-2">•</span>
+                            <span>Schedule offers to start on weekends for higher visibility</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <div>
-            <label class="block mb-1 font-medium">End Date</label>
-            <input type="date" name="end_date" class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required
-                   value="{{ form_data.end_date|default_if_none:'' }}"
-                   min="{{ today }}">
-            {% if error.end_date %}
-                <p class="text-red-500 text-sm mt-1">{{ error.end_date }}</p>
-            {% endif %}
+        <!-- Preview Card -->
+        <div class="mt-6 bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-200 rounded-2xl p-6">
+            <h3 class="text-sm font-semibold text-purple-800 mb-3">🎯 How Customers Will See This Offer</h3>
+            <div class="bg-white rounded-xl p-4 border border-purple-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-red-100 text-red-800">
+                            {{ form_data.discount|default:"10" }}% OFF
+                        </span>
+                        <p class="text-sm text-gray-600 mt-2">Special discount applied at checkout</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xs text-gray-500">Valid until</p>
+                        <p class="text-sm font-semibold text-gray-900">{{ form_data.end_date|default:"Dec 31, 2024" }}</p>
+                    </div>
+                </div>
+            </div>
         </div>
-
-        <div class="flex items-center space-x-2">
-            <input type="checkbox" name="active" class="h-4 w-4 text-blue-600 rounded" {% if form_data.active %}checked{% endif %}>
-            <label class="font-medium">Active</label>
-        </div>
-
-        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded font-medium mt-2">Save</button>
-    </form>
+    </div>
 </div>
+
+<style>
+    input[type="date"]::-webkit-calendar-picker-indicator {
+        background: transparent;
+        bottom: 0;
+        color: transparent;
+        cursor: pointer;
+        height: auto;
+        left: 0;
+        position: absolute;
+        right: 0;
+        top: 0;
+        width: auto;
+    }
+    
+    select {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+        background-position: right 0.5rem center;
+        background-repeat: no-repeat;
+        background-size: 1.5em 1.5em;
+        padding-right: 2.5rem;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    input:focus, select:focus {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+</style>
 {% endblock %}

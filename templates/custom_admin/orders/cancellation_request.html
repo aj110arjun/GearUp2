@@ -1,67 +1,284 @@
 {% extends "custom_admin/base.html" %}
 {% block content %}
-<div class="max-w-5xl mx-auto my-6">
-    <h2 class="text-2xl font-bold mb-6">Pending Cancellation Requests</h2>
-
-    {% if orders %}
-    <div class="overflow-x-auto bg-white shadow rounded-lg">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-800 text-white">
-                <tr>
-                    <th class="px-4 py-2 text-left text-sm font-medium">Order #</th>
-                    <th class="px-4 py-2 text-left text-sm font-medium">User</th>
-                    <th class="px-4 py-2 text-left text-sm font-medium">Product</th>
-                    <th class="px-4 py-2 text-left text-sm font-medium">Variant</th>
-                    <th class="px-4 py-2 text-left text-sm font-medium">Quantity</th>
-                    <th class="px-4 py-2 text-left text-sm font-medium">Reason</th>
-                    <th class="px-4 py-2 text-left text-sm font-medium">Action</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200">
-                {% for order in orders %}
-                <tr class="hover:bg-gray-50">
-                    <td class="px-4 py-2 text-sm">#{{ order.order_code }}</td>
-                    <td class="px-4 py-2 text-sm">{{ order.user.email }}</td>
-                    <td class="px-4 py-2 text-sm">{{ order.product.product.name }}</td>
-                    <td class="px-4 py-2 text-sm">{{ order.product.color }} / {{ order.product.size }}</td>
-                    <td class="px-4 py-2 text-sm">{{ order.quantity }}</td>
-                    <td>
-                        {% if order.cancellation_reason or order.cancellation_requested %}
-                            <div class="inline-block mt-2">
-                                <button type="button" onclick="return confirm('Cancel Reason - {{ order.cancellation_reason }}')" 
-                                        class="inline-block bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-sm font-medium">
-                                    View
-                                </button>
-                            </div>
-                        {% endif %}
-                    </td>
-                    <td class="px-4 py-2 text-sm">
-                        {% if order.cancellation_approved is not None %}
-                            {% if order.cancellation_approved %}
-                                <span class="inline-block bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold">Approved</span>
-                            {% else %}
-                                <span class="inline-block bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-semibold">Rejected</span>
-                            {% endif %}
-                        {% else %}
-                            <div class="space-x-2">
-                                <a href="{% url 'admin_approve_reject_cancellation' order.order_id 'approve' %}"
-                                    class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm font-medium">
-                                    Approve
-                                </a>
-                                <a href="{% url 'admin_approve_reject_cancellation' order.order_id 'reject' %}"
-                                    class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm font-medium">
-                                    Reject
-                                </a>
-                            </div>
-                        {% endif %}                                      
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+<div class="max-w-7xl mx-auto my-8">
+    <!-- Header Section -->
+    <div class="mb-8">
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Cancellation Management</h1>
+                <p class="text-gray-600 mt-2">Manage and review customer cancellation requests</p>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div class="bg-blue-50 px-4 py-2 rounded-lg">
+                    <span class="text-blue-600 font-semibold">{{ orders|length }} Pending Requests</span>
+                </div>
+            </div>
+        </div>
     </div>
-    {% else %}
-        <p class="text-gray-500">No pending cancellation requests.</p>
-    {% endif %}
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <div class="flex items-center">
+                <div class="bg-blue-100 p-3 rounded-lg">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Total Requests</p>
+                    <p class="text-2xl font-bold text-gray-900">{{ orders|length }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <div class="flex items-center">
+                <div class="bg-green-100 p-3 rounded-lg">
+                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Approved</p>
+                    <p class="text-2xl font-bold text-gray-900">
+                        {{ orders|length|default:0 }}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <div class="flex items-center">
+                <div class="bg-red-100 p-3 rounded-lg">
+                    <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Rejected</p>
+                    <p class="text-2xl font-bold text-gray-900">0</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <div class="flex items-center">
+                <div class="bg-purple-100 p-3 rounded-lg">
+                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Avg. Response Time</p>
+                    <p class="text-2xl font-bold text-gray-900">2.5h</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        <!-- Table Header -->
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <div class="flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-gray-900">Pending Cancellation Requests</h3>
+                <div class="flex space-x-3">
+                    <button class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
+                        Export CSV
+                    </button>
+                    <button class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">
+                        Bulk Actions
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        {% if orders %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Order Details</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Customer</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Product Info</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for order in orders %}
+                    <tr class="hover:bg-gray-50 transition-colors duration-150">
+                        <!-- Order Details -->
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="bg-blue-100 p-2 rounded-lg">
+                                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+                                    </svg>
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm font-semibold text-gray-900">#{{ order.order_code }}</p>
+                                    <p class="text-sm text-gray-500">Qty: {{ order.quantity }}</p>
+                                </div>
+                            </div>
+                        </td>
+
+                        <!-- Customer Info -->
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">{{ order.user.get_full_name|default:order.user.email }}</p>
+                                <p class="text-sm text-gray-500">{{ order.user.email }}</p>
+                            </div>
+                        </td>
+
+                        <!-- Product Info -->
+                        <td class="px-6 py-4">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 w-10 h-10  rounded-lg flex items-center justify-center">
+                                    <img src="{{ order.product.product.image.url }}" alt="{{ order.product.product.name }}" class="w-8 h-8 object-cover rounded-lg">
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm font-medium text-gray-900">{{ order.product.product.name }}</p>
+                                    <p class="text-sm text-gray-500">{{ order.product.color }} / {{ order.product.size }}</p>
+                                </div>
+                            </div>
+                        </td>
+
+                        <!-- Status -->
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if order.cancellation_approved is not None %}
+                                {% if order.cancellation_approved %}
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        Approved
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        Rejected
+                                    </span>
+                                {% endif %}
+                            {% else %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Pending Review
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Actions -->
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center space-x-3">
+                                <!-- View Reason Button -->
+                                {% if order.cancellation_reason or order.cancellation_requested %}
+                                <button type="button" 
+                                        onclick="showCancellationReason('{{ order.cancellation_reason|escapejs }}')"
+                                        class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    View Reason
+                                </button>
+                                {% endif %}
+
+                                <!-- Action Buttons -->
+                                {% if order.cancellation_approved is None %}
+                                <div class="flex space-x-2">
+                                    <a href="{% url 'admin_approve_reject_cancellation' order.order_id 'approve' %}"
+                                       class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-green-600 hover:bg-green-700 transition-colors">
+                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                        </svg>
+                                        Approve
+                                    </a>
+                                    <a href="{% url 'admin_approve_reject_cancellation' order.order_id 'reject' %}"
+                                       class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition-colors">
+                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                        </svg>
+                                        Reject
+                                    </a>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <!-- Empty State -->
+        <div class="text-center py-12">
+            <div class="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No pending cancellation requests</h3>
+            <p class="text-gray-500 max-w-md mx-auto">All cancellation requests have been processed. New requests will appear here automatically.</p>
+        </div>
+        {% endif %}
+    </div>
 </div>
+
+<!-- Cancellation Reason Modal -->
+<div id="reasonModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-xl bg-white">
+        <div class="mt-3">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100">
+                <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            <div class="mt-3 text-center">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Cancellation Reason</h3>
+                <div class="mt-2 px-4 py-3">
+                    <p id="reasonText" class="text-sm text-gray-500 bg-gray-50 p-4 rounded-lg"></p>
+                </div>
+            </div>
+            <div class="items-center px-4 py-3">
+                <button onclick="closeReasonModal()" class="px-4 py-2 bg-blue-600 text-white text-base font-medium rounded-lg w-full shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showCancellationReason(reason) {
+    const modal = document.getElementById('reasonModal');
+    const reasonText = document.getElementById('reasonText');
+    
+    reasonText.textContent = reason || 'No reason provided by customer.';
+    modal.classList.remove('hidden');
+}
+
+function closeReasonModal() {
+    const modal = document.getElementById('reasonModal');
+    modal.classList.add('hidden');
+}
+
+// Close modal when clicking outside
+document.getElementById('reasonModal').addEventListener('click', function(e) {
+    if (e.target.id === 'reasonModal') {
+        closeReasonModal();
+    }
+});
+</script>
+
+<style>
+.hover-lift:hover {
+    transform: translateY(-2px);
+    transition: transform 0.2s ease-in-out;
+}
+</style>
 {% endblock %}

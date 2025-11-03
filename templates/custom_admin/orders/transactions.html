@@ -1,83 +1,354 @@
 {% extends "custom_admin/base.html" %}
+{% block title %}Transaction History | Admin Panel - GearUp{% endblock title %}
+
 {% block content %}
-<div class="max-w-7xl mx-auto my-10 px-4">
-    <h1 class="text-2xl font-semibold text-gray-800 mb-6">Admin Transaction History</h1>
+<div class="min-h-screen bg-gray-50 py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <!-- Header Section -->
+        <div class="mb-8">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+                <div>
+                    <nav class="flex mb-4" aria-label="Breadcrumb">
+                        <ol class="flex items-center space-x-2">
+                            <li>
+                                <a href="#" class="text-gray-500 hover:text-gray-700 text-sm font-medium">Admin</a>
+                            </li>
+                            <li>
+                                <svg class="flex-shrink-0 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                                </svg>
+                            </li>
+                            <li>
+                                <span class="text-gray-700 text-sm font-medium">Transaction History</span>
+                            </li>
+                        </ol>
+                    </nav>
+                    <h1 class="text-3xl font-bold text-gray-900">Transaction History</h1>
+                    <p class="mt-2 text-gray-600">Monitor all payment transactions and financial activities</p>
+                </div>
+                
+                <div class="flex flex-wrap gap-3 mt-4 md:mt-0">
+                    <div class="relative">
+                        <input type="text" 
+                               placeholder="Search transactions..." 
+                               class="pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm w-64"
+                               id="search-input">
+                        <svg class="absolute left-3 top-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                    <select class="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm bg-white">
+                        <option value="">All Status</option>
+                        <option value="credit">Credit</option>
+                        <option value="debit">Debit</option>
+                    </select>
+                    <button class="inline-flex items-center px-4 py-2.5 bg-white text-gray-700 text-sm font-medium rounded-lg border border-gray-300 shadow-sm hover:bg-gray-50 transition-all duration-200">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.414A1 1 0 013 6.707V4z" />
+                        </svg>
+                        Filters
+                    </button>
+                </div>
+            </div>
+        </div>
 
-    <div class="overflow-x-auto">
-        <table class="min-w-full bg-white border border-gray-200 rounded-lg shadow-sm">
-            <thead class="bg-gray-800 text-white">
-                <tr>
-                    <th class="px-4 py-2 text-left">Transaction Id</th>
-                    <th class="px-4 py-2 text-left">User</th>
-                    <th class="px-4 py-2 text-left">Payment Status</th>
-                    <th class="px-4 py-2 text-left">Amount (₹)</th>
-                    <th class="px-4 py-2 text-left">Date & Time</th>
-                    <th class="px-4 py-2 text-left">View</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200">
-                {% for txn in transactions %}
-                <tr class="hover:bg-gray-50">
-                    <td class="px-4 py-2">{{ txn.transaction_id }}</td>
-                    <td class="px-4 py-2">{{ txn.user.email }}</td>
-                    <td class="px-4 py-2">
-                        {% if txn.payment_status == "Credit" %}
-                            <span class="inline-block px-2 py-1 text-xs font-semibold text-white bg-green-600 rounded">{{ txn.payment_status }}</span>
-                        {% elif txn.payment_status == "Debit" %}
-                            <span class="inline-block px-2 py-1 text-xs font-semibold text-white bg-red-600 rounded">{{ txn.payment_status }}</span>
-                        {% else %}
-                            <span class="inline-block px-2 py-1 text-xs font-semibold text-white bg-gray-500 rounded">{{ txn.payment_status }}</span>
-                        {% endif %}
-                    </td>
-                    <td class="px-4 py-2">
-                        {% if txn.payment_status == "Credit" %}
-                            <span class="text-green-600 font-bold">+₹{{ txn.amount }}</span>
-                        {% else %}
-                            <span class="text-red-600 font-bold">-₹{{ txn.amount }}</span>
-                        {% endif %}
-                    </td>
-                    <td class="px-4 py-2">{{ txn.timestamp|date:"d/m/Y H:i" }}</td>
-                    <td class="px-4 py-2">
-                        <a href="{% url 'admin_transaction_detail' transaction_id=txn.transaction_id %}" 
-                           class="px-3 py-1 text-sm bg-yellow-400 text-white rounded hover:bg-yellow-500 transition">
-                            View
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center">
+                    <div class="p-3 bg-blue-50 rounded-lg mr-4">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Total Transactions</p>
+                        <p class="text-2xl font-bold text-gray-900">{{ page_obj.paginator.count }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center">
+                    <div class="p-3 bg-green-50 rounded-lg mr-4">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Total Credit</p>
+                        <p class="text-2xl font-bold text-gray-900" id="total-credit">₹0</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center">
+                    <div class="p-3 bg-red-50 rounded-lg mr-4">
+                        <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Total Debit</p>
+                        <p class="text-2xl font-bold text-gray-900" id="total-debit">₹0</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center">
+                    <div class="p-3 bg-purple-50 rounded-lg mr-4">
+                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Net Balance</p>
+                        <p class="text-2xl font-bold text-gray-900" id="net-balance">₹0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transactions Table -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+                <div>
+                    <h2 class="text-lg font-semibold text-gray-900">All Transactions</h2>
+                    <p class="text-sm text-gray-600 mt-1">Complete financial transaction history</p>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <span class="text-sm text-gray-500">
+                        Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }} transactions
+                    </span>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Transaction Details</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">User</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Amount</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Date & Time</th>
+                            <th scope="col" class="px-6 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for txn in transactions %}
+                        <tr class="hover:bg-gray-50 transition-colors duration-150">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0 h-10 w-10 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
+                                        {% if txn.payment_status == "Credit" %}
+                                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        {% else %}
+                                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        {% endif %}
+                                    </div>
+                                    <div class="ml-4">
+                                        <div class="text-sm font-semibold text-gray-900">{{ txn.transaction_id }}</div>
+                                        <div class="text-sm text-gray-500">
+                                            {% if txn.payment_status == "Credit" %}
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                                </svg>
+                                                Credit
+                                            </span>
+                                            {% else %}
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                                                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                                </svg>
+                                                Debit
+                                            </span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">{{ txn.user.get_full_name|default:txn.user.email }}</div>
+                                <div class="text-sm text-gray-500">{{ txn.user.email }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {% if txn.payment_status == "Credit" %}
+                                <div class="flex items-center">
+                                    <svg class="w-4 h-4 text-green-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                    </svg>
+                                    <span class="text-lg font-bold text-green-600">+₹{{ txn.amount }}</span>
+                                </div>
+                                {% else %}
+                                <div class="flex items-center">
+                                    <svg class="w-4 h-4 text-red-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
+                                    </svg>
+                                    <span class="text-lg font-bold text-red-600">-₹{{ txn.amount }}</span>
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">{{ txn.timestamp|date:"M d, Y" }}</div>
+                                <div class="text-sm text-gray-500">{{ txn.timestamp|date:"h:i A" }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <a href="{% url 'admin_transaction_detail' transaction_id=txn.transaction_id %}" 
+                                   class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200">
+                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                    View Details
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="px-6 py-12 text-center">
+                                <div class="flex flex-col items-center justify-center">
+                                    <svg class="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                    </svg>
+                                    <h3 class="text-lg font-medium text-gray-900 mb-1">No transactions found</h3>
+                                    <p class="text-gray-500">There are no transactions matching your criteria.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if is_paginated %}
+            <div class="border-t border-gray-200 px-6 py-4 bg-gray-50">
+                <div class="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
+                    <p class="text-sm text-gray-700">
+                        Showing <span class="font-medium">{{ page_obj.start_index }}</span> to <span class="font-medium">{{ page_obj.end_index }}</span> of 
+                        <span class="font-medium">{{ page_obj.paginator.count }}</span> results
+                    </p>
+                    
+                    <div class="flex items-center space-x-2">
+                        {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}" 
+                           class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                            </svg>
+                            Previous
                         </a>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="6" class="px-4 py-2 text-center text-gray-500">No transactions found.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+                        {% endif %}
 
-    <!-- Pagination -->
-    {% if is_paginated %}
-    <div class="flex justify-center mt-6">
-        <nav class="inline-flex rounded-md shadow-sm">
-            {% if page_obj.has_previous %}
-                <a href="?page=1" class="px-3 py-1 border border-gray-300 rounded-l-md hover:bg-gray-100">&laquo;&laquo;</a>
-                <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1 border-t border-b border-gray-300 hover:bg-gray-100">&laquo;</a>
-            {% else %}
-                <span class="px-3 py-1 border border-gray-300 rounded-l-md text-gray-400 cursor-not-allowed">&laquo;&laquo;</span>
-                <span class="px-3 py-1 border-t border-b border-gray-300 text-gray-400 cursor-not-allowed">&laquo;</span>
+                        <div class="flex items-center space-x-1">
+                            {% for num in page_obj.paginator.page_range %}
+                                {% if page_obj.number == num %}
+                                <span class="inline-flex items-center px-3 py-2 border border-indigo-500 text-sm font-medium rounded-md text-indigo-600 bg-indigo-50">
+                                    {{ num }}
+                                </span>
+                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                <a href="?page={{ num }}" 
+                                   class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200">
+                                    {{ num }}
+                                </a>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+
+                        {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}" 
+                           class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200">
+                            Next
+                            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
             {% endif %}
-
-            <span class="px-3 py-1 border-t border-b border-gray-300 bg-gray-200">
-                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-            </span>
-
-            {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1 border-t border-b border-gray-300 hover:bg-gray-100">&raquo;</a>
-                <a href="?page={{ page_obj.paginator.num_pages }}" class="px-3 py-1 border border-gray-300 rounded-r-md hover:bg-gray-100">&raquo;&raquo;</a>
-            {% else %}
-                <span class="px-3 py-1 border-t border-b border-gray-300 text-gray-400 cursor-not-allowed">&raquo;</span>
-                <span class="px-3 py-1 border border-gray-300 rounded-r-md text-gray-400 cursor-not-allowed">&raquo;&raquo;</span>
-            {% endif %}
-        </nav>
+        </div>
     </div>
-    {% endif %}
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Calculate transaction statistics
+    let totalCredit = 0;
+    let totalDebit = 0;
+    
+    document.querySelectorAll('tbody tr').forEach(row => {
+        const amountElement = row.querySelector('.text-lg.font-bold');
+        if (amountElement) {
+            const amountText = amountElement.textContent;
+            const amount = parseFloat(amountText.replace(/[^\d.]/g, ''));
+            
+            if (amountText.includes('+')) {
+                totalCredit += amount;
+            } else if (amountText.includes('-')) {
+                totalDebit += amount;
+            }
+        }
+    });
+    
+    const netBalance = totalCredit - totalDebit;
+    
+    document.getElementById('total-credit').textContent = '₹' + totalCredit.toLocaleString();
+    document.getElementById('total-debit').textContent = '₹' + totalDebit.toLocaleString();
+    document.getElementById('net-balance').textContent = '₹' + netBalance.toLocaleString();
+    
+    // Add color to net balance
+    const netBalanceElement = document.getElementById('net-balance');
+    if (netBalance >= 0) {
+        netBalanceElement.classList.add('text-green-600');
+    } else {
+        netBalanceElement.classList.add('text-red-600');
+    }
+
+    // Search functionality
+    const searchInput = document.getElementById('search-input');
+    searchInput.addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase();
+        const rows = document.querySelectorAll('tbody tr');
+        
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            if (text.includes(searchTerm)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+
+    // Status filter functionality
+    const statusFilter = document.querySelector('select');
+    statusFilter.addEventListener('change', function(e) {
+        const status = e.target.value;
+        const rows = document.querySelectorAll('tbody tr');
+        
+        rows.forEach(row => {
+            if (!status) {
+                row.style.display = '';
+            } else {
+                const statusText = row.textContent.toLowerCase();
+                if (statusText.includes(status)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            }
+        });
+    });
+});
+</script>
 {% endblock %}
