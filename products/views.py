@@ -23,6 +23,7 @@ from cart.models import CartItem
 @never_cache
 def product_list(request):
     products = Product.objects.filter(is_active=True).prefetch_related("variants")
+
     categories = Category.objects.all()
 
     filters = {

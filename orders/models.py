@@ -30,6 +30,13 @@ class Order(models.Model):
         ("Returned", "Returned"),
     ]
 
+    PAYMENT_STATUS_CHOICES = [
+        ("Pending", "Pending"),
+        ("Paid", "Paid"),
+        ("Failed", "Failed"),
+        ("Refund", "Refund"),
+    ]
+
     id = models.BigAutoField(primary_key=True)
     order_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True, null=True, blank=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="orders")
@@ -40,15 +47,22 @@ class Order(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # unit price
     total_price = models.DecimalField(max_digits=10, decimal_places=2)  # price * quantity
     tax = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    grand_total = models.DecimalField(max_digits=10, decimal_places=2, default=0) # (total_price + tax + delivery_charge) - discount  
 
     discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    coupon = models.ForeignKey(Coupon, null=True, blank=True, on_delete=models.SET_NULL)
+    coupon = models.ForeignKey(
+        Coupon, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='orders'  # Unique related_name
+    )
     coupon_refunded = models.BooleanField(default=False)
 
     payment_method = models.CharField(max_length=20, choices=PAYMENT_METHODS, default="COD")
     payment_status = models.CharField(
         max_length=20,
-        choices=[("Pending", "Pending"), ("Paid", "Paid"), ("Failed", "Failed"),("Refund", "Refund")],
+        choices=PAYMENT_STATUS_CHOICES,
         default="Pending"
     )
 
@@ -82,4 +96,4 @@ class Order(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"Order {self.order_code} - {self.product.product.name} x{self.quantity} by {self.user.username}"
+        return f"Order #{self.order_id}"

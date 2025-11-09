@@ -1,23 +1,20 @@
+# ============================================================================
+# UPDATED VIEWS FOR NEW COUPON MODEL (coupons/views.py)
+# ============================================================================
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.views.decorators.cache import never_cache
-from django.utils.dateparse import parse_date
+from django.utils.dateparse import parse_datetime
 from django.http import JsonResponse
-from django.db.models import Q
-from django.views.decorators.http import require_GET
 from decimal import Decimal
 from products.models import Product
-
-from coupons.models import Coupon
+from coupons.models import Coupon, CouponUsage
 from decouple import config
+from django.utils import timezone
 
-def _format_money(val):
-    try:
-        return f"{Decimal(val):.2f}"
-    except Exception:
-        return f"{val}"
 
 
 # ----------------- Admin: List Coupons -----------------
@@ -25,7 +22,12 @@ def _format_money(val):
 @never_cache
 def admin_coupon_list(request):
     coupons = Coupon.objects.all().order_by("-valid_from")
-    return render(request, "custom_admin/coupons/coupon_list.html", {"coupons": coupons})
+    now = timezone.now()
+    context = {
+        "now": now,
+        "coupons": coupons
+        }
+    return render(request, "custom_admin/coupons/coupon_list.html", context)
 
 
 # ----------------- Admin: Add Coupon -----------------
@@ -33,65 +35,90 @@ def admin_coupon_list(request):
 @never_cache
 def admin_coupon_add(request):
     errors = {}
-    products = Product.objects.all()  # <-- Pass all products
 
     if request.method == "POST":
         # Get form data
         code = request.POST.get("code", "").strip().upper()
-        discount_value = request.POST.get("discount_value")
-        active = request.POST.get("active") == "on"
+        discount_percentage = request.POST.get("discount_percentage")
+        minimum_order_amount = request.POST.get("minimum_order_amount") or 0
+        usage_limit = request.POST.get("usage_limit") or None
+        is_active = request.POST.get("is_active") == "on"
         valid_from_str = request.POST.get("valid_from")
-        valid_to_str = request.POST.get("valid_to")
+        valid_until_str = request.POST.get("valid_until")
 
         # Validation
         if not code:
             errors["code"] = "Coupon code is required."
-        if not discount_value:
-            errors["discount_value"] = "Discount value is required."
+        elif Coupon.objects.filter(code=code).exists():
+            errors["code"] = "Coupon code must be unique."
+        
+        if not discount_percentage:
+            errors["discount_percentage"] = "Discount percentage is required."
+        else:
+            try:
+                discount_percentage_num = float(discount_percentage)
+                if discount_percentage_num <= 0 or discount_percentage_num > 100:
+                    errors["discount_percentage"] = "Discount must be between 0 and 100."
+            except (TypeError, ValueError):
+                errors["discount_percentage"] = "Discount must be a valid number."
+        
         if not valid_from_str:
             errors["valid_from"] = "Start date is required."
-        if not valid_to_str:
-            errors["valid_to"] = "End date is required."
-        if Coupon.objects.filter(code=code).exists():
-            errors["code"] = "Coupon code must be unique."
-
-        try:
-            discount_value_num = float(discount_value)
-            if discount_value_num <= 0:
-                errors["discount_value"] = "Discount value must be greater than 0."
-        except (TypeError, ValueError):
-            errors["discount_value"] = "Discount value must be a valid number."
+        
+        if not valid_until_str:
+            errors["valid_until"] = "End date is required."
 
         # Date parsing
-        valid_from = parse_date(valid_from_str) if valid_from_str else None
-        valid_to = parse_date(valid_to_str) if valid_to_str else None
+        valid_from = parse_datetime(valid_from_str) if valid_from_str else None
+        valid_until = parse_datetime(valid_until_str) if valid_until_str else None
 
-        if valid_from and valid_to and valid_to < valid_from:
-            errors['valid_to'] = "End date cannot be before start date."
+        if valid_from and valid_until and valid_until < valid_from:
+            errors['valid_until'] = "End date cannot be before start date."
+        
+        # Validate minimum order amount
+        try:
+            minimum_order_amount = Decimal(str(minimum_order_amount))
+            if minimum_order_amount < 0:
+                errors["minimum_order_amount"] = "Minimum order amount cannot be negative."
+        except:
+            errors["minimum_order_amount"] = "Invalid minimum order amount."
+        
+        
+        # Validate usage limit if provided
+        if usage_limit:
+            try:
+                usage_limit = int(usage_limit)
+                if usage_limit < 1:
+                    errors["usage_limit"] = "Usage limit must be at least 1."
+            except:
+                errors["usage_limit"] = "Invalid usage limit."
 
         if errors:
             coupon_data = {
                 "code": code,
-                "discount_value": discount_value,
-                "active": active,
+                "discount_percentage": discount_percentage,
+                "minimum_order_amount": minimum_order_amount,
+                "usage_limit": usage_limit,
+                "is_active": is_active,
                 "valid_from": valid_from,
-                "valid_to": valid_to,
+                "valid_until": valid_until,
             }
             context = {
                 "action": "Add",
                 "coupon": coupon_data,
                 "error": errors,
-                "products": products,
             }
             return render(request, "custom_admin/coupons/coupon_form.html", context)
 
         # Create coupon
         coupon = Coupon.objects.create(
             code=code,
-            discount_value=discount_value,
-            active=active,
+            discount_percentage=discount_percentage,
+            minimum_order_amount=minimum_order_amount,
+            usage_limit=usage_limit if usage_limit else None,
+            is_active=is_active,
             valid_from=valid_from,
-            valid_to=valid_to,
+            valid_until=valid_until,
         )
 
         messages.success(request, f"Coupon '{coupon.code}' created successfully.")
@@ -99,7 +126,6 @@ def admin_coupon_add(request):
 
     context = {
         "action": "Add",
-        "products": products  # Pass products for initial form
     }
     return render(request, "custom_admin/coupons/coupon_form.html", context)
 
@@ -112,36 +138,40 @@ def admin_coupon_edit(request, coupon_id):
 
     if request.method == "POST":
         code = request.POST.get("code", "").strip().upper()
-        discount_value = request.POST.get("discount_value")
-        active = request.POST.get("active") == "on"
+        discount_percentage = request.POST.get("discount_percentage")
+        usage_limit = request.POST.get("usage_limit") or None
+        is_active = request.POST.get("is_active") == "on"
         valid_from_str = request.POST.get("valid_from")
-        valid_to_str = request.POST.get("valid_to")
-        usage_limit_total = request.POST.get("usage_limit_total") or 0
-        usage_limit_per_user = request.POST.get("usage_limit_per_user") or 0
+        valid_until_str = request.POST.get("valid_until")
 
         # Validation
         errors = {}
         if not code:
             errors["code"] = "Coupon code is required."
-        if not discount_value:
-            errors["discount_value"] = "Discount value is required."
+        elif Coupon.objects.filter(code=code).exclude(id=coupon_id).exists():
+            errors["code"] = "Coupon code must be unique."
+        
+        if not discount_percentage:
+            errors["discount_percentage"] = "Discount percentage is required."
+        else:
+            try:
+                discount_percentage_num = float(discount_percentage)
+                if discount_percentage_num <= 0 or discount_percentage_num > 100:
+                    errors["discount_percentage"] = "Discount must be between 0 and 100."
+            except (TypeError, ValueError):
+                errors["discount_percentage"] = "Discount must be a valid number."
+        
         if not valid_from_str:
             errors["valid_from"] = "Start date is required."
-        if not valid_to_str:
-            errors["valid_to"] = "End date is required."
+        
+        if not valid_until_str:
+            errors["valid_until"] = "End date is required."
 
-        try:
-            discount_value_num = float(discount_value)
-            if discount_value_num <= 0:
-                errors["discount_value"] = "Discount value must be greater than 0."
-        except (TypeError, ValueError):
-            errors["discount_value"] = "Discount value must be a valid number."
+        valid_from = parse_datetime(valid_from_str) if valid_from_str else None
+        valid_until = parse_datetime(valid_until_str) if valid_until_str else None
 
-        valid_from = parse_date(valid_from_str) if valid_from_str else None
-        valid_to = parse_date(valid_to_str) if valid_to_str else None
-
-        if valid_from and valid_to and valid_to < valid_from:
-            errors['valid_to'] = "End date cannot be before start date."
+        if valid_from and valid_until and valid_until < valid_from:
+            errors['valid_until'] = "End date cannot be before start date."
 
         if errors:
             context = {
@@ -154,12 +184,11 @@ def admin_coupon_edit(request, coupon_id):
 
         # Save updated coupon
         coupon.code = code
-        coupon.discount_value = discount_value
-        coupon.active = active
+        coupon.discount_percentage = discount_percentage
+        coupon.usage_limit = usage_limit if usage_limit else None
+        coupon.is_active = is_active
         coupon.valid_from = valid_from
-        coupon.valid_to = valid_to
-        coupon.usage_limit_total = usage_limit_total
-        coupon.usage_limit_per_user = usage_limit_per_user
+        coupon.valid_until = valid_until
         coupon.save()
 
         messages.success(request, f"Coupon '{coupon.code}' updated successfully.")
@@ -199,14 +228,7 @@ def apply_coupon(request):
         # Fetch coupon
         coupon = Coupon.objects.get(code=code)
         
-        # Validation checks
-        if not coupon.active:
-            return JsonResponse({"success": False, "message": "This coupon is no longer active."})
-        
-        if not coupon.is_valid():
-            return JsonResponse({"success": False, "message": "This coupon has expired."})
-        
-        # Calculate cart total
+        # Calculate cart subtotal
         cart_items = request.user.cart_items.select_related("variant__product")
         if not cart_items.exists():
             return JsonResponse({"success": False, "message": "Your cart is empty."})
@@ -222,12 +244,16 @@ def apply_coupon(request):
                     "message": "Error calculating cart total."
                 })
         
-        # Apply discount
-        discount = Decimal(str(coupon.discount_value))
+        # Validate coupon with order amount
+        is_valid, message = coupon.is_valid(order_amount=subtotal)
+        if not is_valid:
+            return JsonResponse({"success": False, "message": message})
         
-        # Ensure discount doesn't exceed subtotal
-        if discount > subtotal:
-            discount = subtotal
+        # Calculate discount
+        discount, calc_message = coupon.calculate_discount(subtotal)
+        
+        if discount == 0:
+            return JsonResponse({"success": False, "message": calc_message})
         
         # Calculate final totals
         tax_rate = Decimal(str(config("TAX_RATE", 0.18)))
@@ -262,11 +288,14 @@ def apply_coupon(request):
 @login_required(login_url="login")
 @never_cache
 def remove_coupon(request):
-    # Support AJAX removal so checkout page can update totals without refresh
+    """Remove coupon from session"""
+    
     if request.headers.get("x-requested-with") == "XMLHttpRequest":
         if "coupon_id" in request.session:
             del request.session["coupon_id"]
-        # Recompute totals for the current cart
+            request.session.modified = True
+        
+        # Recompute totals
         cart_items = request.user.cart_items.select_related("variant__product")
         subtotal = Decimal('0.00')
         for item in cart_items:
@@ -289,4 +318,75 @@ def remove_coupon(request):
     if "coupon_id" in request.session:
         del request.session["coupon_id"]
         messages.success(request, "Coupon removed successfully.")
+    
     return redirect("checkout")
+
+
+# ============================================================================
+# REFUND COUPON ON RETURN/CANCEL (orders/views.py)
+# ============================================================================
+
+@staff_member_required(login_url="admin_login")
+@never_cache
+def admin_approve_reject_return(request, item_id, action):
+    """Return approval with coupon usage refund"""
+    
+    order = get_object_or_404(Order, order_id=item_id)
+    
+    if action == "approve" and order.payment_status == "Paid":
+        # Calculate refund
+        refund_amount = Decimal(order.price) * order.quantity
+        refund_amount += order.tax
+        refund_amount += Decimal(config("DELIVERY_CHARGE", 0))
+        refund_amount = q2(refund_amount)
+        
+        # Update order
+        order.order_status = "Returned"
+        order.return_approved = True
+        order.save(update_fields=["order_status", "return_approved"])
+        
+        # Restore stock
+        if order.product:
+            order.product.stock += order.quantity
+            order.product.save()
+        
+        # Wallet refund
+        wallet, _ = Wallet.objects.get_or_create(user=order.user)
+        wallet.balance += refund_amount
+        wallet.save()
+        
+        WalletTransaction.objects.create(
+            wallet=wallet,
+            amount=refund_amount,
+            transaction_type="CREDIT",
+            description=f"Refund for returned order #{order.order_code}"
+        )
+        
+        # Refund coupon usage
+        if order.coupon:
+            try:
+                usage = CouponUsage.objects.get(
+                    coupon=order.coupon,
+                    order_id=order.id
+                )
+                usage.delete()  # Remove usage record
+                
+                # Decrement usage count
+                order.coupon.used_count = max(0, order.coupon.used_count - 1)
+                order.coupon.save()
+                
+                messages.success(
+                    request,
+                    f"Return approved. Coupon '{order.coupon.code}' is available for reuse."
+                )
+            except CouponUsage.DoesNotExist:
+                messages.success(request, "Return approved.")
+        else:
+            messages.success(request, "Return approved.")
+    
+    elif action == "reject":
+        order.return_approved = False
+        order.save(update_fields=["return_approved"])
+        messages.info(request, "Return rejected.")
+    
+    return redirect("admin_return_requests")

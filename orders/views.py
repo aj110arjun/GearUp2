@@ -42,8 +42,9 @@ from orders.models import Order, Coupon, Address
 from types import SimpleNamespace
 from wallet.models import Wallet, WalletTransaction
 from transaction.models import Transaction  
-from coupons.models import CouponRedemption
 from django.db import transaction
+from django.core.exceptions import ValidationError
+
 
 # Helper to round to 2 decimal places
 def q2(value):
@@ -52,20 +53,39 @@ def q2(value):
 @login_required(login_url="login")
 @never_cache
 def checkout(request):
-    """Enhanced checkout with proper error handling"""
-    
-    # Step 1: Validate cart exists
-    cart_items = CartItem.objects.filter(user=request.user).select_related("variant__product")
-    if not cart_items.exists():
-        messages.info(request, "Your cart is empty.")
+    """Simplified checkout view"""
+    # Step 1: Validate cart and get basic data
+    cart_items = get_cart_items(request.user)
+    if not cart_items:
         return redirect("cart_view")
+    
+    # Step 2: Calculate pricing
+    pricing_data = calculate_pricing(request, cart_items)
+    if not pricing_data:
+        return redirect("cart_view")
+    
+    # Step 3: Handle POST (Order Creation)
+    if request.method == "POST":
+        return handle_checkout_post(request, cart_items, pricing_data)
+    
+    # Step 4: Render checkout page (GET request)
+    return render_checkout_page(request, cart_items, pricing_data)
 
-    # Step 2: Get configuration
+
+# ========== HELPER FUNCTIONS ==========
+
+def get_cart_items(user):
+    """Get user's cart items with product data"""
+    return CartItem.objects.filter(user=user).select_related("variant__product")
+
+
+def calculate_pricing(request, cart_items):
+    """Calculate all pricing including coupons"""
+    # Get configuration
     tax_rate = Decimal(config("TAX_RATE", 0.18))
     delivery_charge = Decimal(config("DELIVERY_CHARGE", 50))
-    wallet, _ = Wallet.objects.get_or_create(user=request.user)
-
-    # Step 3: Calculate initial totals
+    
+    # Calculate subtotal
     subtotal = Decimal("0.00")
     for item in cart_items:
         try:
@@ -73,187 +93,304 @@ def checkout(request):
             subtotal += price * item.quantity
         except Exception as e:
             messages.error(request, f"Error calculating price for {item.variant.product.name}")
-            return redirect("cart_view")
+            return None
     
+    # Calculate tax and initial total
     total_tax = q2(subtotal * tax_rate)
     grand_total = q2(subtotal + total_tax + delivery_charge)
+    
+    # Apply coupon if exists
+    coupon_data = apply_coupon_discount(request, subtotal, total_tax, delivery_charge, grand_total)
+    
+    return {
+        'subtotal': subtotal,
+        'total_tax': total_tax,
+        'delivery_charge': delivery_charge,
+        'grand_total': coupon_data['grand_total'],
+        'discount': coupon_data['discount'],
+        'coupon': coupon_data['coupon'],
+        'tax_rate': tax_rate,
+    }
 
-    # Step 4: Validate and apply coupon
+
+def apply_coupon_discount(request, subtotal, total_tax, delivery_charge, grand_total):
+    """Apply coupon discount to pricing"""
     coupon_code = request.session.get("coupon_id")
     coupon = None
     discount = Decimal("0.00")
     
-    if coupon_code:
-        try:
-            coupon = Coupon.objects.get(code=coupon_code, active=True)
-            
-            # CRITICAL: Validate coupon at checkout time
-            if not coupon.is_valid():
-                messages.warning(request, f"Coupon '{coupon_code}' has expired or is no longer valid.")
-                request.session.pop("coupon_id", None)
-                coupon = None
-            else:
-                discount = q2(min(coupon.discount_value, subtotal))
-                grand_total -= discount
-                
-        except Coupon.DoesNotExist:
-            messages.warning(request, "The coupon code in your session is no longer valid.")
+    if not coupon_code:
+        return {'grand_total': grand_total, 'discount': discount, 'coupon': coupon}
+    
+    try:
+        coupon = Coupon.objects.get(code=coupon_code)
+        
+        # Validate coupon
+        if not coupon.is_valid():
+            messages.warning(request, f"Coupon '{coupon_code}' has expired or reached its usage limit.")
             request.session.pop("coupon_id", None)
-            coupon = None
-
-    # Step 5: Handle POST (Order Creation)
-    if request.method == "POST":
-        payment_method = request.POST.get("payment_method", "COD")
-        address_id = request.POST.get("address")
-        
-        # Validate address
-        try:
-            address = Address.objects.get(user=request.user, id=address_id)
-        except Address.DoesNotExist:
-            messages.error(request, "Please select a valid shipping address.")
-            return redirect("checkout")
-
-        # Validate payment method
-        if payment_method not in dict(Order.PAYMENT_METHODS):
-            messages.error(request, "Invalid payment method selected.")
-            return redirect("checkout")
-
-        # Prepare order data
-        cart_list = list(cart_items)
-        num_items = len(cart_list)
-        created_orders = []
-        
-        # Calculate per-order discount split
-        total_discount = discount
-        if total_discount > 0 and num_items > 0:
-            total_cents = int((total_discount * 100).quantize(Decimal('1')))
-            per_cents = total_cents // num_items
-            remainder = total_cents % num_items
         else:
-            per_cents = 0
-            remainder = 0
+            # Calculate discount
+            discount_amount = (subtotal * coupon.discount_percentage / 100).quantize(Decimal("0.01"))
+            if discount_amount > 0:
+                discount = discount_amount
+                grand_total = q2(subtotal + total_tax + delivery_charge - discount)
+            else:
+                messages.warning(request, "Coupon applied but no discount calculated.")
+                request.session.pop("coupon_id", None)
+                
+    except Coupon.DoesNotExist:
+        messages.warning(request, "The coupon code in your session is no longer valid.")
+        request.session.pop("coupon_id", None)
+    
+    return {'grand_total': grand_total, 'discount': discount, 'coupon': coupon}
 
-        # Step 6: Create orders atomically
-        try:
-            with transaction.atomic():
-                for idx, cart_item in enumerate(cart_list):
-                    # Validate stock availability
-                    if cart_item.variant.stock < cart_item.quantity:
-                        raise ValidationError(
-                            f"Insufficient stock for {cart_item.variant.product.name}. "
-                            f"Available: {cart_item.variant.stock}, Requested: {cart_item.quantity}"
-                        )
-                    
-                    # Calculate item pricing
-                    price = Decimal(cart_item.variant.get_discounted_price())
-                    item_subtotal = q2(price * cart_item.quantity)
-                    item_tax = q2(item_subtotal * tax_rate)
-                    
-                    # Calculate this order's discount share
-                    this_cents = per_cents + (1 if idx < remainder else 0)
-                    this_discount = Decimal(this_cents) / Decimal(100)
-                    
-                    item_total = q2(item_subtotal + item_tax + delivery_charge - this_discount)
-                    
-                    # Validate wallet balance if needed
-                    if payment_method == "WALLET":
-                        if wallet.balance < item_total:
-                            raise ValidationError(
-                                f"Insufficient wallet balance for {cart_item.variant.product.name}. "
-                                f"Required: ₹{item_total}, Available: ₹{wallet.balance}"
-                            )
-                    
-                    # Create order
-                    order = Order.objects.create(
-                        user=request.user,
-                        product=cart_item.variant,
-                        address=address,
-                        quantity=cart_item.quantity,
-                        price=price,
-                        tax=item_tax,
-                        total_price=item_total,
-                        discount=this_discount,
-                        coupon=coupon,
-                        payment_method=payment_method,
-                        payment_status="Paid" if payment_method == "WALLET" else "Pending"
-                    )
+
+def handle_checkout_post(request, cart_items, pricing_data):
+    """Handle checkout form submission"""
+    # Validate form data
+    validation_result = validate_checkout_form(request, pricing_data['grand_total'])
+    if not validation_result['is_valid']:
+        return redirect("checkout")
+    
+    # Create orders
+    order_creation_result = create_orders(
+        request, 
+        cart_items, 
+        pricing_data, 
+        validation_result['address'], 
+        validation_result['payment_method']
+    )
+    
+    if not order_creation_result['success']:
+        return redirect("checkout")
+    
+    # Finalize checkout
+    return finalize_checkout(request, order_creation_result['orders'], validation_result['payment_method'])
+
+
+def validate_checkout_form(request, grand_total):
+    """Validate checkout form data"""
+    payment_method = request.POST.get("payment_method", "COD")
+    address_id = request.POST.get("address")
+    
+    # Validate address
+    try:
+        address = Address.objects.get(user=request.user, id=address_id)
+    except Address.DoesNotExist:
+        messages.error(request, "Please select a valid shipping address.")
+        return {'is_valid': False}
+    
+    # Validate payment method
+    if payment_method not in dict(Order.PAYMENT_METHODS):
+        messages.error(request, "Invalid payment method selected.")
+        return {'is_valid': False}
+    
+    # Validate wallet balance
+    if payment_method == "WALLET":
+        wallet, _ = Wallet.objects.get_or_create(user=request.user)
+        if wallet.balance < grand_total:
+            messages.error(request, 
+                f"Insufficient wallet balance. Required: ₹{grand_total}, Available: ₹{wallet.balance}")
+            return {'is_valid': False}
+    
+    return {
+        'is_valid': True,
+        'address': address,
+        'payment_method': payment_method
+    }
+
+
+def create_orders(request, cart_items, pricing_data, address, payment_method):
+    """Create orders for all cart items"""
+    cart_list = list(cart_items)
+    num_items = len(cart_list)
+    created_orders = []
+    
+    # Calculate discount distribution
+    discount_split = calculate_discount_split(pricing_data['discount'], num_items)
+    
+    try:
+        with transaction.atomic():
+            # Process each cart item
+            for idx, cart_item in enumerate(cart_list):
+                order = create_single_order(
+                    request, 
+                    cart_item, 
+                    pricing_data, 
+                    address, 
+                    payment_method, 
+                    discount_split, 
+                    idx, 
+                    num_items
+                )
+                if order:
                     created_orders.append(order)
-                    
-                    # Reduce stock
-                    cart_item.variant.stock -= cart_item.quantity
-                    cart_item.variant.save()
-                    
-                    # Process wallet payment
-                    if payment_method == "WALLET":
-                        wallet.balance -= item_total
-                        wallet.balance = q2(wallet.balance)
-                        wallet.save()
-                        
-                        WalletTransaction.objects.create(
-                            wallet=wallet,
-                            amount=item_total,
-                            transaction_type="DEBIT",
-                            description=f"Order #{order.order_code} Payment"
-                        )
-                        
-                        Transaction.objects.create(
-                            user=request.user,
-                            transaction_type="WALLET_DEBIT",
-                            payment_status="Credit",
-                            amount=item_total,
-                            description=f"Order Payment for Order #{order.order_code} via Wallet",
-                            order=order
-                        )
-                
-                # Record coupon usage ONCE per checkout (not per order)
-                if coupon:
-                    try:
-                        # Use the first order for coupon tracking
-                        coupon.increment_usage(request.user, created_orders[0])
-                    except Exception as e:
-                        # Log but don't fail the order
-                        print(f"Coupon increment failed: {e}")
-                
-                # CRITICAL: Clear coupon from session after successful order
-                if "coupon_id" in request.session:
-                    del request.session["coupon_id"]
-                
-                # Clear cart
-                cart_items.delete()
-                
-        except ValidationError as e:
-            messages.error(request, str(e))
-            return redirect("checkout")
-        except Exception as e:
-            messages.error(request, f"An error occurred while processing your order: {str(e)}")
-            return redirect("checkout")
-        
-        # Step 7: Store order IDs and redirect
-        request.session['recent_purchase_order_ids'] = [str(o.order_id) for o in created_orders]
-        request.session.modified = True
-        
-        first_order = created_orders[0]
-        
-        if payment_method in ["WALLET", "COD"]:
-            return redirect("order_success", order_id=first_order.order_id)
-        else:
-            request.session['online_payment_order_ids'] = [str(o.order_id) for o in created_orders]
-            request.session.modified = True
-            return redirect("start_payment", order_id=first_order.order_id)
+            
+            # Handle coupon usage
+            if pricing_data['coupon'] and created_orders:
+                handle_coupon_usage(request, pricing_data['coupon'], pricing_data['discount'], created_orders[0])
+            
+            # Clear session and cart
+            clear_checkout_session(request)
+            cart_items.delete()
+            
+            return {'success': True, 'orders': created_orders}
+            
+    except Exception as e:
+        messages.error(request, f"Error creating order: {str(e)}")
+        return {'success': False, 'orders': []}
 
-    # GET: Render checkout page
+
+def calculate_discount_split(total_discount, num_items):
+    """Calculate how to split discount across multiple orders"""
+    if total_discount <= 0 or num_items == 0:
+        return {'per_cents': 0, 'remainder': 0}
+    
+    total_cents = int((total_discount * 100).quantize(Decimal('1')))
+    per_cents = total_cents // num_items
+    remainder = total_cents % num_items
+    
+    return {'per_cents': per_cents, 'remainder': remainder}
+
+
+def create_single_order(request, cart_item, pricing_data, address, payment_method, discount_split, idx, num_items):
+    """Create a single order for a cart item"""
+    # Validate stock
+    if cart_item.variant.stock < cart_item.quantity:
+        raise ValidationError(
+            f"Insufficient stock for {cart_item.variant.product.name}. "
+            f"Available: {cart_item.variant.stock}, Requested: {cart_item.quantity}"
+        )
+    
+    # Calculate item pricing
+    price = Decimal(cart_item.variant.get_discounted_price())
+    item_subtotal = q2(price * cart_item.quantity)
+    item_tax = q2(item_subtotal * pricing_data['tax_rate'])
+    
+    # Calculate discount for this order
+    this_cents = discount_split['per_cents'] + (1 if idx < discount_split['remainder'] else 0)
+    this_discount = Decimal(this_cents) / Decimal(100)
+    
+    # Calculate delivery charge for this order
+    item_delivery = q2(pricing_data['delivery_charge'] / num_items) if num_items > 0 else pricing_data['delivery_charge']
+    
+    item_total = q2(item_subtotal + item_tax + item_delivery - this_discount)
+    
+    # Create order
+    order = Order.objects.create(
+        user=request.user,
+        product=cart_item.variant,
+        address=address,
+        quantity=cart_item.quantity,
+        price=price,
+        tax=item_tax,
+        total_price=item_subtotal,
+        discount=this_discount,
+        coupon=pricing_data['coupon'],
+        payment_method=payment_method,
+        payment_status="Paid" if payment_method == "WALLET" else "Pending",
+        grand_total=item_total,
+    )
+    
+    # Update stock
+    cart_item.variant.stock -= cart_item.quantity
+    cart_item.variant.save()
+    
+    # Process wallet payment if applicable
+    if payment_method == "WALLET":
+        process_wallet_payment(request.user, item_total, order)
+    
+    return order
+
+
+def process_wallet_payment(user, amount, order):
+    """Process wallet payment for an order"""
+    wallet, _ = Wallet.objects.get_or_create(user=user)
+    
+    # Deduct from wallet
+    wallet.balance -= amount
+    wallet.balance = q2(wallet.balance)
+    wallet.save()
+    
+    # Create wallet transaction
+    WalletTransaction.objects.create(
+        wallet=wallet,
+        amount=amount,
+        transaction_type="DEBIT",
+        description=f"Order #{order.order_code} Payment"
+    )
+    
+    # Create main transaction record
+    Transaction.objects.create(
+        user=user,
+        transaction_type="WALLET_DEBIT",
+        payment_status="Credit",
+        amount=amount,
+        description=f"Order Payment for Order #{order.order_code} via Wallet",
+        order=order
+    )
+
+
+def handle_coupon_usage(request, coupon, discount_amount, first_order):
+    """Handle coupon usage tracking"""
+    try:
+        # Increment usage count
+        coupon.used_count += 1
+        coupon.save()
+        
+        # Create coupon usage record
+        CouponUsage.objects.create(
+            coupon=coupon,
+            user=request.user,
+            order=first_order,
+            discount_amount=discount_amount
+        )
+    except Exception as e:
+        # Log but don't fail the order
+        print(f"Coupon usage tracking error: {e}")
+
+
+def clear_checkout_session(request):
+    """Clear checkout-related session data"""
+    if "coupon_id" in request.session:
+        del request.session["coupon_id"]
+        request.session.modified = True
+
+
+def finalize_checkout(request, created_orders, payment_method):
+    """Finalize checkout and redirect appropriately"""
+    # Store order IDs in session
+    request.session['recent_purchase_order_ids'] = [str(o.order_id) for o in created_orders]
+    request.session.modified = True
+    
+    first_order = created_orders[0]
+    
+    # Redirect based on payment method
+    if payment_method in ["WALLET", "COD"]:
+        return redirect("order_success", order_id=first_order.order_id)
+    else:
+        request.session['online_payment_order_ids'] = [str(o.order_id) for o in created_orders]
+        request.session.modified = True
+        return redirect("start_payment", order_id=first_order.order_id)
+
+
+def render_checkout_page(request, cart_items, pricing_data):
+    """Render the checkout page with all required context"""
     addresses = Address.objects.filter(user=request.user)
+    wallet, _ = Wallet.objects.get_or_create(user=request.user)
+    
     context = {
         "cart_items": cart_items,
         "addresses": addresses,
         "wallet": wallet,
-        "delivery_charge": delivery_charge,
-        "tax_rate": tax_rate,
-        "subtotal": subtotal,
-        "total_tax": total_tax,
-        "grand_total": grand_total,
-        "discount": discount,
-        "coupon": coupon,
+        "delivery_charge": pricing_data['delivery_charge'],
+        "tax_rate": pricing_data['tax_rate'],
+        "subtotal": pricing_data['subtotal'],
+        "total_tax": pricing_data['total_tax'],
+        "grand_total": pricing_data['grand_total'],
+        "discount": pricing_data['discount'],
+        "coupon": pricing_data['coupon'],
     }
     return render(request, "user/orders/checkout.html", context)
 
@@ -752,21 +889,21 @@ def admin_approve_reject_cancellation(request, order_id, action):
             existing_refund_txn = Transaction.objects.filter(
                 user=order.user,
                 transaction_type='WALLET_CREDIT',
-                amount=refund_amount,
+                amount=order.grand_total,
                 order=order,
                 description__icontains=f"Refund for Order #{order.order_code}"
             ).exists()
 
-            if not existing_refund_txn and refund_amount > Decimal("0.00"):
+            if not existing_refund_txn and order.grand_total > Decimal("0.00"):
                 refund_desc = f"Refund for cancelled order (Order #{order.order_code})"
                 try:
-                    wallet.credit(refund_amount, description=refund_desc)
+                    wallet.credit(order.grand_total, description=refund_desc)
                 except Exception:
-                    wallet.balance += refund_amount
+                    wallet.balance += order.grand_total
                     wallet.save()
                     WalletTransaction.objects.create(
                         wallet=wallet,
-                        amount=refund_amount,
+                        amount=order.grand_total,
                         transaction_type="CREDIT",
                         description=refund_desc
                     )
@@ -775,7 +912,7 @@ def admin_approve_reject_cancellation(request, order_id, action):
                     user=order.user,
                     transaction_type="WALLET_CREDIT",
                     payment_status="Debit",
-                    amount=refund_amount,
+                    amount=order.grand_total,
                     description=f"Refund for Order #{order.order_code}",
                     order=order,
                 )
@@ -792,7 +929,6 @@ def admin_approve_reject_cancellation(request, order_id, action):
         if order.coupon and not getattr(order, "coupon_refunded", False):
             order.coupon_refunded = True
             order.save(update_fields=["coupon_refunded"])
-            CouponRedemption.objects.filter(order=order, coupon=order.coupon).update(refunded=True)
 
     elif action == "reject":
         order.cancellation_approved = False

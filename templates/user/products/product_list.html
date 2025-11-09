@@ -187,16 +187,29 @@
           {{ product.name }}
         </h3>
 
-        <!-- Rating -->
+        <!-- Replace the hardcoded rating section with this dynamic version -->
         <div class="flex items-center gap-1 mb-2">
-          <div class="flex text-yellow-400 text-sm">
-            <i class="fas fa-star"></i>
-            <i class="fas fa-star"></i>
-            <i class="fas fa-star"></i>
-            <i class="fas fa-star"></i>
-            <i class="fas fa-star-half-alt"></i>
-          </div>
-          <span class="text-xs text-gray-600">(4.5)</span>
+            <div class="flex text-yellow-400 text-sm">
+                {% with rating=product.avg_rating|default:0 %}
+                    {% for i in "12345" %}
+                        {% if rating >= forloop.counter %}
+                            <i class="fas fa-star"></i>
+                        {% else %}
+                            {% if rating >= forloop.counter|add:"-0.5" %}
+                                <i class="fas fa-star-half-alt"></i>
+                            {% else %}
+                                <i class="far fa-star"></i>
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+                {% endwith %}
+            </div>
+            <span class="text-xs text-gray-600">
+                ({{ product.avg_rating|floatformat:1|default:"0.0" }})
+                {% if product.rating_count %}
+                    <span class="text-gray-400 ml-1">{{ product.rating_count }}</span>
+                {% endif %}
+            </span>
         </div>
 
         <!-- Pricing -->
