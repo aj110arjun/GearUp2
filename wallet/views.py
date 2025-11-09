@@ -13,7 +13,6 @@ from django.urls import reverse
 
 from .models import Wallet, WalletTransaction
 from orders.models import Order
-from coupons.models import CouponRedemption
 
 
 @login_required

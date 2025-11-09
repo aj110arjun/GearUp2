@@ -2,6 +2,13 @@
 {% load custom_filters %}
 {% block title %} Secure Checkout {% endblock title %}
 {% block content %}
+<!-- Add this debug section at the top of your template -->
+<div class="hidden" id="debugInfo">
+    Form Method: {{ request.method }}
+    Has POST Data: {% if request.POST %}Yes{% else %}No{% endif %}
+    Addresses Count: {{ addresses|length }}
+    Cart Items Count: {{ cart_items|length }}
+</div>
 
 <div class="bg-gradient-to-b from-gray-50 to-white min-h-screen py-8">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -54,13 +61,12 @@
       </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      
-      <!-- Left Column: Forms -->
-      <div class="lg:col-span-2">
-        <form method="post" class="space-y-6">
-          {% csrf_token %}
+    <!-- Main Form that wraps everything -->
+    <form method="post" id="checkoutForm" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      {% csrf_token %}
 
+      <!-- Left Column: Forms -->
+      <div class="lg:col-span-2 space-y-6">
           <!-- Shipping Address Card -->
           <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
@@ -78,8 +84,8 @@
                 {% for addr in addresses %}
                 <div class="relative">
                   <input type="radio" name="address" value="{{ addr.id }}" id="addr_{{ addr.id }}"
-                    {% if addr.is_default %}checked{% elif forloop.first %}checked{% endif %}
-                    class="peer sr-only" />
+                    {% if addr.is_default %}checked{% elif forloop.first and addresses %}checked{% endif %}
+                    class="peer sr-only" required />
                   <label for="addr_{{ addr.id }}" 
                     class="flex items-start p-4 border-2 rounded-lg cursor-pointer transition-all
                            peer-checked:border-blue-600 peer-checked:bg-blue-50 peer-checked:shadow-md
@@ -133,11 +139,11 @@
             
             <div class="p-6 space-y-3">
               <div class="relative">
-                <input type="radio" name="payment_method" value="COD" id="payment_cod" class="peer sr-only">
+                <input type="radio" name="payment_method" value="COD" id="payment_cod" class="peer sr-only" required {% if not addresses %}disabled{% endif %}>
                 <label for="payment_cod" 
                   class="flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all
                          peer-checked:border-purple-600 peer-checked:bg-purple-50 peer-checked:shadow-md
-                         border-gray-200 hover:border-purple-300 hover:shadow-sm">
+                         border-gray-200 hover:border-purple-300 hover:shadow-sm {% if not addresses %}opacity-50 cursor-not-allowed{% endif %}">
                   <div class="flex-shrink-0">
                     <div class="w-5 h-5 rounded-full border-2 peer-checked:border-purple-600 peer-checked:bg-purple-600 border-gray-300 flex items-center justify-center">
                       <div class="hidden peer-checked:block w-2 h-2 bg-white rounded-full"></div>
@@ -156,11 +162,11 @@
               </div>
 
               <div class="relative">
-                <input type="radio" name="payment_method" value="ONLINE" id="payment_online" class="peer sr-only">
+                <input type="radio" name="payment_method" value="ONLINE" id="payment_online" class="peer sr-only" {% if not addresses %}disabled{% endif %}>
                 <label for="payment_online" 
                   class="flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all
                          peer-checked:border-purple-600 peer-checked:bg-purple-50 peer-checked:shadow-md
-                         border-gray-200 hover:border-purple-300 hover:shadow-sm">
+                         border-gray-200 hover:border-purple-300 hover:shadow-sm {% if not addresses %}opacity-50 cursor-not-allowed{% endif %}">
                   <div class="flex-shrink-0">
                     <div class="w-5 h-5 rounded-full border-2 peer-checked:border-purple-600 peer-checked:bg-purple-600 border-gray-300 flex items-center justify-center">
                       <div class="hidden peer-checked:block w-2 h-2 bg-white rounded-full"></div>
@@ -182,11 +188,11 @@
               </div>
 
               <div class="relative">
-                <input type="radio" name="payment_method" value="WALLET" id="payment_wallet" class="peer sr-only">
+                <input type="radio" name="payment_method" value="WALLET" id="payment_wallet" class="peer sr-only" {% if not addresses %}disabled{% endif %}>
                 <label for="payment_wallet" 
                   class="flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all
                          peer-checked:border-purple-600 peer-checked:bg-purple-50 peer-checked:shadow-md
-                         border-gray-200 hover:border-purple-300 hover:shadow-sm">
+                         border-gray-200 hover:border-purple-300 hover:shadow-sm {% if not addresses %}opacity-50 cursor-not-allowed{% endif %}">
                   <div class="flex-shrink-0">
                     <div class="w-5 h-5 rounded-full border-2 peer-checked:border-purple-600 peer-checked:bg-purple-600 border-gray-300 flex items-center justify-center">
                       <div class="hidden peer-checked:block w-2 h-2 bg-white rounded-full"></div>
@@ -226,7 +232,7 @@
                   <input type="text" id="coupon_code" name="coupon_code"
                          placeholder="Enter coupon code"
                          class="w-full border-2 border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all"
-                         value="{{ coupon.code|default_if_none:'' }}">
+                         value="{{ request.session.coupon_id|default_if_none:'' }}">
                   <svg class="absolute right-3 top-3.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"></path>
                   </svg>
@@ -235,7 +241,7 @@
                         class="px-6 py-3 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white font-medium rounded-lg transition-all shadow-sm hover:shadow-md whitespace-nowrap">
                   Apply
                 </button>
-                {% if coupon %}
+                {% if request.session.coupon_id %}
                 <button type="button" id="removeCouponBtn" 
                         class="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium rounded-lg transition-all whitespace-nowrap">
                   Remove
@@ -243,19 +249,17 @@
                 {% endif %}
               </div>
               <p id="couponMessage" class="mt-3 text-sm font-medium">
-                {% if coupon %}
+                {% if request.session.coupon_id %}
                   <span class="flex items-center text-green-700 bg-green-50 px-3 py-2 rounded-lg">
                     <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
                     </svg>
-                    Coupon "{{ coupon.code }}" Applied: -₹{{ discount|floatformat:2 }}
+                    Coupon "{{ request.session.coupon_id }}" Applied: -₹{{ discount|floatformat:2 }}
                   </span>
                 {% endif %}
               </p>
             </div>
           </div>
-
-        </form>
       </div>
 
       <!-- Right Column: Order Summary -->
@@ -319,13 +323,14 @@
             </div>
 
             <!-- Place Order Button -->
-            <button type="submit" form="checkoutForm" onclick="return confirm('Are you sure you want to place the order?');"
-              class="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5">
+            <button type="submit" 
+              class="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5 {% if not addresses %}opacity-50 cursor-not-allowed{% endif %}"
+              {% if not addresses %}disabled{% endif %}>
               <span class="flex items-center justify-center">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
-                Place Order
+                {% if addresses %}Place Order{% else %}Add Address to Continue{% endif %}
               </span>
             </button>
 
@@ -339,22 +344,42 @@
           </div>
         </div>
       </div>
-
-    </div>
+    </form>
   </div>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  const form = document.querySelector('form');
-  form.id = 'checkoutForm';
-
   const applyBtn = document.getElementById('applyCouponBtn');
   const couponInput = document.getElementById('coupon_code');
   const couponMessage = document.getElementById('couponMessage');
+  const checkoutForm = document.getElementById('checkoutForm');
+
+  // Add form submission handler
+  checkoutForm.addEventListener('submit', function(e) {
+    const addressSelected = document.querySelector('input[name="address"]:checked');
+    const paymentSelected = document.querySelector('input[name="payment_method"]:checked');
+    
+    if (!addressSelected) {
+      e.preventDefault();
+      alert('Please select a shipping address.');
+      return false;
+    }
+    
+    if (!paymentSelected) {
+      e.preventDefault();
+      alert('Please select a payment method.');
+      return false;
+    }
+    
+    if (!confirm('Are you sure you want to place the order?')) {
+      e.preventDefault();
+      return false;
+    }
+  });
 
   applyBtn.addEventListener('click', async () => {
-    const code = couponInput.value.trim();
+    const code = couponInput.value.trim().toUpperCase();
     if (!code) {
       couponMessage.innerHTML = `<span class="flex items-center text-amber-700 bg-amber-50 px-3 py-2 rounded-lg">
         <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
@@ -363,12 +388,19 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
 
+    applyBtn.disabled = true;
+    applyBtn.innerHTML = '<span class="animate-spin mr-2">⟳</span> Applying...';
+
     try {
-      const response = await fetch("{% url 'apply_coupon' %}?code=" + code, {
+      const response = await fetch("{% url 'apply_coupon' %}?code=" + encodeURIComponent(code), {
         method: 'GET',
-        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        headers: { 
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
         credentials: 'same-origin'
       });
+      
       const data = await response.json();
 
       if (data.success) {
@@ -380,18 +412,8 @@ document.addEventListener('DOMContentLoaded', function() {
         </span>`;
         
         // Update totals
-        const subtotalElem = document.getElementById('subtotal');
-        const taxElem = document.getElementById('tax');
-        const deliveryElem = document.getElementById('delivery');
-        const discountElem = document.getElementById('discount');
-        const grandElem = document.getElementById('grand_total');
-
-        if (subtotalElem && data.subtotal) subtotalElem.textContent = '₹' + data.subtotal;
-        if (taxElem && data.tax) taxElem.textContent = '₹' + data.tax;
-        if (deliveryElem && data.delivery) deliveryElem.textContent = '₹' + data.delivery;
-        if (discountElem && data.discount) discountElem.textContent = '-₹' + data.discount;
-        if (grandElem && data.new_total) grandElem.textContent = '₹' + data.new_total;
-
+        updateOrderTotals(data);
+        
         // Add Remove button if it doesn't exist
         let removeBtn = document.getElementById('removeCouponBtn');
         if (!removeBtn) {
@@ -403,6 +425,10 @@ document.addEventListener('DOMContentLoaded', function() {
           applyBtn.insertAdjacentElement('afterend', removeBtn);
           removeBtn.addEventListener('click', removeCouponAjax);
         }
+        
+        // Update input with the formatted code
+        couponInput.value = data.code;
+        
       } else {
         couponMessage.innerHTML = `<span class="flex items-center text-red-700 bg-red-50 px-3 py-2 rounded-lg">
           <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -412,22 +438,32 @@ document.addEventListener('DOMContentLoaded', function() {
         </span>`;
       }
     } catch (error) {
-      console.error(error);
+      console.error('Coupon application error:', error);
       couponMessage.innerHTML = `<span class="flex items-center text-red-700 bg-red-50 px-3 py-2 rounded-lg">
         <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
           <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
         </svg>
         Error applying coupon. Please try again.
       </span>`;
+    } finally {
+      applyBtn.disabled = false;
+      applyBtn.innerHTML = 'Apply';
     }
   });
 
   // Remove coupon handler
   async function removeCouponAjax() {
+    const removeBtn = document.getElementById('removeCouponBtn');
+    removeBtn.disabled = true;
+    removeBtn.innerHTML = '<span class="animate-spin mr-2">⟳</span> Removing...';
+
     try {
       const response = await fetch("{% url 'remove_coupon' %}", {
         method: 'GET',
-        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        headers: { 
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
         credentials: 'same-origin'
       });
       const data = await response.json();
@@ -440,21 +476,10 @@ document.addEventListener('DOMContentLoaded', function() {
           Coupon removed successfully
         </span>`;
         
-        const subtotalElem = document.getElementById('subtotal');
-        const taxElem = document.getElementById('tax');
-        const deliveryElem = document.getElementById('delivery');
-        const discountElem = document.getElementById('discount');
-        const grandElem = document.getElementById('grand_total');
-
-        if (subtotalElem && data.subtotal) subtotalElem.textContent = '₹' + data.subtotal;
-        if (taxElem && data.tax) taxElem.textContent = '₹' + data.tax;
-        if (deliveryElem && data.delivery) deliveryElem.textContent = '₹' + data.delivery;
-        if (discountElem) discountElem.textContent = '-₹0.00';
-        if (grandElem && data.new_total) grandElem.textContent = '₹' + data.new_total;
-
+        updateOrderTotals(data);
+        
         // Remove the Remove button
-        const existing = document.getElementById('removeCouponBtn');
-        if (existing) existing.remove();
+        removeBtn.remove();
         
         // Clear input
         couponInput.value = '';
@@ -467,14 +492,51 @@ document.addEventListener('DOMContentLoaded', function() {
         </span>`;
       }
     } catch (err) {
-      console.error(err);
+      console.error('Coupon removal error:', err);
       couponMessage.innerHTML = `<span class="flex items-center text-red-700 bg-red-50 px-3 py-2 rounded-lg">
         <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
           <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
         </svg>
         Error removing coupon
       </span>`;
+    } finally {
+      removeBtn.disabled = false;
+      removeBtn.innerHTML = 'Remove';
     }
+  }
+
+  // Update order totals
+  function updateOrderTotals(data) {
+    const subtotalElem = document.getElementById('subtotal');
+    const taxElem = document.getElementById('tax');
+    const deliveryElem = document.getElementById('delivery');
+    const discountElem = document.getElementById('discount');
+    const grandElem = document.getElementById('grand_total');
+
+    if (subtotalElem && data.subtotal) subtotalElem.textContent = '₹' + data.subtotal;
+    if (taxElem && data.tax) taxElem.textContent = '₹' + data.tax;
+    if (deliveryElem && data.delivery) deliveryElem.textContent = '₹' + data.delivery;
+    
+    // Handle discount display
+    if (data.discount && parseFloat(data.discount) > 0) {
+      if (!discountElem) {
+        // Create discount row if it doesn't exist
+        const taxRow = document.querySelector('#tax').parentElement;
+        const discountRow = document.createElement('div');
+        discountRow.className = 'flex justify-between text-sm text-green-700 font-semibold';
+        discountRow.innerHTML = `<span>Discount:</span><span id="discount">-₹${data.discount}</span>`;
+        taxRow.after(discountRow);
+      } else {
+        discountElem.textContent = '-₹' + data.discount;
+      }
+    } else {
+      // Remove discount row if discount is 0
+      if (discountElem) {
+        discountElem.parentElement.remove();
+      }
+    }
+    
+    if (grandElem && data.new_total) grandElem.textContent = '₹' + data.new_total;
   }
 
   // Wire remove button if exists on page load

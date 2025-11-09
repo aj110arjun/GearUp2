@@ -55,30 +55,101 @@
                     <p class="text-xs text-gray-500">Use uppercase letters and numbers for better readability</p>
                 </div>
 
-                <!-- Discount Value -->
+                <!-- Discount Percentage -->
                 <div class="space-y-2">
                     <label class="block text-sm font-semibold text-gray-900">
-                        Discount Amount
+                        Discount Percentage
                         <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span class="text-gray-500 font-medium">%</span>
+                        </div>
+                        <input type="number" name="discount_percentage" step="0.01" min="0" max="100"
+                               value="{{ coupon.discount_percentage|default:'' }}"
+                               placeholder="0.00"
+                               class="w-full border border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 {% if error.discount_percentage %}border-red-500 ring-2 ring-red-200{% endif %}"
+                               required>
+                    </div>
+                    {% if error.discount_percentage %}
+                    <div class="flex items-center text-red-600 text-sm">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        {{ error.discount_percentage }}
+                    </div>
+                    {% endif %}
+                    <p class="text-xs text-gray-500">Enter discount percentage (0-100%)</p>
+                </div>
+
+                <!-- Maximum Discount Amount -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-semibold text-gray-900">
+                        Maximum Discount Amount
                     </label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <span class="text-gray-500 font-medium">₹</span>
                         </div>
-                        <input type="number" name="discount_value" step="0.01" min="0"
-                               value="{{ coupon.discount_value|default:'' }}"
-                               placeholder="0.00"
-                               class="w-full border border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 {% if error.discount_value %}border-red-500 ring-2 ring-red-200{% endif %}"
-                               required>
+                        <input type="number" name="maximum_discount_amount" step="0.01" min="0"
+                               value="{{ coupon.maximum_discount_amount|default:'' }}"
+                               placeholder="No limit"
+                               class="w-full border border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 {% if error.maximum_discount_amount %}border-red-500 ring-2 ring-red-200{% endif %}">
                     </div>
-                    {% if error.discount_value %}
+                    {% if error.maximum_discount_amount %}
                     <div class="flex items-center text-red-600 text-sm">
                         <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
-                        {{ error.discount_value }}
+                        {{ error.maximum_discount_amount }}
                     </div>
                     {% endif %}
+                    <p class="text-xs text-gray-500">Optional: Set maximum discount amount to cap savings</p>
+                </div>
+
+                <!-- Minimum Order Amount -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-semibold text-gray-900">
+                        Minimum Order Amount
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span class="text-gray-500 font-medium">₹</span>
+                        </div>
+                        <input type="number" name="minimum_order_amount" step="0.01" min="0"
+                               value="{{ coupon.minimum_order_amount|default:'0' }}"
+                               placeholder="0.00"
+                               class="w-full border border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 {% if error.minimum_order_amount %}border-red-500 ring-2 ring-red-200{% endif %}">
+                    </div>
+                    {% if error.minimum_order_amount %}
+                    <div class="flex items-center text-red-600 text-sm">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        {{ error.minimum_order_amount }}
+                    </div>
+                    {% endif %}
+                    <p class="text-xs text-gray-500">Minimum cart value required to use this coupon</p>
+                </div>
+
+                <!-- Usage Limit -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-semibold text-gray-900">
+                        Usage Limit
+                    </label>
+                    <input type="number" name="usage_limit" min="0"
+                           value="{{ coupon.usage_limit|default:'' }}"
+                           placeholder="Unlimited uses"
+                           class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 {% if error.usage_limit %}border-red-500 ring-2 ring-red-200{% endif %}">
+                    {% if error.usage_limit %}
+                    <div class="flex items-center text-red-600 text-sm">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        {{ error.usage_limit }}
+                    </div>
+                    {% endif %}
+                    <p class="text-xs text-gray-500">Maximum number of times this coupon can be used</p>
                 </div>
 
                 <!-- Date Range -->
@@ -90,8 +161,8 @@
                             <span class="text-red-500">*</span>
                         </label>
                         <div class="relative">
-                            <input type="date" name="valid_from"
-                                   value="{{ coupon.valid_from|date:'Y-m-d'|default:'' }}"
+                            <input type="datetime-local" name="valid_from"
+                                   value="{{ coupon.valid_from|date:'Y-m-d\TH:i'|default:'' }}"
                                    class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 {% if error.valid_from %}border-red-500 ring-2 ring-red-200{% endif %}"
                                    required>
                         </div>
@@ -101,28 +172,28 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
                             {{ error.valid_from }}
-                        </div>
+                    </div>
                         {% endif %}
                     </div>
 
-                    <!-- Valid To -->
+                    <!-- Valid Until -->
                     <div class="space-y-2">
                         <label class="block text-sm font-semibold text-gray-900">
-                            Valid To
+                            Valid Until
                             <span class="text-red-500">*</span>
                         </label>
                         <div class="relative">
-                            <input type="date" name="valid_to"
-                                   value="{{ coupon.valid_to|date:'Y-m-d'|default:'' }}"
-                                   class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 {% if error.valid_to %}border-red-500 ring-2 ring-red-200{% endif %}"
+                            <input type="datetime-local" name="valid_until"
+                                   value="{{ coupon.valid_until|date:'Y-m-d\TH:i'|default:'' }}"
+                                   class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 {% if error.valid_until %}border-red-500 ring-2 ring-red-200{% endif %}"
                                    required>
                         </div>
-                        {% if error.valid_to %}
+                        {% if error.valid_until %}
                         <div class="flex items-center text-red-600 text-sm">
                             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
-                            {{ error.valid_to }}
+                            {{ error.valid_until }}
                         </div>
                         {% endif %}
                     </div>
@@ -131,12 +202,12 @@
                 <!-- Active Status -->
                 <div class="flex items-center p-4 bg-blue-50 rounded-xl border border-blue-200">
                     <div class="flex items-center h-5">
-                        <input type="checkbox" name="active" id="active"
+                        <input type="checkbox" name="is_active" id="is_active"
                                class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                               {% if coupon.active or coupon is not defined %}checked{% endif %}>
+                               {% if coupon.is_active or not coupon %}checked{% endif %}>
                     </div>
                     <div class="ml-3">
-                        <label for="active" class="text-sm font-medium text-gray-900">Active Coupon</label>
+                        <label for="is_active" class="text-sm font-medium text-gray-900">Active Coupon</label>
                         <p class="text-sm text-gray-600">Make this coupon available for customers to use</p>
                     </div>
                 </div>
@@ -177,6 +248,8 @@
                             <li>Set realistic validity periods to create urgency</li>
                             <li>Test coupons before making them active</li>
                             <li>Monitor coupon usage in your analytics dashboard</li>
+                            <li>Set maximum discount amounts to control costs</li>
+                            <li>Use minimum order amounts to increase average order value</li>
                         </ul>
                     </div>
                 </div>
@@ -186,7 +259,7 @@
 </div>
 
 <style>
-    input[type="date"]::-webkit-calendar-picker-indicator {
+    input[type="datetime-local"]::-webkit-calendar-picker-indicator {
         background: transparent;
         bottom: 0;
         color: transparent;
