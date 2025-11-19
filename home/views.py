@@ -18,8 +18,6 @@ from django.db.models.functions import ExtractMonth, ExtractYear
 from django.http import JsonResponse
 
 
-
-
 @never_cache
 @login_required(login_url='login')
 @cache_control(no_cache=True, must_revalidate=True, no_store=True)
@@ -28,9 +26,15 @@ def home(request):
         return redirect('login')
     if not request.user.is_authenticated:
         return redirect('login')
-    subquery = ProductVariant.objects.filter(product=OuterRef('pk')).order_by('id')
-    products = Product.objects.filter(is_active = True).annotate(first_variant_id=Subquery(subquery.values('id')[:1]))[:8]
-    variants = ProductVariant.objects.filter(id__in=[p.first_variant_id for p in products if p.first_variant_id])
+    subquery = ProductVariant.objects.filter(
+        product=OuterRef('pk')
+        ).order_by('id')
+    products = Product.objects.filter(is_active=True).annotate(
+        first_variant_id=Subquery(subquery.values('id')[:1])
+        )[:8]
+    variants = ProductVariant.objects.filter(
+        id__in=[p.first_variant_id for p in products if p.first_variant_id]
+        )
 
     breadcrumbs = [
         ("Home", None)
@@ -40,8 +44,8 @@ def home(request):
         'breadcrumbs': breadcrumbs,
     }
 
-    
     return render(request, 'user/index.html', context)
+
 
 @staff_member_required(login_url='admin_login')
 @never_cache
@@ -62,32 +66,38 @@ def sales_chart_data(request):
 
     elif filter_type == 'monthly':
         # Aggregate total sales per month for the current year
-        qs = Order.objects.filter(payment_status="Paid", created_at__year=today.year).annotate(
-            month=F('created_at__month')
-        ).values('month').annotate(
-            total=Sum('total_price')
-        ).order_by('month')
+        qs = Order.objects.filter(
+            payment_status="Paid", created_at__year=today.year
+            ).annotate(
+                month=F('created_at__month')
+            ).values('month').annotate(
+                total=Sum('total_price')
+            ).order_by('month')
 
         labels = [f"{month_label(row['month'])}" for row in qs]
         sales = [float(row['total'] or 0) for row in qs]
 
     else:  # daily by default, last 7 days
         start_date = today - timedelta(days=6)
-        qs = Order.objects.filter(payment_status="Paid", created_at__date__range=(start_date, today)).annotate(
-            date=F('created_at__date')
-        ).values('date').annotate(
-            total=Sum('total_price')
-        ).order_by('date')
+        qs = Order.objects.filter(
+            payment_status="Paid", created_at__date__range=(start_date, today)
+            ).annotate(
+                date=F('created_at__date')
+            ).values('date').annotate(
+                total=Sum('total_price')
+            ).order_by('date')
 
         labels = [row['date'].strftime("%b %d") for row in qs]
         sales = [float(row['total'] or 0) for row in qs]
 
     return JsonResponse({'labels': labels, 'sales': sales})
 
+
 def month_label(month_number):
     import calendar
     # Converts month number to short name like Jan, Feb...
     return calendar.month_abbr[month_number]
+
 
 # Admin Views
 @never_cache
@@ -102,9 +112,12 @@ def dashboard(request):
     # Order Stats
     total_orders = Order.objects.count()
     completed_orders = Order.objects.filter(payment_status="Paid").count()
-    pending_orders = Order.objects.filter(order_status="Pending").count()  # Uncommented
-    total_sales_decimal = Order.objects.filter(payment_status="Paid") \
-        .aggregate(total=Sum("total_price"))["total"] or 0
+    pending_orders = Order.objects.filter(order_status="Pending").count()
+    total_sales_decimal = Order.objects.filter(
+        payment_status="Paid"
+        ).aggregate(
+            total=Sum("total_price")
+            )["total"] or 0
     total_sales = int(total_sales_decimal)
 
     # Top 10 Products (commented out as in your original)
@@ -137,21 +150,22 @@ def dashboard(request):
     if selected_filter == 'monthly':
         # Aggregate total sales per month for the current year
         sales_qs = (
-            Order.objects.filter(payment_status="Paid", created_at__year=today.year)
-            .annotate(month=ExtractMonth("created_at"))
+            Order.objects.filter(
+                payment_status="Paid", created_at__year=today.year
+            ).annotate(month=ExtractMonth("created_at"))
             .values("month")
             .annotate(total=Sum("total_price"))
             .order_by("month")
         )
-        
+
         # Prepare monthly sales data with month labels (Jan, Feb, etc.)
         monthly_sales = []
-        month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+        month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-        
+
         # Create a dictionary for easy lookup
         sales_dict = {item['month']: float(item['total']) for item in sales_qs}
-        
+
         for i in range(1, 13):
             total = sales_dict.get(i, 0.0)
             monthly_sales.append({"date": month_names[i-1], "sales": total})
@@ -167,11 +181,10 @@ def dashboard(request):
             .annotate(total=Sum("total_price"))
             .order_by("year")
         )
-        
         yearly_sales = []
         for item in sales_qs:
             yearly_sales.append({
-                "date": str(item['year']), 
+                "date": str(item['year']),
                 "sales": float(item['total'])
             })
 
@@ -181,18 +194,18 @@ def dashboard(request):
         # Daily - last 7 days sales
         last_7_days = [today - timedelta(days=i) for i in range(6, -1, -1)]
         daily_sales = []
-        
+
         for day in last_7_days:
             day_sales = Order.objects.filter(
-                payment_status="Paid", 
+                payment_status="Paid",
                 created_at__date=day
             ).aggregate(total=Sum("total_price"))["total"] or 0
-            
+
             daily_sales.append({
-                "date": day.strftime("%b %d"), 
+                "date": day.strftime("%b %d"),
                 "sales": float(day_sales)
             })
-        
+
         sales_data = daily_sales
 
     context = {
@@ -207,6 +220,7 @@ def dashboard(request):
         "selected_filter": selected_filter,
     }
     return render(request, 'custom_admin/dashboard.html', context)
+
 
 @staff_member_required(login_url='admin_login')
 @never_cache
@@ -226,10 +240,20 @@ def download_sales_report_pdf(request):
 
     # Description or generated date
     pdf.setFont("Helvetica", 10)
-    pdf.drawCentredString(width / 2, height - 80, f"Generated on: {date.today().strftime('%Y-%m-%d')}")
+    pdf.drawCentredString(width / 2, height - 80, f"Generated on: {
+        date.today().strftime('%Y-%m-%d')
+        }")
 
     # Prepare data for table with header
-    table_data = [['Date', 'Total Sales (Rs.)', 'Orders Count', 'Status Breakdown', 'Avg. Order Value']]
+    table_data = [
+        [
+            'Date',
+            'Total Sales (Rs.)',
+            'Orders Count',
+            'Status Breakdown',
+            'Avg. Order Value'
+        ]
+        ]
 
     styles = getSampleStyleSheet()
     wrap_style = styles["BodyText"]
@@ -242,9 +266,11 @@ def download_sales_report_pdf(request):
     for i in range(6, -1, -1):
         current_day = today - timedelta(days=i)
         daily_orders = Order.objects.filter(created_at__date=current_day)
-        total_sales = daily_orders.aggregate(total=Sum('total_price'))['total'] or 0
+        total_sales = daily_orders.aggregate(
+            total=Sum('total_price')
+            )['total'] or 0
         orders_count = daily_orders.count()
-        
+
         # Calculate average order value
         avg_order_value = total_sales / orders_count if orders_count > 0 else 0
 
@@ -256,13 +282,13 @@ def download_sales_report_pdf(request):
 
         # Append each row
         table_data.append([
-            current_day.strftime('%Y-%m-%d'), 
-            f"Rs.{total_sales:,.0f}", 
-            orders_count, 
-            status_para, 
+            current_day.strftime('%Y-%m-%d'),
+            f"Rs.{total_sales:,.0f}",
+            orders_count,
+            status_para,
             f"Rs.{avg_order_value:,.0f}" if orders_count > 0 else "Rs.0"
         ])
-        
+
         weekly_data.append({
             'date': current_day,
             'total_sales': total_sales,
@@ -302,29 +328,45 @@ def download_sales_report_pdf(request):
 
     # Add summary section
     summary_y = y_start - 80
-    
+
     pdf.setFont("Helvetica-Bold", 14)
     pdf.drawString(40, summary_y, "Weekly Summary")
-    
+
     # Calculate weekly totals
     weekly_total_sales = sum(day['total_sales'] for day in weekly_data)
     weekly_total_orders = sum(day['orders_count'] for day in weekly_data)
     weekly_paid_orders = sum(day['paid_count'] for day in weekly_data)
     weekly_pending_orders = sum(day['pending_count'] for day in weekly_data)
-    
-    avg_weekly_order_value = weekly_total_sales / weekly_total_orders if weekly_total_orders > 0 else 0
-    conversion_rate = (weekly_paid_orders / weekly_total_orders) * 100 if weekly_total_orders > 0 else 0
+
+    avg_weekly_order_value = (
+        weekly_total_sales / weekly_total_orders
+        ) if weekly_total_orders > 0 else 0
+    conversion_rate = (
+        weekly_paid_orders / weekly_total_orders
+        ) * 100 if weekly_total_orders > 0 else 0
 
     pdf.setFont("Helvetica", 10)
-    pdf.drawString(40, summary_y - 20, f"Total Weekly Sales: Rs.{weekly_total_sales:,.0f}")
-    pdf.drawString(40, summary_y - 35, f"Total Weekly Orders: {weekly_total_orders}")
-    pdf.drawString(40, summary_y - 50, f"Paid Orders: {weekly_paid_orders} | Pending Orders: {weekly_pending_orders}")
-    pdf.drawString(40, summary_y - 65, f"Average Order Value: Rs.{avg_weekly_order_value:,.0f}")
-    pdf.drawString(40, summary_y - 80, f"Payment Conversion Rate: {conversion_rate:.1f}%")
-    
+    pdf.drawString(40, summary_y - 20, f"Total Weekly Sales: Rs.{
+        weekly_total_sales:,.0f
+        }")
+    pdf.drawString(40, summary_y - 35, f"Total Weekly Orders: {
+        weekly_total_orders
+        }")
+    pdf.drawString(40, summary_y - 50, f"Paid Orders: {
+        weekly_paid_orders
+        } | Pending Orders: {weekly_pending_orders}")
+    pdf.drawString(40, summary_y - 65, f"Average Order Value: Rs.{
+        avg_weekly_order_value:,.0f
+        }")
+    pdf.drawString(40, summary_y - 80, f"Payment Conversion Rate: {
+        conversion_rate:.1f
+        }%")
+
     # Best performing day
     best_day = max(weekly_data, key=lambda x: x['total_sales'])
-    pdf.drawString(40, summary_y - 100, f"Best Day: {best_day['date'].strftime('%Y-%m-%d')} (Rs.{best_day['total_sales']:,.0f})")
+    pdf.drawString(40, summary_y - 100, f"Best Day: {
+        best_day['date'].strftime('%Y-%m-%d')
+        } (Rs.{best_day['total_sales']:,.0f})")
 
     # Finalize PDF
     pdf.showPage()

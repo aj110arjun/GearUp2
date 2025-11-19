@@ -246,12 +246,6 @@
               {% if product.variants.first.id in cart_variant_ids %}In Cart{% else %}Add to Cart{% endif %}
             </button>
           </form>
-
-          <!-- View Details Link -->
-          <a href="{% url 'product_detail' product.product_id %}"
-             class="block w-full py-2.5 text-center border-2 border-emerald-600 text-emerald-600 rounded-lg font-semibold hover:bg-emerald-50 transition-colors">
-            View Details
-          </a>
         </div>
       </div>
     </div>
