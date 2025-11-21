@@ -1,6 +1,5 @@
 import pyotp
 import re
-
 from django.core.mail import send_mail
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import User
@@ -13,20 +12,17 @@ from django.contrib.auth.password_validation import validate_password
 from django.contrib.admin.views.decorators import staff_member_required
 from django.utils import timezone
 from datetime import datetime, timedelta
-from django.contrib.auth.decorators import login_required
-
-from decimal import Decimal
 from allauth.socialaccount.models import SocialAccount
 from decouple import config
+from django.http import JsonResponse
 
 
-
-### User Views
+# User Views
 def custom_404(request, exception):
     return render(request, "404.html", status=404)
 
-# signup view
 
+# signup view
 @never_cache
 def user_signup(request):
     if request.user.is_authenticated:
@@ -108,15 +104,13 @@ def user_signup(request):
     return render(request, 'user/signup.html', {'error': error, 'data': data})
 
 
-
 # login view
 @never_cache
 def user_login(request):
     if request.user.is_authenticated:
         return redirect('home')
-        
-    error={}
-    data={}
+    error = {}
+    data = {}
     if request.method == 'POST':
         email = request.POST.get('email', '')
         password = request.POST.get('password', '')
@@ -124,10 +118,10 @@ def user_login(request):
         data = {
             'email': email,
         }
-        
+
         if not email or not password:
             error["common"]="All fields are required"
-            
+
         if not error:
             user = authenticate(request, username=email, password=password)
             if user is not None:
@@ -136,7 +130,7 @@ def user_login(request):
                 return redirect('home')
             else:
                 error["common"] = "Invalid email or password."
-                
+
     return render(request, 'user/login.html', {'error': error, "data": data})
 
 
@@ -184,6 +178,7 @@ def verify_otp(request):
         'remaining_seconds': remaining_seconds,  # ✅ NEW
     })
 
+
 def resend_otp(request):
     signup_data = request.session.get("signup_data")
     if not signup_data:
@@ -214,6 +209,7 @@ def logout_view(request):
     logout(request)
     request.session.flush()
     return redirect('login')
+
 
 def forgot_password(request):
     error = {}
@@ -249,6 +245,17 @@ def forgot_password(request):
                 error["email"] = "No account found with this email"
 
     return render(request, "user/forgot_password.html", {"error": error})
+
+
+def validate_user_email(request):
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        try:
+            user = User.objects.get(email=email)
+            return JsonResponse({'valid': True, 'user_id': user.id})
+        except User.DoesNotExist:
+            return JsonResponse({'valid': False, 'error': 'Email not found'})
+    return JsonResponse({'valid': False, 'error': 'Invalid request method'})
 
 
 def reset_password(request):
